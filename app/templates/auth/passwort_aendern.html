@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Passwort ändern – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-lock"></i> Passwort ändern</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="altes_passwort" class="form-label">Altes Passwort</label>
+                        <input type="password" class="form-control" id="altes_passwort" name="altes_passwort" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="neues_passwort" class="form-label">Neues Passwort</label>
+                        <input type="password" class="form-control" id="neues_passwort" name="neues_passwort" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="neues_passwort2" class="form-label">Passwort wiederholen</label>
+                        <input type="password" class="form-control" id="neues_passwort2" name="neues_passwort2" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Passwort ändern</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

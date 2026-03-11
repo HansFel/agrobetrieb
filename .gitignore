@@ -1,0 +1,29 @@
+# Environment
+.env
+.venv/
+venv/
+*.pyc
+__pycache__/
+*.egg-info/
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+dist/
+build/
+
+# OS
+Thumbs.db
+
+# App
+app/static/uploads/
+instance/

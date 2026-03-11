@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if betrieb %}
+        Betrieb bearbeiten
+    {% else %}
+        Neuer Betrieb
+    {% endif %}
+    – AgroBetrieb
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">
+                    {% if betrieb %}
+                        <i class="bi bi-pencil"></i> Betrieb bearbeiten
+                    {% else %}
+                        <i class="bi bi-plus"></i> Neuer Betrieb
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <h6 class="text-muted mt-3 mb-3">Grunddaten</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Betriebsname *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ betrieb.name if betrieb else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="land" class="form-label">Land</label>
+                            <input type="text" class="form-control" id="land" name="land" 
+                                   value="{{ betrieb.land if betrieb else 'AT' }}" maxlength="2">
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mt-4 mb-3">Adresse</h6>
+                    <div class="mb-3">
+                        <label for="strasse" class="form-label">Straße</label>
+                        <input type="text" class="form-control" id="strasse" name="strasse" 
+                               value="{{ betrieb.strasse if betrieb else '' }}">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="plz" class="form-label">PLZ</label>
+                            <input type="text" class="form-control" id="plz" name="plz" 
+                                   value="{{ betrieb.plz if betrieb else '' }}">
+                        </div>
+                        <div class="col-md-8">
+                            <label for="ort" class="form-label">Ort</label>
+                            <input type="text" class="form-control" id="ort" name="ort" 
+                                   value="{{ betrieb.ort if betrieb else '' }}">
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mt-4 mb-3">Behördlich</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="uid_nummer" class="form-label">UID-Nummer</label>
+                            <input type="text" class="form-control" id="uid_nummer" name="uid_nummer" 
+                                   value="{{ betrieb.uid_nummer if betrieb else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="steuernummer" class="form-label">Steuernummer</label>
+                            <input type="text" class="form-control" id="steuernummer" name="steuernummer" 
+                                   value="{{ betrieb.steuernummer if betrieb else '' }}">
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mt-4 mb-3">Bankverbindung</h6>
+                    <div class="mb-3">
+                        <label for="bank_name" class="form-label">Bank</label>
+                        <input type="text" class="form-control" id="bank_name" name="bank_name" 
+                               value="{{ betrieb.bank_name if betrieb else '' }}">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="iban" class="form-label">IBAN</label>
+                            <input type="text" class="form-control" id="iban" name="iban" 
+                                   value="{{ betrieb.iban if betrieb else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="bic" class="form-label">BIC</label>
+                            <input type="text" class="form-control" id="bic" name="bic" 
+                                   value="{{ betrieb.bic if betrieb else '' }}">
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mt-4 mb-3">Kontakt</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="telefon" class="form-label">Telefon</label>
+                            <input type="tel" class="form-control" id="telefon" name="telefon" 
+                                   value="{{ betrieb.telefon if betrieb else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">E-Mail</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ betrieb.email if betrieb else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="website" class="form-label">Website</label>
+                        <input type="url" class="form-control" id="website" name="website" 
+                               value="{{ betrieb.website if betrieb else '' }}">
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {% if betrieb %}Speichern{% else %}Erstellen{% endif %}
+                        </button>
+                        <a href="{{ url_for('betrieb.index') }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

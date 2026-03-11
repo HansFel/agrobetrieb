@@ -37,9 +37,10 @@ def create_app(config_name='default'):
         }
     
     # Blueprint registrieren
-    from app.blueprints import auth, dashboard
+    from app.blueprints import auth, dashboard, betrieb
     app.register_blueprint(auth.auth_bp)
     app.register_blueprint(dashboard.dashboard_bp)
+    app.register_blueprint(betrieb.betrieb_bp)
     
     # CLI Commands
     @app.cli.command()

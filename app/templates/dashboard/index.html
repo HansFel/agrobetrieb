@@ -6,46 +6,100 @@
 <div class="row mb-4">
     <div class="col-md-12">
         <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
-        <p class="text-muted">Willkommen bei AgroBetrieb, {{ current_user.vorname or current_user.username }}!</p>
+        <p class="text-muted">Willkommen, {{ current_user.vorname or current_user.username }}!</p>
     </div>
 </div>
 
+{% if not betrieb %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Betrieb nicht konfiguriert!</strong> Bitte erstelle zunächst Betriebsstammdaten.
+    <a href="{{ url_for('betrieb.create') }}" class="btn btn-sm btn-warning ms-2">Jetzt einrichten</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
 <div class="row">
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-calendar"></i> Einsätze</h5>
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-calendar"></i> Einsätze
+                </h6>
                 <p class="card-text display-6">0</p>
                 <small class="text-muted">Diesen Monat</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-receipt"></i> Rechnungen</h5>
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-receipt"></i> Rechnungen
+                </h6>
                 <p class="card-text display-6">0</p>
                 <small class="text-muted">Offen</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-box-seam"></i> Lager</h5>
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-box-seam"></i> Lager
+                </h6>
                 <p class="card-text display-6">0</p>
                 <small class="text-muted">Unter Mindestbestand</small>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center">
+        <div class="card">
             <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-briefcase"></i> Betrieb</h5>
-                <p class="card-text display-6 text-success">✓</p>
-                <small class="text-muted">Stammdaten OK</small>
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-briefcase"></i> Betrieb
+                </h6>
+                {% if betrieb %}
+                    <p class="card-text text-success">✓ {{ betrieb.name }}</p>
+                    <small class="text-muted">Konfiguriert</small>
+                {% else %}
+                    <p class="card-text text-warning">✗ Keine Stammdaten</p>
+                    <small class="text-muted"><a href="{{ url_for('betrieb.create') }}">Einrichten</a></small>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+{% if betrieb %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="m-0">Betriebsinformationen</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> {{ betrieb.name }}</p>
+                        <p><strong>Ort:</strong> {{ betrieb.plz }} {{ betrieb.ort }}</p>
+                        {% if betrieb.uid_nummer %}
+                            <p><strong>UID:</strong> {{ betrieb.uid_nummer }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if betrieb.email %}
+                            <p><strong>Email:</strong> <a href="mailto:{{ betrieb.email }}">{{ betrieb.email }}</a></p>
+                        {% endif %}
+                        {% if betrieb.telefon %}
+                            <p><strong>Telefon:</strong> {{ betrieb.telefon }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{{ url_for('betrieb.edit') }}" class="btn btn-sm btn-primary">Bearbeiten</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

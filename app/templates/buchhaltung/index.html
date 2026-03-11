@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Buchhaltung{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1><i class="bi bi-calculator"></i> Buchhaltung</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('buchhaltung.create_buchung') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Neue Buchung
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Gesamteinnahmen</h6>
+                    <h4 class="text-success">CHF {{ "%.2f"|format(gesamt_einnahmen) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Gesamtausgaben</h6>
+                    <h4 class="text-danger">CHF {{ "%.2f"|format(gesamt_ausgaben) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Saldo</h6>
+                    <h4 class="{% if (gesamt_einnahmen - gesamt_ausgaben) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        CHF {{ "%.2f"|format(gesamt_einnahmen - gesamt_ausgaben) }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <a href="{{ url_for('buchhaltung.konten') }}" class="btn btn-sm btn-outline-primary me-1">
+                        <i class="bi bi-list"></i> Konten
+                    </a>
+                    <a href="{{ url_for('buchhaltung.kategorien') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-tags"></i> Kategorien
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buchungen List -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Letzte 20 Buchungen</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Datum</th>
+                        <th>Soll-Konto</th>
+                        <th>Haben-Konto</th>
+                        <th>Betrag</th>
+                        <th>MwSt %</th>
+                        <th>MwSt Betrag</th>
+                        <th>Kategorie</th>
+                        <th>Beschreibung</th>
+                        <th>Beleg</th>
+                        <th>Bezahlt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if buchungen %}
+                        {% for buchung in buchungen %}
+                        <tr>
+                            <td><small>{{ buchung.datum.strftime('%d.%m.%Y') }}</small></td>
+                            <td><small><strong>{{ buchung.soll_konto.nummer }}</strong> {{ buchung.soll_konto.bezeichnung }}</small></td>
+                            <td><small><strong>{{ buchung.haben_konto.nummer }}</strong> {{ buchung.haben_konto.bezeichnung }}</small></td>
+                            <td class="text-end"><small>CHF {{ "%.2f"|format(buchung.betrag) }}</small></td>
+                            <td class="text-center"><small>{{ buchung.mwst_satz or '-' }}</small></td>
+                            <td class="text-end"><small>CHF {{ "%.2f"|format(buchung.mwst_betrag or 0) }}</small></td>
+                            <td>
+                                {% if buchung.kategorie %}
+                                    <span class="badge badge-kategorie" style="--badge-color: {{ buchung.kategorie.farbe }};">
+                                        {{ buchung.kategorie.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ buchung.beschreibung or '-' }}</small></td>
+                            <td><small>{{ buchung.beleg_nummer or '-' }}</small></td>
+                            <td>
+                                {% if buchung.bezahlt %}
+                                    <span class="badge bg-success"><i class="bi bi-check"></i></span>
+                                {% else %}
+                                    <span class="badge bg-warning"><i class="bi bi-hourglass"></i></span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                Keine Buchungen vorhanden. <a href="{{ url_for('buchhaltung.create_buchung') }}">Erste Buchung erstellen</a>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

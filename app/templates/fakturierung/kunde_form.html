@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Neuer Kunde - Fakturierung{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1><i class="bi bi-person-plus"></i> Neuer Kunde</h1>
+            <hr>
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label">Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="beschreibung" class="form-label">Beschreibung (optional)</label>
+                        <input type="text" class="form-control" id="beschreibung" name="beschreibung" placeholder="z.B. Gärtnerei XY">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="telefon" class="form-label">Telefon</label>
+                        <input type="tel" class="form-control" id="telefon" name="telefon">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="strasse" class="form-label">Strasse</label>
+                        <input type="text" class="form-control" id="strasse" name="strasse">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="plz" class="form-label">PLZ</label>
+                        <input type="text" class="form-control" id="plz" name="plz">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="ort" class="form-label">Ort</label>
+                        <input type="text" class="form-control" id="ort" name="ort">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="uid_nummer" class="form-label">UID-Nummer</label>
+                        <input type="text" class="form-control" id="uid_nummer" name="uid_nummer" placeholder="CHE-123.456.789">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="land" class="form-label">Land</label>
+                        <input type="text" class="form-control" id="land" name="land" placeholder="Schweiz" value="Schweiz">
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-start">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Kunde erstellen
+                    </button>
+                    <a href="{{ url_for('fakturierung.kunden') }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

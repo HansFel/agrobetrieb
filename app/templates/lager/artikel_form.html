@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Neuer Artikel - Lager{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1><i class="bi bi-box"></i> Neuer Lagerartikel</h1>
+            <hr>
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Artikel Info -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Artikelinformationen</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="bezeichnung" class="form-label">Bezeichnung *</label>
+                                <input type="text" class="form-control" id="bezeichnung" name="bezeichnung" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="artikelnummer" class="form-label">Artikelnummer (optional)</label>
+                                <input type="text" class="form-control" id="artikelnummer" name="artikelnummer">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="beschreibung" class="form-label">Beschreibung (optional)</label>
+                            <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3"></textarea>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="einheit" class="form-label">Einheit *</label>
+                                <select class="form-select" id="einheit" name="einheit" required>
+                                    <option value="">-- Einheit wählen --</option>
+                                    <option value="Stk">Stück (Stk)</option>
+                                    <option value="kg">Kilogramm (kg)</option>
+                                    <option value="l">Liter (l)</option>
+                                    <option value="m">Meter (m)</option>
+                                    <option value="m²">Quadratmeter (m²)</option>
+                                    <option value="h">Stunden (h)</option>
+                                    <option value="Tag">Tag</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bestand -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Bestandsverwaltung</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="aktueller_bestand" class="form-label">Aktueller Bestand *</label>
+                                <input type="number" class="form-control" id="aktueller_bestand" name="aktueller_bestand" step="0.01" min="0" value="0" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="mindestbestand" class="form-label">Mindestbestand *</label>
+                                <input type="number" class="form-control" id="mindestbestand" name="mindestbestand" step="0.01" min="0" value="10" required>
+                                <small class="text-muted">Bei Unterschreitung wird eine Warnung angezeigt</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kosten -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-currency-dollar"></i> Kosten</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="letzter_einkaufspreis" class="form-label">Letzter Einkaufspreis CHF</label>
+                                <input type="number" class="form-control" id="letzter_einkaufspreis" name="letzter_einkaufspreis" step="0.01" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-start mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Artikel erstellen
+                    </button>
+                    <a href="{{ url_for('lager.index') }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

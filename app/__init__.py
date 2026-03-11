@@ -31,16 +31,22 @@ def create_app(config_name='default'):
     # Context Processor für Templates
     @app.context_processor
     def inject_globals():
+        from datetime import datetime
         return {
             'app_title': 'AgroBetrieb',
             'app_version': APP_VERSION,
+            'now': datetime.utcnow(),
         }
     
     # Blueprint registrieren
-    from app.blueprints import auth, dashboard, betrieb
+    from app.blueprints import auth, dashboard, betrieb, maschinen, buchhaltung, fakturierung, lager
     app.register_blueprint(auth.auth_bp)
     app.register_blueprint(dashboard.dashboard_bp)
     app.register_blueprint(betrieb.betrieb_bp)
+    app.register_blueprint(maschinen.maschinen_bp)
+    app.register_blueprint(buchhaltung.buchhaltung_bp)
+    app.register_blueprint(fakturierung.fakturierung_bp)
+    app.register_blueprint(lager.lager_bp)
     
     # CLI Commands
     @app.cli.command()

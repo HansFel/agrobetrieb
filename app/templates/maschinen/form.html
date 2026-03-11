@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if maschine %}
+        Maschine bearbeiten
+    {% else %}
+        Neue Maschine
+    {% endif %}
+    – AgroBetrieb
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">
+                    {% if maschine %}
+                        <i class="bi bi-pencil"></i> {{ maschine.name }}
+                    {% else %}
+                        <i class="bi bi-plus"></i> Neue Maschine
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <h6 class="text-muted mt-0 mb-3">Grunddaten</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="name" class="form-label">Maschinenname *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ maschine.name if maschine else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="baujahr" class="form-label">Baujahr</label>
+                            <input type="number" class="form-control" id="baujahr" name="baujahr" 
+                                   value="{{ maschine.baujahr if maschine else '' }}" min="1900" max="{{ now.year }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="beschreibung" class="form-label">Beschreibung</label>
+                        <textarea class="form-control" id="beschreibung" name="beschreibung" rows="2">{{ maschine.beschreibung if maschine else '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="kennzeichen" class="form-label">Kennzeichen / Nummernschild</label>
+                        <input type="text" class="form-control" id="kennzeichen" name="kennzeichen" 
+                               value="{{ maschine.kennzeichen if maschine else '' }}">
+                    </div>
+                    
+                    <h6 class="text-muted mt-4 mb-3">Erfassungsmodus</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="buchungsmodus" class="form-label">Buchungsmodus</label>
+                            <select class="form-select" id="buchungsmodus" name="buchungsmodus">
+                                <option value="direkt" {% if not maschine or maschine.buchungsmodus == 'direkt' %}selected{% endif %}>Direkt (Menge eingeben)</option>
+                                <option value="fortlaufend" {% if maschine and maschine.buchungsmodus == 'fortlaufend' %}selected{% endif %}>Fortlaufend (Zählerstand)</option>
+                            </select>
+                            <small class="text-muted">Wie wird die Nutzung erfasst?</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="zaehler_format" class="form-label">Zählerformat</label>
+                            <select class="form-select" id="zaehler_format" name="zaehler_format">
+                                <option value="dezimal" {% if not maschine or maschine.zaehler_format == 'dezimal' %}selected{% endif %}>Dezimal (z.B. 123,45)</option>
+                                <option value="hhmm" {% if maschine and maschine.zaehler_format == 'hhmm' %}selected{% endif %}>Stunden:Min (z.B. 123:45)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="einheit" class="form-label">Einheit</label>
+                            <input type="text" class="form-control" id="einheit" name="einheit" 
+                                   value="{{ maschine.einheit if maschine else 'h' }}" placeholder="h (Stunden)">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="kosten_pro_einheit" class="form-label">Kosten pro Einheit</label>
+                            <input type="number" class="form-control" id="kosten_pro_einheit" name="kosten_pro_einheit" 
+                                   value="{{ maschine.kosten_pro_einheit if maschine else '' }}" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mt-4 mb-3">Anschaffung</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="anschaffungswert" class="form-label">Anschaffungswert (€)</label>
+                            <input type="number" class="form-control" id="anschaffungswert" name="anschaffungswert" 
+                                   value="{{ maschine.anschaffungswert if maschine else '' }}" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {% if maschine %}Speichern{% else %}Erstellen{% endif %}
+                        </button>
+                        <a href="{{ url_for('maschinen.index') }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

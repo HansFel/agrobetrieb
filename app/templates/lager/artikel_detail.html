@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}{{ artikel.bezeichnung }} - Lager{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bestand-display {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+    }
+    .bestand-number {
+        font-size: 3rem;
+        font-weight: 700;
+        line-height: 1;
+        margin: 0.5rem 0;
+    }
+    .bewegung-row {
+        border-left: 4px solid #dee2e6;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.375rem;
+    }
+    .bewegung-row.eingang {
+        border-left-color: #28a745;
+        background: #f0f8f4;
+    }
+    .bewegung-row.ausgang {
+        border-left-color: #dc3545;
+        background: #ffe6e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+            <!-- Back Button -->
+            <a href="{{ url_for('lager.index') }}" class="btn btn-secondary btn-sm mb-3">
+                <i class="bi bi-arrow-left"></i> Zurück
+            </a>
+
+            <h1>{{ artikel.bezeichnung }}</h1>
+            {% if artikel.beschreibung %}
+                <p class="text-muted">{{ artikel.beschreibung }}</p>
+            {% endif %}
+
+            <!-- Bestand Anzeige -->
+            <div class="bestand-display">
+                <div>Aktueller Bestand</div>
+                <div class="bestand-number">{{ artikel.aktueller_bestand }}</div>
+                <div>{{ artikel.einheit }}</div>
+                {% if artikel.unter_mindestbestand %}
+                    <div class="alert alert-warning py-2 mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        <strong>Unter Mindestbestand ({{ artikel.mindestbestand }} {{ artikel.einheit }})</strong>
+                        - Nachbestellung auslösen!
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Artikel Info -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="bi bi-info-circle"></i> Artikel-Info</h6>
+                        </div>
+                        <div class="card-body">
+                            {% if artikel.artikelnummer %}
+                            <div class="mb-2">
+                                <small class="text-muted">Artikelnummer:</small>
+                                <br><strong>{{ artikel.artikelnummer }}</strong>
+                            </div>
+                            {% endif %}
+                            <div class="mb-2">
+                                <small class="text-muted">Einheit:</small>
+                                <br><strong>{{ artikel.einheit }}</strong>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Mindestbestand:</small>
+                                <br><strong>{{ artikel.mindestbestand }} {{ artikel.einheit }}</strong>
+                            </div>
+                            {% if artikel.letzter_einkaufspreis %}
+                            <div class="mb-2">
+                                <small class="text-muted">Letzter Einkauf:</small>
+                                <br><strong>CHF {{ "%.2f"|format(artikel.letzter_einkaufspreis) }} / {{ artikel.einheit }}</strong>
+                            </div>
+                            <div class="mb-0">
+                                <small class="text-muted">Bestandswert:</small>
+                                <br><strong>CHF {{ "%.2f"|format(artikel.aktueller_bestand * artikel.letzter_einkaufspreis) }}</strong>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <!-- Lagerbewegung hinzufügen -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Lagerbewegung</h6>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('lager.add_bewegung', id=artikel.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                <div class="mb-3">
+                                    <label for="typ" class="form-label">Typ *</label>
+                                    <select class="form-select" id="typ" name="typ" required>
+                                        <option value="">-- Wählen --</option>
+                                        <option value="eingang">Eingang</option>
+                                        <option value="ausgang">Ausgang</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="menge" class="form-label">Menge *</label>
+                                    <input type="number" class="form-control" id="menge" name="menge" step="0.01" min="0.01" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="grund" class="form-label">Grund</label>
+                                    <select class="form-select" id="grund" name="grund">
+                                        <option value="">-- Grund wählen --</option>
+                                        <option value="Kauf">Kauf</option>
+                                        <option value="Rücklieferung">Rücklieferung</option>
+                                        <option value="Inventur">Inventurdifferenz</option>
+                                        <option value="Verbrauch">Verbrauch</option>
+                                        <option value="Verlust">Verlust/Bruch</option>
+                                        <option value="Notiz">Notiz</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="notiz" class="form-label">Notiz (optional)</label>
+                                    <input type="text" class="form-control" id="notiz" name="notiz" placeholder="z.B. Belepummer, Lieferant, etc.">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-check"></i> Bewegung erfassen
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bewegungen History -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Bewegungshistorie</h6>
+                </div>
+                <div class="card-body">
+                    {% if artikel.bewegungen %}
+                        {% for bewegung in artikel.bewegungen|reverse %}
+                        <div class="bewegung-row {{ bewegung.typ }}">
+                            <div class="row align-items-start">
+                                <div class="col-md-2">
+                                    <strong>{{ bewegung.datum.strftime('%d.%m.%Y') }}</strong>
+                                    <br><small class="text-muted">{{ bewegung.datum.strftime('%H:%M') }} Uhr</small>
+                                </div>
+                                <div class="col-md-3">
+                                    {% if bewegung.typ == 'eingang' %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-arrow-up-right"></i> Eingang
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-arrow-down-left"></i> Ausgang
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <strong>{{ bewegung.menge }} {{ artikel.einheit }}</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    {% if bewegung.grund %}
+                                        <small class="text-muted">{{ bewegung.grund }}</small>
+                                    {% else %}
+                                        <small class="text-muted">-</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2">
+                                    {% if bewegung.notiz %}
+                                        <small class="text-muted">{{ bewegung.notiz }}</small>
+                                    {% else %}
+                                        <small class="text-muted">-</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem; opacity: 0.5;"></i>
+                            <p>Keine Bewegungen erfasst</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

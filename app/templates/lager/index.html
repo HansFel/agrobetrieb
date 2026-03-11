@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Lagerverwaltung{% endblock %}
+
+{% block extra_css %}
+<style>
+    .artikel-card {
+        border-left: 4px solid #ccc;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .artikel-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    .artikel-card.unter_mindest {
+        border-left-color: #dc3545;
+        background-color: #fff5f5;
+    }
+    .artikel-card.ok {
+        border-left-color: #28a745;
+    }
+    .bestand-badge {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .bestand-warning {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1><i class="bi bi-box-seam"></i> Lagerverwaltung</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('lager.create_artikel') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Neuer Artikel
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    {% if artikel_unter_mindest|length > 0 %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>{{ artikel_unter_mindest|length }} Artikel unter Mindestbestand!</strong>
+        <div class="mt-2">
+            {% for artikel in artikel_unter_mindest %}
+                <span class="badge bg-danger me-2">{{ artikel.bezeichnung }} ({{ artikel.aktueller_bestand }}/{{ artikel.mindestbestand }})</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Artikel insgesamt</h6>
+                    <h3 class="text-primary">{{ artikel|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Unter Mindestbestand</h6>
+                    <h3 class="text-danger">{{ artikel_unter_mindest|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Bestandswert</h6>
+                    <h3 class="text-success">CHF {{ "%.2f"|format(gesamtwert) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Aktive Artikel</h6>
+                    <h3 class="text-info">{{ artikel_aktiv|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Artikel Grid -->
+    <div class="row">
+        {% if artikel %}
+            {% for art in artikel %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <a href="{{ url_for('lager.detail', id=art.id) }}" class="text-decoration-none">
+                    <div class="card artikel-card {% if art.unter_mindestbestand %}unter_mindest bestand-warning{% else %}ok{% endif %}">
+                        <div class="card-body">
+                            <div class="row align-items-center mb-3">
+                                <div class="col">
+                                    <h5 class="card-title mb-0">{{ art.bezeichnung }}</h5>
+                                    {% if art.beschreibung %}
+                                        <small class="text-muted">{{ art.beschreibung }}</small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-auto text-end">
+                                    <div class="bestand-badge {% if art.unter_mindestbestand %}text-danger{% else %}text-success{% endif %}">
+                                        {{ art.aktueller_bestand }}
+                                    </div>
+                                    <small class="text-muted">{{ art.einheit }}</small>
+                                </div>
+                            </div>
+
+                            <div class="row text-sm mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Artikelnummer:</small>
+                                    <br><small>{{ art.artikelnummer or '-' }}</small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Mindestbestand:</small>
+                                    <br><small>{{ art.mindestbestand }}</small>
+                                </div>
+                            </div>
+
+                            {% if art.letzter_einkaufspreis %}
+                            <div class="row text-sm mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Letzter Preis:</small>
+                                    <br><small>CHF {{ "%.2f"|format(art.letzter_einkaufspreis) }}</small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Wert:</small>
+                                    <br><small>CHF {{ "%.2f"|format(art.aktueller_bestand * art.letzter_einkaufspreis) }}</small>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if art.unter_mindestbestand %}
+                                <div class="alert alert-danger py-2 mb-0 mt-2">
+                                    <small><i class="bi bi-exclamation-triangle"></i> Unter Mindestbestand!</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Keine Artikel im Lager vorhanden.</p>
+                    <a href="{{ url_for('lager.create_artikel') }}" class="btn btn-primary">
+                        <i class="bi bi-plus"></i> Ersten Artikel hinzufügen
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

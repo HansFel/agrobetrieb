@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Buchung erstellen - Buchhaltung{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <h1><i class="bi bi-pencil"></i> Neue Buchung</h1>
+            <hr>
+
+            <form method="POST" class="needs-validation">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="datum" class="form-label">Datum</label>
+                        <input type="date" class="form-control" id="datum" name="datum" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="valuta" class="form-label">Valuta (optional)</label>
+                        <input type="date" class="form-control" id="valuta" name="valuta">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="soll_konto_id" class="form-label">Soll-Konto *</label>
+                        <select class="form-select" id="soll_konto_id" name="soll_konto_id" required>
+                            <option value="">-- Konto wählen --</option>
+                            {% for konto in konten %}
+                                <option value="{{ konto.id }}">{{ konto.nummer }} - {{ konto.bezeichnung }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="haben_konto_id" class="form-label">Haben-Konto *</label>
+                        <select class="form-select" id="haben_konto_id" name="haben_konto_id" required>
+                            <option value="">-- Konto wählen --</option>
+                            {% for konto in konten %}
+                                <option value="{{ konto.id }}">{{ konto.nummer }} - {{ konto.bezeichnung }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="betrag" class="form-label">Betrag CHF *</label>
+                        <input type="number" class="form-control" id="betrag" name="betrag" step="0.01" min="0" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mwst_satz" class="form-label">MwSt % (optional)</label>
+                        <input type="number" class="form-control" id="mwst_satz" name="mwst_satz" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="mwst_betrag" class="form-label">MwSt Betrag CHF (optional)</label>
+                        <input type="number" class="form-control" id="mwst_betrag" name="mwst_betrag" step="0.01" min="0">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="kategorie_id" class="form-label">Kategorie (optional)</label>
+                        <select class="form-select" id="kategorie_id" name="kategorie_id">
+                            <option value="">-- Keine --</option>
+                            {% for kategorie in kategorien %}
+                                <option value="{{ kategorie.id }}">{{ kategorie.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="beleg_nummer" class="form-label">Beleg-Nummer (optional)</label>
+                        <input type="text" class="form-control" id="beleg_nummer" name="beleg_nummer" placeholder="Rechnung, Quittung, etc.">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="beschreibung" class="form-label">Beschreibung (optional)</label>
+                    <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="bezahlt" name="bezahlt">
+                    <label class="form-check-label" for="bezahlt">
+                        Bezahlt
+                    </label>
+                </div>
+
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-start">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Buchung erstellen
+                    </button>
+                    <a href="{{ url_for('buchhaltung.index') }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set today's date as default
+    document.getElementById('datum').valueAsDate = new Date();
+</script>
+{% endblock %}

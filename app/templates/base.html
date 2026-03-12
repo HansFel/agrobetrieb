@@ -125,10 +125,14 @@
                             <i class="bi bi-person-circle"></i> {{ current_user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('auth.profil') }}">Profil</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.passwort_aendern') }}">Passwort ändern</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.profil') }}"><i class="bi bi-person me-1"></i>Profil</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.passwort_aendern') }}"><i class="bi bi-key me-1"></i>Passwort ändern</a></li>
+                            {% if current_user.is_admin() %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Abmelden</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('benutzer.liste') }}"><i class="bi bi-people me-1"></i>Benutzerverwaltung</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-1"></i>Abmelden</a></li>
                         </ul>
                     </li>
                 </ul>

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Benutzer bearbeiten' if benutzer else 'Neuer Benutzer' }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">{{ 'Benutzer bearbeiten' if benutzer else 'Neuer Benutzer' }}</h1>
+            <a class="btn btn-outline-secondary" href="{{ url_for('benutzer.liste') }}">
+                <i class="bi bi-arrow-left"></i> Zurück
+            </a>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post" action="{{ url_for('benutzer.bearbeiten', benutzer_id=benutzer.id) if benutzer else url_for('benutzer.neu') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                   value="{{ benutzer.username if benutzer else '' }}" required
+                                   {{ 'readonly' if benutzer else '' }}>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ benutzer.email if benutzer else '' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="vorname" class="form-label">Vorname</label>
+                            <input type="text" class="form-control" id="vorname" name="vorname"
+                                   value="{{ benutzer.vorname if benutzer else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nachname" class="form-label">Nachname</label>
+                            <input type="text" class="form-control" id="nachname" name="nachname"
+                                   value="{{ benutzer.nachname if benutzer else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="rolle" class="form-label">Rolle</label>
+                            <select class="form-select" id="rolle" name="rolle">
+                                {% for key, val in rollen.items() %}
+                                <option value="{{ key }}" {{ 'selected' if benutzer and benutzer.rolle == key else '' }}>
+                                    {{ val.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="passwort" class="form-label">
+                                Passwort {{ '' if benutzer else '' }}<span class="text-danger">{{ '' if benutzer else '*' }}</span>
+                            </label>
+                            <input type="password" class="form-control" id="passwort" name="passwort"
+                                   {{ '' if benutzer else 'required' }}
+                                   placeholder="{{ 'Leer lassen = nicht ändern' if benutzer else '' }}">
+                        </div>
+                    </div>
+
+                    {% if benutzer %}
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="aktiv" name="aktiv"
+                                   {{ 'checked' if benutzer.aktiv else '' }}>
+                            <label class="form-check-label" for="aktiv">Benutzer aktiv</label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ 'Speichern' if benutzer else 'Anlegen' }}
+                        </button>
+                        <a href="{{ url_for('benutzer.liste') }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

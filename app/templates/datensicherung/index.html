@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Datensicherung – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="bi bi-shield-check"></i> Datensicherung</h2>
+        <p class="text-muted">Datenbank-Backups erstellen, herunterladen und wiederherstellen</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card border-primary">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title mb-1"><i class="bi bi-plus-circle"></i> Neues Backup erstellen</h5>
+                    <p class="card-text text-muted mb-0">Erstellt ein vollständiges Backup der aktuellen Datenbank</p>
+                </div>
+                <form method="POST" action="{{ url_for('datensicherung.erstellen') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-download"></i> Backup erstellen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="m-0"><i class="bi bi-clock-history"></i> Vorhandene Backups</h5>
+    </div>
+    <div class="card-body">
+        {% if backups %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Dateiname</th>
+                        <th>Erstellt am</th>
+                        <th>Größe</th>
+                        <th>Typ</th>
+                        <th>Status</th>
+                        <th>Erstellt von</th>
+                        <th>Dauer</th>
+                        <th class="text-end">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-file-earmark-zip"></i>
+                            {{ backup.dateiname }}
+                        </td>
+                        <td>{{ backup.erstellt_am.strftime('%d.%m.%Y %H:%M') }}</td>
+                        <td>{{ backup.groesse_formatiert }}</td>
+                        <td>
+                            {% if backup.typ == 'automatisch' %}
+                                <span class="badge bg-info">Automatisch</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Manuell</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if backup.status == 'erfolgreich' %}
+                                <span class="badge bg-success">Erfolgreich</span>
+                            {% else %}
+                                <span class="badge bg-danger" title="{{ backup.fehler_meldung or '' }}">Fehlgeschlagen</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ backup.erstellt_von_user.username if backup.erstellt_von_user else '–' }}</td>
+                        <td>{{ '%.1f s'|format(backup.dauer_sekunden) if backup.dauer_sekunden else '–' }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('datensicherung.herunterladen', backup_id=backup.id) }}"
+                               class="btn btn-sm btn-outline-primary" title="Herunterladen">
+                                <i class="bi bi-cloud-download"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('datensicherung.wiederherstellen', backup_id=backup.id) }}"
+                                  class="d-inline" onsubmit="return confirm('ACHTUNG: Die aktuelle Datenbank wird überschrieben! Fortfahren?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Wiederherstellen">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('datensicherung.loeschen', backup_id=backup.id) }}"
+                                  class="d-inline" onsubmit="return confirm('Backup wirklich löschen?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Löschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-archive" style="font-size: 3rem;"></i>
+            <p class="mt-2">Noch keine Backups vorhanden.</p>
+            <p>Erstelle ein erstes Backup über den Button oben.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -89,7 +89,7 @@ class Buchung(db.Model):
     beleg_datum = db.Column(db.Date)
 
     # Verknuepfungen (optional)
-    einsatz_id = db.Column(db.Integer, db.ForeignKey('einsatz.id'), nullable=True)
+    einsatz_id = db.Column(db.Integer, nullable=True)
     bank_transaktion_id = db.Column(db.Integer, nullable=True)
 
     # Buchungsart
@@ -112,7 +112,6 @@ class Buchung(db.Model):
     # Relationships
     soll_konto = db.relationship('Konto', foreign_keys=[soll_konto_id])
     haben_konto = db.relationship('Konto', foreign_keys=[haben_konto_id])
-    einsatz = db.relationship('Einsatz')
     erstellt_von_user = db.relationship('User', foreign_keys=[erstellt_von])
     storniert_von_user = db.relationship('User', foreign_keys=[storniert_von])
 

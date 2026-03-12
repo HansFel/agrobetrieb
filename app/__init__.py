@@ -108,6 +108,7 @@ def create_app(config_name='default'):
     def inject_globals():
         from datetime import datetime
         from app.models.betrieb import Betrieb
+        from app.models.rollen import hat_berechtigung, hat_modul_zugriff
         
         # Länderspezifische Defaults
         LAENDER = {
@@ -139,6 +140,8 @@ def create_app(config_name='default'):
             'uid_placeholder': uid_placeholder,
             'laender': LAENDER,
             'betrieb_obj': betrieb,
+            'hat_berechtigung': hat_berechtigung,
+            'hat_modul_zugriff': hat_modul_zugriff,
         }
     
     # Blueprint registrieren - direkte Modul-Importe um zirkuläre Importe zu vermeiden
@@ -150,6 +153,7 @@ def create_app(config_name='default'):
     from app.blueprints.buchhaltung import buchhaltung_bp
     from app.blueprints.fakturierung import fakturierung_bp
     from app.blueprints.lager import lager_bp
+    from app.blueprints.datensicherung import datensicherung_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -159,6 +163,7 @@ def create_app(config_name='default'):
     app.register_blueprint(buchhaltung_bp)
     app.register_blueprint(fakturierung_bp)
     app.register_blueprint(lager_bp)
+    app.register_blueprint(datensicherung_bp)
     
     # CLI Commands
     @app.cli.command()

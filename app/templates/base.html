@@ -29,23 +29,47 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard.index') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('betrieb.index') }}"><i class="bi bi-briefcase"></i> Betrieb</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="betriebDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-briefcase"></i> Betrieb
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if hat_berechtigung(current_user, 'betrieb', 'view') %}
+                            <li><a class="dropdown-item" href="{{ url_for('betrieb.index') }}">
+                                <i class="bi bi-building me-1"></i>Betriebsdaten
+                            </a></li>
+                            {% endif %}
+                            {% if current_user.is_admin() %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('benutzer.liste') }}">
+                                <i class="bi bi-people me-1"></i>Benutzerverwaltung
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('datensicherung.index') }}">
+                                <i class="bi bi-shield-check me-1"></i>Datensicherung
+                            </a></li>
+                            {% endif %}
+                        </ul>
                     </li>
+                    {% if hat_berechtigung(current_user, 'maschinen', 'view') %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('maschinen.index') }}"><i class="bi bi-gear"></i> Maschinen</a>
                     </li>
+                    {% endif %}
+                    {% if hat_modul_zugriff(current_user, 'buchhaltung') or hat_modul_zugriff(current_user, 'fakturierung') %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="buchhaltungDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-journal-text"></i> Buchhaltung
                         </a>
                         <ul class="dropdown-menu">
+                            {% if hat_berechtigung(current_user, 'buchhaltung', 'view') %}
                             <li><a class="dropdown-item" href="{{ url_for('buchhaltung.kontenplan') }}">
                                 <i class="bi bi-journal-text"></i> Kontenplan
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('buchhaltung.journal') }}">
                                 <i class="bi bi-journal-bookmark"></i> Journal
                             </a></li>
+                            {% endif %}
+                            {% if hat_berechtigung(current_user, 'buchhaltung', 'create') %}
                             <li><a class="dropdown-item" href="{{ url_for('buchhaltung.buchung_neu') }}">
                                 <i class="bi bi-plus-circle"></i> Neue Buchung
                             </a></li>
@@ -55,6 +79,8 @@
                             <li><a class="dropdown-item" href="{{ url_for('buchhaltung.bank_import') }}">
                                 <i class="bi bi-file-earmark-arrow-up"></i> Bank-Import
                             </a></li>
+                            {% endif %}
+                            {% if hat_berechtigung(current_user, 'buchhaltung', 'view') %}
                             <li><a class="dropdown-item" href="{{ url_for('buchhaltung.buchungsschluessel_liste') }}">
                                 <i class="bi bi-key"></i> Buchungsschlüssel
                             </a></li>
@@ -68,15 +94,21 @@
                             <li><a class="dropdown-item" href="{{ url_for('buchhaltung.guv') }}">
                                 <i class="bi bi-graph-up"></i> GuV
                             </a></li>
+                            {% endif %}
+                            {% if hat_berechtigung(current_user, 'fakturierung', 'view') %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('fakturierung.liste') }}">
                                 <i class="bi bi-receipt"></i> Fakturierung
                             </a></li>
+                            {% endif %}
                         </ul>
                     </li>
+                    {% endif %}
+                    {% if hat_berechtigung(current_user, 'lager', 'view') %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('lager.index') }}"><i class="bi bi-box-seam"></i> Lager</a>
                     </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% set _gj_session = session.get('gj') %}
@@ -127,10 +159,6 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ url_for('auth.profil') }}"><i class="bi bi-person me-1"></i>Profil</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.passwort_aendern') }}"><i class="bi bi-key me-1"></i>Passwort ändern</a></li>
-                            {% if current_user.is_admin() %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('benutzer.liste') }}"><i class="bi bi-people me-1"></i>Benutzerverwaltung</a></li>
-                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-1"></i>Abmelden</a></li>
                         </ul>

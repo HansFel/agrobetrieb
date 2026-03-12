@@ -19,6 +19,7 @@ from app.models.fakturierung import (
 	FAKTURA_STATUS,
 	DOKUMENT_TYPEN,
 )
+from app.models.backup import Backup
 
 __all__ = [
 	'User',
@@ -37,4 +38,5 @@ __all__ = [
 	'GUTSCHRIFT_ARTEN',
 	'FAKTURA_STATUS',
 	'DOKUMENT_TYPEN',
+	'Backup',
 ]

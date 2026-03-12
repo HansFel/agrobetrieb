@@ -212,7 +212,4 @@ def create_app(config_name='default'):
         db.session.rollback()
         return render_template('errors/500.html'), 500
     
-    with app.app_context():
-        db.create_all()
-    
     return app

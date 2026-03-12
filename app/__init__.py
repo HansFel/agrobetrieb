@@ -141,16 +141,24 @@ def create_app(config_name='default'):
             'betrieb_obj': betrieb,
         }
     
-    # Blueprint registrieren
-    from app.blueprints import auth, dashboard, betrieb, benutzer, maschinen, buchhaltung, fakturierung, lager
-    app.register_blueprint(auth.auth_bp)
-    app.register_blueprint(dashboard.dashboard_bp)
-    app.register_blueprint(benutzer.benutzer_bp)
-    app.register_blueprint(betrieb.betrieb_bp)
-    app.register_blueprint(maschinen.maschinen_bp)
-    app.register_blueprint(buchhaltung.buchhaltung_bp)
-    app.register_blueprint(fakturierung.fakturierung_bp)
-    app.register_blueprint(lager.lager_bp)
+    # Blueprint registrieren - direkte Modul-Importe um zirkuläre Importe zu vermeiden
+    from app.blueprints.auth import auth_bp
+    from app.blueprints.dashboard import dashboard_bp
+    from app.blueprints.betrieb import betrieb_bp
+    from app.blueprints.benutzer import benutzer_bp
+    from app.blueprints.maschinen import maschinen_bp
+    from app.blueprints.buchhaltung import buchhaltung_bp
+    from app.blueprints.fakturierung import fakturierung_bp
+    from app.blueprints.lager import lager_bp
+    
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(benutzer_bp)
+    app.register_blueprint(betrieb_bp)
+    app.register_blueprint(maschinen_bp)
+    app.register_blueprint(buchhaltung_bp)
+    app.register_blueprint(fakturierung_bp)
+    app.register_blueprint(lager_bp)
     
     # CLI Commands
     @app.cli.command()

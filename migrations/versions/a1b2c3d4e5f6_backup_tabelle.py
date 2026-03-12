@@ -7,6 +7,7 @@ Create Date: 2026-03-12 14:00:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
@@ -17,6 +18,10 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    if 'backup' in inspector.get_table_names():
+        return
     op.create_table('backup',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('dateiname', sa.Text(), nullable=False),

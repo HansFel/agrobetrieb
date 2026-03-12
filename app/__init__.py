@@ -1,11 +1,32 @@
 import os
 import click
+import subprocess
 from flask import Flask, render_template, url_for
 from app.config import config
 from app.extensions import db, migrate, login_manager, csrf
 
 APP_VERSION = '0.1.0-alpha'
-APP_BUILD = os.environ.get('COMMIT_HASH', 'dev')
+
+# Build-Referenz: Git Commit Hash oder Fallback
+def _get_build_hash():
+    env_hash = os.environ.get('COMMIT_HASH')
+    if env_hash:
+        return env_hash
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            cwd=os.path.dirname(os.path.dirname(__file__)),
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+        pass
+    return 'unknown'
+
+APP_BUILD = _get_build_hash()
 
 
 def create_app(config_name='default'):
@@ -47,6 +68,34 @@ def create_app(config_name='default'):
                         with env.begin_transaction():
                             env.run_migrations()
                     conn.commit()
+            
+            # Ersten Admin-Benutzer anlegen, wenn DB leer ist
+            from app.models.user import User
+            from app.models.betrieb import Betrieb
+            if User.query.first() is None:
+                admin = User(
+                    username='admin',
+                    email='admin@agrobetrieb.local',
+                    vorname='Admin',
+                    nachname='AgroBetrieb',
+                    rolle='betriebsadmin',
+                    aktiv=True
+                )
+                admin.set_password('admin')
+                db.session.add(admin)
+                
+                # Auch einen Standard-Betrieb anlegen
+                if Betrieb.query.first() is None:
+                    betrieb = Betrieb(
+                        name='Musterbetrieb',
+                        strasse='Beispielstraße 1',
+                        plz='6900',
+                        ort='Bregenz',
+                        land='AT'
+                    )
+                    db.session.add(betrieb)
+                
+                db.session.commit()
     
     # User Loader für Flask-Login
     @login_manager.user_loader
@@ -80,6 +129,7 @@ def create_app(config_name='default'):
         return {
             'app_title': 'AgroBetrieb',
             'app_version': APP_VERSION,
+            'app_build': APP_BUILD,
             'now': datetime.utcnow(),
             'now_year': datetime.now().year,
             'waehrung': waehrung,

@@ -1,3 +1,13 @@
+"""
+Benutzer-Modell für AgroBetrieb.
+
+Rollen:
+- betriebsadmin: Admin (vollständiger Zugriff, verwaltet Benutzer)
+- mitglied: Mitglied/Genosse (vollständiger Zugriff wie Admin, außer Benutzerverwaltung)
+- buchhaltung: Buchhaltung (nur Buchhaltungs-Module)
+- gelegentlich: Gelegentlicher Mitarbeiter (nur Arbeitsdaten eingeben)
+- praktikand: Praktikand (Lesezugriff + Arbeitsdaten)
+"""
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -18,9 +28,9 @@ class User(UserMixin, db.Model):
     nachname = db.Column(db.String(120))
     telefon = db.Column(db.String(20))
     
-    # Status
-    rolle = db.Column(db.String(20), default='mitarbeiter')
-    # 'admin', 'mitarbeiter', 'readonly'
+    # Status & Rolle
+    # Mögliche Rollen: betriebsadmin, mitglied, buchhaltung, gelegentlich, praktikand
+    rolle = db.Column(db.String(30), default='praktikand')
     aktiv = db.Column(db.Boolean, default=True)
     
     # Timestamps
@@ -36,8 +46,19 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
     
     def is_admin(self):
-        """Admin-Check."""
-        return self.rolle == 'admin' and self.aktiv
+        """Ist Betriebsadmin?"""
+        return self.rolle == 'betriebsadmin' and self.aktiv
+    
+    def is_active(self):
+        """Ist aktiv?"""
+        return self.aktiv
+    
+    @property
+    def rolle_name(self):
+        """Lesbare Rolle."""
+        from app.models.rollen import ROLLEN
+        rollen_info = ROLLEN.get(self.rolle, {})
+        return rollen_info.get('name', self.rolle)
     
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f'<User {self.username} ({self.rolle})>'

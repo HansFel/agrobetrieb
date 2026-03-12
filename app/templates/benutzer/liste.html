@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Benutzer{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Benutzer verwalten</h1>
+        <p class="text-muted mb-0">{{ benutzer|length }} Benutzer</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('benutzer.neu') }}">
+        <i class="bi bi-person-plus"></i> Neuer Benutzer
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Rolle</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in benutzer %}
+                <tr>
+                    <td class="fw-semibold">{{ user.username }}</td>
+                    <td>{{ user.vorname }} {{ user.nachname }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="badge bg-info">{{ rollen[user.rolle]['name'] }}</span>
+                    </td>
+                    <td>
+                        {% if user.aktiv %}
+                            <span class="badge text-bg-success">aktiv</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">inaktiv</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-secondary" href="{{ url_for('benutzer.bearbeiten', benutzer_id=user.id) }}">
+                                <i class="bi bi-pencil"></i> Bearbeiten
+                            </a>
+                            {% if user.id != current_user.id %}
+                            <form method="post" action="{{ url_for('benutzer.loeschen', benutzer_id=user.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-outline-danger" type="submit" onclick="return confirm('Benutzer wirklich löschen?')">
+                                    <i class="bi bi-trash"></i> Löschen
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        Noch keine Benutzer angelegt.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

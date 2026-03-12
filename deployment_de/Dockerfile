@@ -1,5 +1,9 @@
 FROM python:3.13-slim
 
+# Build-Argument für Git-Commit-Hash
+ARG COMMIT_HASH=unknown
+ENV COMMIT_HASH=${COMMIT_HASH}
+
 WORKDIR /app
 
 # Installiere System-Dependencies

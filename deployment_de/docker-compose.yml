@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  agrobetrieb-app:
+    container_name: agrobetrieb-app
+    build:
+      context: ..
+      dockerfile: deployment_de/Dockerfile
+    ports:
+      - "5001:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://agr_user:agr_password@agrobetrieb-db:5432/agrobetrieb
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+    depends_on:
+      agrobetrieb-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - agrobetrieb-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+  agrobetrieb-db:
+    container_name: agrobetrieb-db
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=agr_user
+      - POSTGRES_PASSWORD=agr_password
+      - POSTGRES_DB=agrobetrieb
+    volumes:
+      - agrobetrieb-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - agrobetrieb-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  agrobetrieb-db-data:
+    driver: local
+
+networks:
+  agrobetrieb-network:
+    driver: bridge

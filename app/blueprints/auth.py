@@ -13,17 +13,21 @@ def login():
         return redirect(url_for('dashboard.index'))
     
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        login_input = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        user = User.query.filter_by(username=username).first()
+        # Unterstütze sowohl username als auch email als Login
+        user = User.query.filter(
+            (User.username == login_input) | (User.email == login_input)
+        ).first()
+        
         if user and user.check_password(password) and user.aktiv:
             login_user(user)
             flash(f'Willkommen, {user.vorname or user.username}!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('dashboard.index'))
         else:
-            flash('Ungültiger Benutzername oder Passwort.', 'danger')
+            flash('Ungültiger Benutzername/Email oder Passwort.', 'danger')
     
     return render_template('auth/login.html')
 

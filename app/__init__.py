@@ -142,9 +142,10 @@ def create_app(config_name='default'):
         }
     
     # Blueprint registrieren
-    from app.blueprints import auth, dashboard, betrieb, maschinen, buchhaltung, fakturierung, lager
+    from app.blueprints import auth, dashboard, betrieb, benutzer, maschinen, buchhaltung, fakturierung, lager
     app.register_blueprint(auth.auth_bp)
     app.register_blueprint(dashboard.dashboard_bp)
+    app.register_blueprint(benutzer.benutzer_bp)
     app.register_blueprint(betrieb.betrieb_bp)
     app.register_blueprint(maschinen.maschinen_bp)
     app.register_blueprint(buchhaltung.buchhaltung_bp)

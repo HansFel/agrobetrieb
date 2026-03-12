@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Vorlagen{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1">Rechnungsvorlagen</h1><p class="text-muted mb-0">Vorlagen für wiederkehrende Leistungen.</p></div><a class="btn btn-primary" href="{{ url_for('fakturierung.neu') }}">Neue Vorlage/Rechnung</a></div>
+<div class="card shadow-sm"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Name</th><th>Kunde</th><th>Art</th><th class="text-end">Betrag</th><th></th></tr></thead><tbody>{% for vorlage in vorlagen %}<tr><td>{{ vorlage.vorlage_name or vorlage.fakturanummer }}</td><td>{{ vorlage.kunde.name if vorlage.kunde else '-' }}</td><td>{{ vorlage.art }}</td><td class="text-end">{{ '%.2f'|format(vorlage.betrag_netto or 0) }}</td><td class="text-end"><form method="post" action="{{ url_for('fakturierung.vorlage_erstellen', id=vorlage.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="datum" value="{{ heute }}"><button class="btn btn-sm btn-outline-primary" type="submit">Rechnung erzeugen</button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Keine Vorlagen vorhanden.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

@@ -88,11 +88,11 @@
                             {% if artikel.letzter_einkaufspreis %}
                             <div class="mb-2">
                                 <small class="text-muted">Letzter Einkauf:</small>
-                                <br><strong>CHF {{ "%.2f"|format(artikel.letzter_einkaufspreis) }} / {{ artikel.einheit }}</strong>
+                                <br><strong>{{ waehrung }} {{ "%.2f"|format(artikel.letzter_einkaufspreis) }} / {{ artikel.einheit }}</strong>
                             </div>
                             <div class="mb-0">
                                 <small class="text-muted">Bestandswert:</small>
-                                <br><strong>CHF {{ "%.2f"|format(artikel.aktueller_bestand * artikel.letzter_einkaufspreis) }}</strong>
+                                <br><strong>{{ waehrung }} {{ "%.2f"|format(artikel.aktueller_bestand * artikel.letzter_einkaufspreis) }}</strong>
                             </div>
                             {% endif %}
                         </div>

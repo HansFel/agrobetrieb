@@ -82,7 +82,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Bestandswert</h6>
-                    <h3 class="text-success">CHF {{ "%.2f"|format(gesamtwert) }}</h3>
+                    <h3 class="text-success">{{ waehrung }} {{ "%.2f"|format(gesamtwert) }}</h3>
                 </div>
             </div>
         </div>
@@ -134,11 +134,11 @@
                             <div class="row text-sm mb-2">
                                 <div class="col-6">
                                     <small class="text-muted">Letzter Preis:</small>
-                                    <br><small>CHF {{ "%.2f"|format(art.letzter_einkaufspreis) }}</small>
+                                    <br><small>{{ waehrung }} {{ "%.2f"|format(art.letzter_einkaufspreis) }}</small>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Wert:</small>
-                                    <br><small>CHF {{ "%.2f"|format(art.aktueller_bestand * art.letzter_einkaufspreis) }}</small>
+                                    <br><small>{{ waehrung }} {{ "%.2f"|format(art.aktueller_bestand * art.letzter_einkaufspreis) }}</small>
                                 </div>
                             </div>
                             {% endif %}

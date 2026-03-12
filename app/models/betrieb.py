@@ -17,6 +17,9 @@ class Betrieb(db.Model):
     plz = db.Column(db.String(10))
     ort = db.Column(db.String(120))
     land = db.Column(db.String(2), default='AT')  # ISO 3166-1 alpha-2
+    waehrung = db.Column(db.String(5), default='€')  # €, CHF, etc.
+    mwst_satz_standard = db.Column(db.Numeric(5, 2), default=20)  # Standard-MwSt in %
+    uid_format = db.Column(db.String(30), default='ATU12345678')  # Platzhalter-Beispiel
     
     # Behördlich
     uid_nummer = db.Column(db.String(20))  # UID-Nummer (AT/EU)

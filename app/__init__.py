@@ -21,6 +21,32 @@ def create_app(config_name='default'):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    # Automatische Migrationen beim App-Start (nicht wenn Alembic CLI läuft)
+    if not os.environ.get('ALEMBIC_RUNNING'):
+        with app.app_context():
+            from alembic.config import Config as AlembicConfig
+            from alembic.script import ScriptDirectory
+            from alembic.runtime.migration import MigrationContext
+            from alembic.runtime.environment import EnvironmentContext
+            from alembic import command
+
+            alembic_cfg = AlembicConfig('migrations/alembic.ini')
+            alembic_cfg.set_main_option('script_location', 'migrations')
+
+            script = ScriptDirectory.from_config(alembic_cfg)
+            with db.engine.connect() as conn:
+                context = MigrationContext.configure(conn)
+                current_rev = context.get_current_revision()
+                head_rev = script.get_current_head()
+                if current_rev != head_rev:
+                    def do_upgrade(revision, context):
+                        return script._upgrade_revs('head', revision)
+                    with EnvironmentContext(alembic_cfg, script, fn=do_upgrade) as env:
+                        env.configure(connection=conn, target_metadata=db.metadata)
+                        with env.begin_transaction():
+                            env.run_migrations()
+                    conn.commit()
     
     # User Loader für Flask-Login
     @login_manager.user_loader
@@ -32,10 +58,37 @@ def create_app(config_name='default'):
     @app.context_processor
     def inject_globals():
         from datetime import datetime
+        from app.models.betrieb import Betrieb
+        
+        # Länderspezifische Defaults
+        LAENDER = {
+            'AT': {'waehrung': '€', 'mwst': 20, 'uid_placeholder': 'ATU12345678', 'land_name': 'Österreich'},
+            'DE': {'waehrung': '€', 'mwst': 19, 'uid_placeholder': 'DE123456789', 'land_name': 'Deutschland'},
+            'CH': {'waehrung': 'CHF', 'mwst': 8.1, 'uid_placeholder': 'CHE-123.456.789', 'land_name': 'Schweiz'},
+            'IT': {'waehrung': '€', 'mwst': 22, 'uid_placeholder': 'IT12345678901', 'land_name': 'Italien'},
+            'LI': {'waehrung': 'CHF', 'mwst': 8.1, 'uid_placeholder': 'LI12345', 'land_name': 'Liechtenstein'},
+        }
+        
+        betrieb = Betrieb.query.first()
+        land_code = betrieb.land if betrieb else 'AT'
+        land_info = LAENDER.get(land_code, LAENDER['AT'])
+        
+        waehrung = betrieb.waehrung if betrieb and betrieb.waehrung else land_info['waehrung']
+        mwst_standard = float(betrieb.mwst_satz_standard) if betrieb and betrieb.mwst_satz_standard else land_info['mwst']
+        uid_placeholder = betrieb.uid_format if betrieb and betrieb.uid_format else land_info['uid_placeholder']
+        
         return {
             'app_title': 'AgroBetrieb',
             'app_version': APP_VERSION,
             'now': datetime.utcnow(),
+            'now_year': datetime.now().year,
+            'waehrung': waehrung,
+            'land_code': land_code,
+            'land_name': land_info['land_name'],
+            'mwst_standard': mwst_standard,
+            'uid_placeholder': uid_placeholder,
+            'laender': LAENDER,
+            'betrieb_obj': betrieb,
         }
     
     # Blueprint registrieren

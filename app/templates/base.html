@@ -36,13 +36,86 @@
                         <a class="nav-link" href="{{ url_for('maschinen.index') }}"><i class="bi bi-gear"></i> Maschinen</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navModule" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-folder"></i> Module
+                        <a class="nav-link dropdown-toggle" href="#" id="buchhaltungDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-journal-text"></i> Buchhaltung
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.index') }}"><i class="bi bi-calculator"></i> Buchhaltung</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('fakturierung.index') }}"><i class="bi bi-receipt"></i> Fakturierung</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('lager.index') }}"><i class="bi bi-box-seam"></i> Lager</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.kontenplan') }}">
+                                <i class="bi bi-journal-text"></i> Kontenplan
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.journal') }}">
+                                <i class="bi bi-journal-bookmark"></i> Journal
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.buchung_neu') }}">
+                                <i class="bi bi-plus-circle"></i> Neue Buchung
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.buchung_sammel_neu') }}">
+                                <i class="bi bi-collection"></i> Sammelbuchung
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.bank_import') }}">
+                                <i class="bi bi-file-earmark-arrow-up"></i> Bank-Import
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.buchungsschluessel_liste') }}">
+                                <i class="bi bi-key"></i> Buchungsschlüssel
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.saldenliste') }}">
+                                <i class="bi bi-list-columns-reverse"></i> Saldenliste
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.bilanz') }}">
+                                <i class="bi bi-bar-chart-line"></i> Bilanz
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('buchhaltung.guv') }}">
+                                <i class="bi bi-graph-up"></i> GuV
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('fakturierung.liste') }}">
+                                <i class="bi bi-receipt"></i> Fakturierung
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('lager.index') }}"><i class="bi bi-box-seam"></i> Lager</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% set _gj_session = session.get('gj') %}
+                    {% set _echtes_gj = now_year|default(2026) %}
+                    <li class="nav-item dropdown" title="Aktives Geschäftsjahr">
+                        <a class="nav-link dropdown-toggle {% if _gj_session %}text-warning fw-bold{% endif %}"
+                           href="#" id="gjDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-calendar3"></i>
+                            {{ _gj_session or _echtes_gj }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" style="min-width:180px">
+                            <li><span class="dropdown-item-text text-muted small">Geschäftsjahr wählen</span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% for j in range(_echtes_gj + 1, _echtes_gj - 4, -1) %}
+                            <li>
+                                <form method="POST" action="{{ url_for('buchhaltung.geschaeftsjahr_setzen') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="geschaeftsjahr" value="{{ j }}">
+                                    <input type="hidden" name="next" value="{{ request.url }}">
+                                    <button type="submit" class="dropdown-item {% if (_gj_session or _echtes_gj) == j %}fw-bold text-primary{% endif %}">
+                                        {% if j == _echtes_gj %}<i class="bi bi-star-fill text-warning me-1"></i>{% else %}<i class="bi bi-calendar3 me-1"></i>{% endif %}
+                                        {{ j }} {% if j == _echtes_gj %}(aktuell){% endif %}
+                                    </button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                            {% if _gj_session %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="POST" action="{{ url_for('buchhaltung.geschaeftsjahr_setzen') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="geschaeftsjahr" value="{{ _echtes_gj }}">
+                                    <input type="hidden" name="next" value="{{ request.url }}">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-x-circle me-1"></i> Fixierung aufheben
+                                    </button>
+                                </form>
+                            </li>
+                            {% endif %}
                         </ul>
                     </li>
                 </ul>

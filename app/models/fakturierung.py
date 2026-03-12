@@ -1,107 +1,212 @@
 from datetime import datetime
+from decimal import Decimal
 from app.extensions import db
 
 
 class Kunde(db.Model):
-    """Kunde für Rechnungen."""
+    """Kunde / Gutschrift-Empfänger."""
     __tablename__ = 'kunde'
-    
+
     id = db.Column(db.Integer, primary_key=True)
-    
-    # Grunddaten
-    name = db.Column(db.String(255), nullable=False)
-    beschreibung = db.Column(db.Text)
-    
-    # Adresse
-    strasse = db.Column(db.String(255))
-    plz = db.Column(db.String(10))
-    ort = db.Column(db.String(120))
-    land = db.Column(db.String(2), default='AT')
-    
-    # Details
-    uid_nummer = db.Column(db.String(20))
-    kontakt = db.Column(db.String(255))
-    
-    # Kontakt
-    email = db.Column(db.String(120))
-    telefon = db.Column(db.String(20))
-    
-    # Timestamps
+    name = db.Column(db.Text, nullable=False)
+    adresse = db.Column(db.Text)
+    ort = db.Column(db.Text)
+    plz = db.Column(db.Text)
+    email = db.Column(db.Text)
+    telefon = db.Column(db.Text)
+    uid_nummer = db.Column(db.Text)
+    iban = db.Column(db.Text)
+    notizen = db.Column(db.Text)
+    aktiv = db.Column(db.Boolean, default=True, nullable=False)
+    konto_id = db.Column(db.Integer,
+                         db.ForeignKey('konto.id', ondelete='SET NULL'),
+                         nullable=True)
+
+    konto = db.relationship('Konto')
+    fakturen = db.relationship('Faktura', back_populates='kunde',
+                               order_by='Faktura.datum.desc()')
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    rechnungen = db.relationship('Rechnung', back_populates='kunde', lazy='dynamic')
-    
+
     def __repr__(self):
         return f'<Kunde {self.name}>'
 
+    @property
+    def adresse_vollstaendig(self):
+        teile = []
+        if self.adresse:
+            teile.append(self.adresse)
+        ort_teil = ' '.join(filter(None, [self.plz, self.ort]))
+        if ort_teil:
+            teile.append(ort_teil)
+        return '\n'.join(teile)
 
-class Rechnung(db.Model):
-    """Ausgangsrechnung."""
-    __tablename__ = 'rechnung'
-    
+
+FAKTURA_ARTEN = {
+    'dienstleistung': 'Dienstleistung',
+    'materialverkauf': 'Materialverkauf',
+    'maschinenarbeit': 'Maschinenarbeit',
+    'holzverkauf': 'Holzverkauf',
+    'pacht': 'Pacht / Miete',
+    'sonstiges': 'Sonstiges',
+}
+
+GUTSCHRIFT_ARTEN = {
+    'dienstleistung': 'Dienstleistung',
+    'materialverkauf': 'Materialverkauf',
+    'maschinenarbeit': 'Maschinenarbeit',
+    'holzverkauf': 'Holzverkauf',
+    'sonstiges': 'Sonstige Auszahlung',
+}
+
+FAKTURA_STATUS = {
+    'erstellt': 'Erstellt',
+    'versendet': 'Versendet',
+    'bezahlt': 'Bezahlt',
+    'storniert': 'Storniert',
+}
+
+DOKUMENT_TYPEN = {
+    'rechnung': 'Rechnung',
+    'gutschrift': 'Gutschrift',
+}
+
+
+class Faktura(db.Model):
+    """Rechnung oder Gutschrift."""
+    __tablename__ = 'faktura'
+
     id = db.Column(db.Integer, primary_key=True)
-    
-    # Nummern
-    nummer = db.Column(db.String(50), unique=True, nullable=False)
-    
-    # Kunde
-    kunde_id = db.Column(db.Integer, db.ForeignKey('kunde.id'), nullable=False)
-    
-    # Daten
+    kunde_id = db.Column(db.Integer,
+                         db.ForeignKey('kunde.id', ondelete='RESTRICT'),
+                         nullable=False)
+    geschaeftsjahr = db.Column(db.Integer, nullable=False)
+    fakturanummer = db.Column(db.Text, nullable=False, unique=True)
     datum = db.Column(db.Date, nullable=False)
     faellig_am = db.Column(db.Date)
-    
-    # Status
-    status = db.Column(db.String(20), default='offen')  # 'offen', 'bezahlt', 'storno'
-    
-    # Beträge
-    netto_gesamt = db.Column(db.Numeric(12, 2), default=0)
-    mwst_gesamt = db.Column(db.Numeric(12, 2), default=0)
-    brutto_gesamt = db.Column(db.Numeric(12, 2), default=0)
-    
-    # Notizen
-    notiz = db.Column(db.Text)
-    
-    # Audit
+    art = db.Column(db.Text, nullable=False)
+    betreff = db.Column(db.Text)
+    betrag_netto = db.Column(db.Numeric(12, 2), nullable=False)
+
+    haben_konto_id = db.Column(db.Integer,
+                               db.ForeignKey('konto.id', ondelete='RESTRICT'),
+                               nullable=True)
+    forderung_konto_id = db.Column(db.Integer,
+                                   db.ForeignKey('konto.id', ondelete='RESTRICT'),
+                                   nullable=True)
+    buchung_id = db.Column(db.Integer,
+                           db.ForeignKey('buchung.id', ondelete='SET NULL'),
+                           nullable=True)
+    bezahlt_buchung_id = db.Column(db.Integer,
+                                   db.ForeignKey('buchung.id', ondelete='SET NULL'),
+                                   nullable=True)
+
+    status = db.Column(db.Text, default='erstellt', nullable=False)
+    ist_vorlage = db.Column(db.Boolean, default=False, nullable=False)
+    vorlage_name = db.Column(db.Text)
+    notizen = db.Column(db.Text)
+    erstellt_von = db.Column(db.Integer,
+                             db.ForeignKey('user.id', ondelete='SET NULL'),
+                             nullable=True)
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    dokument_typ = db.Column(db.Text, nullable=False, default='rechnung')
+    storno_von_id = db.Column(db.Integer,
+                              db.ForeignKey('faktura.id', ondelete='SET NULL'),
+                              nullable=True)
+
     # Relationships
-    kunde = db.relationship('Kunde', back_populates='rechnungen')
-    positionen = db.relationship('RechnungsPosition', back_populates='rechnung', cascade='all, delete-orphan')
-    
+    kunde = db.relationship('Kunde', back_populates='fakturen')
+    haben_konto = db.relationship('Konto', foreign_keys=[haben_konto_id])
+    forderung_konto = db.relationship('Konto', foreign_keys=[forderung_konto_id])
+    buchung = db.relationship('Buchung', foreign_keys=[buchung_id])
+    bezahlt_buchung = db.relationship('Buchung', foreign_keys=[bezahlt_buchung_id])
+    erstellt_von_user = db.relationship('User', foreign_keys=[erstellt_von])
+    storno_von = db.relationship('Faktura', foreign_keys=[storno_von_id],
+                                 remote_side='Faktura.id',
+                                 backref=db.backref('gutschriften', lazy='dynamic'))
+    positionen = db.relationship('FakturaPosition', back_populates='faktura',
+                                 order_by='FakturaPosition.sortierung',
+                                 cascade='all, delete-orphan')
+
     def __repr__(self):
-        return f'<Rechnung {self.nummer}>'
+        return f'<Faktura {self.fakturanummer} {self.betrag_netto}>'
+
+    @property
+    def art_bezeichnung(self):
+        return FAKTURA_ARTEN.get(self.art, self.art)
+
+    @property
+    def status_bezeichnung(self):
+        return FAKTURA_STATUS.get(self.status, self.status)
+
+    @property
+    def ist_offen(self):
+        return self.status in ('erstellt', 'versendet')
+
+    @property
+    def ist_gutschrift(self):
+        return self.dokument_typ == 'gutschrift'
+
+    @property
+    def dokument_typ_bezeichnung(self):
+        return DOKUMENT_TYPEN.get(self.dokument_typ, self.dokument_typ)
+
+    @classmethod
+    def naechste_gutschrift_nummer(cls, geschaeftsjahr):
+        """Nächste Gutschrift-Nummer: GS-YYYY-NNN."""
+        letzte = cls.query.filter_by(
+            geschaeftsjahr=geschaeftsjahr,
+            dokument_typ='gutschrift',
+            ist_vorlage=False,
+        ).order_by(cls.id.desc()).first()
+
+        if not letzte:
+            return f'GS-{geschaeftsjahr}-001'
+        try:
+            nr = int(letzte.fakturanummer.split('-')[2])
+        except (IndexError, ValueError):
+            nr = 0
+        return f'GS-{geschaeftsjahr}-{nr + 1:03d}'
+
+    @classmethod
+    def naechste_nummer(cls, geschaeftsjahr):
+        """Nächste Rechnungs-Nummer: YYYY-NNN."""
+        letzte = cls.query.filter_by(
+            geschaeftsjahr=geschaeftsjahr,
+            dokument_typ='rechnung',
+            ist_vorlage=False,
+        ).order_by(cls.id.desc()).first()
+
+        if not letzte:
+            return f'{geschaeftsjahr}-001'
+        try:
+            nr = int(letzte.fakturanummer.split('-')[1])
+        except (IndexError, ValueError):
+            nr = 0
+        return f'{geschaeftsjahr}-{nr + 1:03d}'
 
 
-class RechnungsPosition(db.Model):
-    """Position auf einer Rechnung."""
-    __tablename__ = 'rechnungsposition'
-    
+class FakturaPosition(db.Model):
+    """Position auf einer Faktura."""
+    __tablename__ = 'faktura_position'
+
     id = db.Column(db.Integer, primary_key=True)
-    
-    # Rechnung
-    rechnung_id = db.Column(db.Integer, db.ForeignKey('rechnung.id', ondelete='CASCADE'), nullable=False)
-    
-    # Position
-    position = db.Column(db.Integer, default=1)  # Reihenfolge
-    beschreibung = db.Column(db.String(255), nullable=False)
-    
-    # Menge & Preis
-    menge = db.Column(db.Numeric(10, 2), nullable=False)
-    einheit = db.Column(db.String(20), default='Stk')  # Stück, h (Stunden), km, etc.
-    einzelpreis = db.Column(db.Numeric(10, 2), nullable=False)
-    
-    # MwSt
-    mwst_satz = db.Column(db.Numeric(5, 2), default=0)
-    
-    # Gesamtbetrag
-    netto = db.Column(db.Numeric(12, 2), nullable=False)
-    mwst = db.Column(db.Numeric(12, 2), default=0)
-    brutto = db.Column(db.Numeric(12, 2), nullable=False)
-    
-    # Relationships
-    rechnung = db.relationship('Rechnung', back_populates='positionen')
-    
+    faktura_id = db.Column(db.Integer,
+                           db.ForeignKey('faktura.id', ondelete='CASCADE'),
+                           nullable=False)
+    bezeichnung = db.Column(db.Text, nullable=False)
+    menge = db.Column(db.Numeric(10, 3))
+    einheit = db.Column(db.Text)
+    einzelpreis = db.Column(db.Numeric(12, 2))
+    betrag = db.Column(db.Numeric(12, 2), nullable=False)
+    sortierung = db.Column(db.Integer, default=0, nullable=False)
+
+    faktura = db.relationship('Faktura', back_populates='positionen')
+
     def __repr__(self):
-        return f'<RechnungsPosition {self.rechnung.nummer}>'
+        return f'<FakturaPosition {self.bezeichnung} {self.betrag}>'
+
+    @property
+    def betrag_berechnet(self):
+        if self.menge and self.einzelpreis:
+            return Decimal(str(self.menge)) * Decimal(str(self.einzelpreis))
+        return Decimal(str(self.betrag))

@@ -33,10 +33,27 @@
                             <input type="text" class="form-control" id="name" name="name" 
                                    value="{{ betrieb.name if betrieb else '' }}" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label for="land" class="form-label">Land</label>
-                            <input type="text" class="form-control" id="land" name="land" 
-                                   value="{{ betrieb.land if betrieb else 'AT' }}" maxlength="2">
+                            <select class="form-select" id="land" name="land">
+                                {% for code, info in laender.items() %}
+                                <option value="{{ code }}" {% if (betrieb and betrieb.land == code) or (not betrieb and code == 'AT') %}selected{% endif %}>
+                                    {{ info.land_name }} ({{ code }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="waehrung" class="form-label">Währung</label>
+                            <input type="text" class="form-control" id="waehrung" name="waehrung" 
+                                   value="{{ betrieb.waehrung if betrieb else '€' }}" maxlength="5">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="mwst_satz_standard" class="form-label">MwSt-Standardsatz %</label>
+                            <input type="number" class="form-control" id="mwst_satz_standard" name="mwst_satz_standard" 
+                                   step="0.1" value="{{ betrieb.mwst_satz_standard if betrieb else 20 }}">
                         </div>
                     </div>
                     
@@ -122,4 +139,18 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const LAENDER = {{ laender|tojson }};
+    document.getElementById('land').addEventListener('change', function() {
+        const info = LAENDER[this.value];
+        if (info) {
+            document.getElementById('waehrung').value = info.waehrung;
+            document.getElementById('mwst_satz_standard').value = info.mwst;
+            document.getElementById('uid_nummer').placeholder = info.uid_placeholder;
+        }
+    });
+</script>
 {% endblock %}

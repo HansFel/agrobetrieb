@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Kontoblatt{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Kontoblatt {{ konto.kontonummer }}</h1>
+        <p class="text-muted mb-0">{{ konto.bezeichnung }} | Jahr {{ geschaeftsjahr }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.saldenliste', jahr=geschaeftsjahr) }}">Zurück zur Saldenliste</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Anfangssaldo</div><div class="fs-4">{{ '%.2f'|format(saldo.saldo_beginn if saldo else 0) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Soll</div><div class="fs-4">{{ '%.2f'|format(saldo.summe_soll if saldo else 0) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Haben</div><div class="fs-4">{{ '%.2f'|format(saldo.summe_haben if saldo else 0) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Saldo aktuell</div><div class="fs-4">{{ '%.2f'|format(saldo.saldo_aktuell if saldo else 0) }}</div></div></div></div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Datum</th><th>Nr.</th><th>Gegenkonto</th><th>Text</th><th class="text-end">Soll</th><th class="text-end">Haben</th></tr></thead>
+            <tbody>
+                {% for buchung in buchungen %}
+                <tr>
+                    <td>{{ buchung.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ buchung.buchungsnummer }}</td>
+                    <td>
+                        {% if buchung.soll_konto_id == konto.id %}
+                            {{ buchung.haben_konto.kontonummer if buchung.haben_konto else '-' }} - {{ buchung.haben_konto.bezeichnung if buchung.haben_konto else '' }}
+                        {% else %}
+                            {{ buchung.soll_konto.kontonummer if buchung.soll_konto else '-' }} - {{ buchung.soll_konto.bezeichnung if buchung.soll_konto else '' }}
+                        {% endif %}
+                    </td>
+                    <td>{{ buchung.buchungstext }}</td>
+                    <td class="text-end">{% if buchung.soll_konto_id == konto.id %}{{ '%.2f'|format(buchung.betrag or 0) }}{% endif %}</td>
+                    <td class="text-end">{% if buchung.haben_konto_id == konto.id %}{{ '%.2f'|format(buchung.betrag or 0) }}{% endif %}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-4">Keine Buchungen auf diesem Konto.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

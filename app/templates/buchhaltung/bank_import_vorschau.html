@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% block title %}Bankimport Vorschau{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Bankimport Vorschau</h1>
+        <p class="text-muted mb-0">{{ datei_name }} | {{ vorschau|length }} Zeilen | Geschäftsjahr {{ geschaeftsjahr }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.bank_import') }}">Zurück</a>
+</div>
+
+{# Zusammenfassung #}
+{% set ns = namespace(im_gj=0, ausserhalb=0, fehler=0) %}
+{% for z in vorschau %}{% if z.fehler %}{% set ns.fehler = ns.fehler + 1 %}{% elif z.ausserhalb_gj %}{% set ns.ausserhalb = ns.ausserhalb + 1 %}{% else %}{% set ns.im_gj = ns.im_gj + 1 %}{% endif %}{% endfor %}
+{% if ns.ausserhalb > 0 %}
+<div class="alert alert-warning mb-3"><i class="bi bi-exclamation-triangle"></i> <strong>{{ ns.ausserhalb }}</strong> Zeilen liegen außerhalb des Geschäftsjahres {{ geschaeftsjahr }} und werden übersprungen. <strong>{{ ns.im_gj }}</strong> Zeilen werden importiert.</div>
+{% endif %}
+{% if ns.fehler > 0 %}
+<div class="alert alert-danger mb-3"><i class="bi bi-x-circle"></i> <strong>{{ ns.fehler }}</strong> Zeilen haben Fehler und werden übersprungen.</div>
+{% endif %}
+
+{# Schnellzuweisung #}
+{% if schluessel %}
+<div class="mb-3 p-2 bg-light rounded">
+    <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
+        <small class="text-muted fw-bold mb-0">Schnellzuweisung:</small>
+        <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="auch_zugewiesene">
+            <label class="form-check-label small text-muted" for="auch_zugewiesene">
+                Auch bereits zugewiesene Zeilen überschreiben
+            </label>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-1">
+        {% for bs in schluessel %}
+        <button type="button" class="btn btn-outline-secondary btn-sm schluessel-global-btn"
+                data-soll="{{ bs.soll_konto_id or '' }}"
+                data-haben="{{ bs.haben_konto_id or '' }}"
+                title="{% if bs.soll_konto_id %}Soll: {{ konten[bs.soll_konto_id].kontonummer if bs.soll_konto_id in konten else '?' }}{% endif %}{% if bs.soll_konto_id and bs.haben_konto_id %} | {% endif %}{% if bs.haben_konto_id %}Haben: {{ konten[bs.haben_konto_id].kontonummer if bs.haben_konto_id in konten else '?' }}{% endif %}">
+            <strong>{{ bs.kuerzel }}</strong>{% if bs.bezeichnung %} &ndash; {{ bs.bezeichnung }}{% endif %}
+        </button>
+        {% endfor %}
+    </div>
+    <small class="text-muted d-block mt-1">
+        Klick belegt alle unzugewiesenen Zeilen. Einnahmen (+) &rarr; Haben-Konto, Ausgaben (&minus;) &rarr; Soll-Konto.
+    </small>
+</div>
+{% endif %}
+
+{# Legende #}
+<div class="mb-2 d-flex gap-2 flex-wrap align-items-center">
+    <span class="badge bg-warning text-dark">Außerhalb GJ</span>
+    <span class="badge bg-danger">Fehler</span>
+    <span class="badge bg-success">Schlüssel gefunden</span>
+    <span class="badge bg-primary">Manuell zuweisen</span>
+    <span class="ms-2 text-muted small"><i class="bi bi-plus-circle"></i> = neuen Schlüssel aus Text anlegen</span>
+</div>
+
+<form method="post" action="{{ url_for('buchhaltung.bank_import_ausfuehren') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="datei_b64" value="{{ datei_b64 }}">
+    <input type="hidden" name="bank_konto_id" value="{{ bank_konto_id }}">
+    <input type="hidden" name="geschaeftsjahr" value="{{ geschaeftsjahr }}">
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:35px">#</th>
+                        <th style="width:95px">Datum</th>
+                        <th class="text-end" style="width:100px">Betrag</th>
+                        <th>Verwendungszweck</th>
+                        <th style="width:80px">Vorschlag</th>
+                        <th style="width:320px">Gegenkonto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zeile in vorschau %}
+                    {% set ist_importierbar = not zeile.fehler and not zeile.ausserhalb_gj and zeile.hash %}
+                    {% set hat_schluessel = zeile.gegenkonto_id or zeile.schluessel_kuerzel %}
+                    {% set betrag_pos = zeile.betrag is not none and zeile.betrag >= 0 %}
+                    <tr class="{% if zeile.fehler %}table-danger-subtle{% elif zeile.ausserhalb_gj %}table-warning{% elif ist_importierbar and not hat_schluessel %}table-primary bg-opacity-10{% endif %}"
+                        data-text="{{ zeile.text | e if zeile.text else '' }}">
+                        <td class="text-muted small">{{ zeile.zeilen_nr }}</td>
+                        <td class="small">
+                            {{ zeile.datum.strftime('%d.%m.%Y') if zeile.datum else '-' }}
+                            {% if zeile.ausserhalb_gj %}<br><span class="badge text-bg-warning">GJ {{ zeile.datum.year }}</span>{% endif %}
+                        </td>
+                        <td class="text-end font-monospace small {% if zeile.betrag is not none and zeile.betrag < 0 %}text-danger{% endif %}">
+                            {{ '%.2f'|format(zeile.betrag) if zeile.betrag is not none else '-' }}
+                        </td>
+                        <td><small>{{ zeile.text[:100] if zeile.text else '-' }}</small></td>
+                        <td>
+                            {% if hat_schluessel %}
+                            <span class="badge bg-success">{{ zeile.schluessel_kuerzel or 'auto' }}</span>
+                            {% elif ist_importierbar %}
+                            <span class="badge bg-primary">Zuweisen</span>
+                            {% else %}
+                            <small class="text-muted">&mdash;</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if zeile.ausserhalb_gj %}
+                            <span class="text-muted">wird übersprungen</span>
+                            {% elif zeile.fehler %}
+                            <small class="text-danger">{{ zeile.fehler }}</small>
+                            {% elif ist_importierbar %}
+                            <div class="d-flex gap-1 align-items-center">
+                                <select name="gegenkonto_{{ zeile.hash }}"
+                                        class="form-select form-select-sm gk-select {% if not hat_schluessel %}gk-unassigned{% endif %}"
+                                        style="font-size:0.75rem">
+                                    {% if hat_schluessel %}
+                                    <option value="">{{ konten[zeile.gegenkonto_id].kontonummer ~ ' ' ~ konten[zeile.gegenkonto_id].bezeichnung if zeile.gegenkonto_id and zeile.gegenkonto_id in konten else 'Schlüssel übernehmen' }}</option>
+                                    {% else %}
+                                    <option value="">-- bitte zuweisen --</option>
+                                    {% endif %}
+                                    {% for konto in alle_konten %}
+                                    <option value="{{ konto.id }}" {% if zeile.gegenkonto_id == konto.id %}selected{% endif %}>
+                                        {{ konto.kontonummer }} {{ konto.bezeichnung }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-sm flex-shrink-0 create-schluessel-btn"
+                                        data-text="{{ zeile.text | e if zeile.text else '' }}"
+                                        data-betrag-positiv="{{ 'true' if betrag_pos else 'false' }}"
+                                        data-hash="{{ zeile.hash }}"
+                                        title="Neuen Buchungsschlüssel aus diesem Text anlegen"
+                                        style="padding:1px 5px; font-size:0.7rem">
+                                    <i class="bi bi-plus-circle"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">&mdash;</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end mt-4">
+        <button class="btn btn-primary" type="submit">
+            <i class="bi bi-check-lg"></i> Import ausführen
+        </button>
+    </div>
+</form>
+
+{# Modal: Neuen Buchungsschlüssel anlegen #}
+<div class="modal fade" id="schluesselErstellenModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="bi bi-plus-circle"></i> Buchungsschlüssel anlegen</h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modal-source-hash">
+                <input type="hidden" id="modal-betrag-positiv">
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Suchbegriff <span class="text-danger">*</span></label>
+                    <input type="text" id="modal-suchbegriff" class="form-control form-control-sm"
+                           placeholder="z.B. AMA, Agrardiesel, Pacht …">
+                    <div class="form-text">Wird case-insensitiv im Verwendungszweck gesucht. Tipp: auf den eindeutigen Teil kürzen.</div>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-5">
+                        <label class="form-label small fw-bold">Kürzel <span class="text-danger">*</span></label>
+                        <input type="text" id="modal-kuerzel" class="form-control form-control-sm"
+                               placeholder="z.B. adv" maxlength="20">
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label small fw-bold">Bezeichnung</label>
+                        <input type="text" id="modal-bezeichnung" class="form-control form-control-sm"
+                               placeholder="z.B. Agrardieselrückvergütung">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold" id="modal-konto-label">Gegenkonto <span class="text-danger">*</span></label>
+                    <select id="modal-konto" class="form-select form-select-sm">
+                        <option value="">-- bitte wählen --</option>
+                        {% for konto in alle_konten %}
+                        <option value="{{ konto.id }}">{{ konto.kontonummer }} {{ konto.bezeichnung }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="modal-error" class="alert alert-danger d-none py-1 small mb-2"></div>
+
+                <div class="alert alert-info py-1 small mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Der Schlüssel wird gespeichert und steht beim nächsten Import automatisch zur Verfügung.
+                    Alle Zeilen dieser Vorschau, die den Suchbegriff enthalten, werden sofort belegt.
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary btn-sm" id="modal-save">
+                    <i class="bi bi-check-lg"></i> Anlegen &amp; Anwenden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var CSRF_TOKEN = '{{ csrf_token() }}';
+var URL_SCHLUESSEL_ANLEGEN = '{{ url_for("buchhaltung.bank_import_schluessel_anlegen") }}';
+
+// Modal öffnen mit vorausgefülltem Text
+document.querySelectorAll('.create-schluessel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var text = this.dataset.text || '';
+        var betragPositiv = this.dataset.betragPositiv === 'true';
+
+        document.getElementById('modal-suchbegriff').value = text;
+        document.getElementById('modal-kuerzel').value = '';
+        document.getElementById('modal-bezeichnung').value = '';
+        document.getElementById('modal-konto').value = '';
+        document.getElementById('modal-betrag-positiv').value = betragPositiv ? 'true' : 'false';
+        document.getElementById('modal-source-hash').value = this.dataset.hash;
+        document.getElementById('modal-konto-label').textContent =
+            (betragPositiv ? 'Haben-Konto (Einnahme)' : 'Soll-Konto (Ausgabe)') + ' *';
+        document.getElementById('modal-error').classList.add('d-none');
+
+        var modal = new bootstrap.Modal(document.getElementById('schluesselErstellenModal'));
+        modal.show();
+        setTimeout(function() {
+            document.getElementById('modal-suchbegriff').focus();
+            document.getElementById('modal-suchbegriff').select();
+        }, 300);
+    });
+});
+
+// Schlüssel anlegen & auf alle passenden Zeilen anwenden
+document.getElementById('modal-save').addEventListener('click', function() {
+    var kuerzel = document.getElementById('modal-kuerzel').value.trim();
+    var bezeichnung = document.getElementById('modal-bezeichnung').value.trim();
+    var suchbegriff = document.getElementById('modal-suchbegriff').value.trim();
+    var kontoId = document.getElementById('modal-konto').value;
+    var betragPositiv = document.getElementById('modal-betrag-positiv').value === 'true';
+    var errorDiv = document.getElementById('modal-error');
+
+    errorDiv.classList.add('d-none');
+    if (!kuerzel || !suchbegriff || !kontoId) {
+        errorDiv.textContent = 'Bitte Kürzel, Suchbegriff und Konto ausfüllen.';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Speichern…';
+
+    fetch(URL_SCHLUESSEL_ANLEGEN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({
+            kuerzel: kuerzel, bezeichnung: bezeichnung,
+            suchbegriff: suchbegriff, konto_id: parseInt(kontoId),
+            betrag_positiv: betragPositiv
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Anlegen &amp; Anwenden';
+
+        if (data.error) {
+            errorDiv.textContent = data.error;
+            errorDiv.classList.remove('d-none');
+            return;
+        }
+
+        // Alle Zeilen durchsuchen und passende belegen
+        var suchLower = suchbegriff.toLowerCase();
+        var treffer = 0;
+        document.querySelectorAll('tr[data-text]').forEach(function(tr) {
+            var trText = (tr.dataset.text || '').toLowerCase();
+            if (trText.includes(suchLower)) {
+                var sel = tr.querySelector('.gk-select');
+                if (sel) {
+                    sel.value = String(data.konto_id);
+                    sel.classList.remove('gk-unassigned');
+                    treffer++;
+                }
+            }
+        });
+
+        bootstrap.Modal.getInstance(document.getElementById('schluesselErstellenModal')).hide();
+
+        var info = document.createElement('div');
+        info.className = 'alert alert-success alert-dismissible py-1 small mt-2';
+        info.innerHTML = '<i class="bi bi-check-circle"></i> Schlüssel <strong>' + kuerzel +
+            '</strong> angelegt – ' + treffer + ' Zeile(n) belegt.' +
+            '<button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>';
+        document.querySelector('.card.shadow-sm').before(info);
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Anlegen &amp; Anwenden';
+        errorDiv.textContent = 'Netzwerkfehler – bitte erneut versuchen.';
+        errorDiv.classList.remove('d-none');
+    });
+});
+
+// Globale Schnellzuweisung
+document.querySelectorAll('.schluessel-global-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var habenId = this.dataset.haben;
+        var sollId = this.dataset.soll;
+        var auchZugewiesene = document.getElementById('auch_zugewiesene').checked;
+
+        var sels = auchZugewiesene
+            ? document.querySelectorAll('.gk-select')
+            : document.querySelectorAll('.gk-unassigned');
+
+        sels.forEach(function(sel) {
+            var row = sel.closest('tr');
+            var betragTd = row.querySelector('td:nth-child(3)');
+            var betragText = betragTd ? betragTd.textContent.trim() : '';
+            var istEinnahme = betragText && !betragText.startsWith('-');
+
+            var zielId = istEinnahme ? habenId : sollId;
+            if (zielId) {
+                sel.value = zielId;
+                sel.classList.remove('gk-unassigned');
+            }
+        });
+
+        // Aktiven Schlüssel hervorheben
+        document.querySelectorAll('.schluessel-global-btn').forEach(function(b) {
+            b.classList.remove('btn-secondary');
+            b.classList.add('btn-outline-secondary');
+        });
+        this.classList.remove('btn-outline-secondary');
+        this.classList.add('btn-secondary');
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Journal{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Journal</h1>
+        <p class="text-muted mb-0">Alle Buchungen des Geschäftsjahres {{ geschaeftsjahr }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchung_sammel_neu') }}">Sammelbuchung</a>
+        <a class="btn btn-primary" href="{{ url_for('buchhaltung.buchung_neu') }}">Neue Buchung</a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2"><label class="form-label">Jahr</label><input class="form-control" type="number" name="jahr" value="{{ geschaeftsjahr }}"></div>
+            <div class="col-md-3"><label class="form-label">Konto</label><select class="form-select" name="konto"><option value="">Alle</option>{% for konto in konten %}<option value="{{ konto.id }}" {% if konto_filter == konto.id %}selected{% endif %}>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label">Art</label><input class="form-control" name="buchungsart" value="{{ buchungsart_filter }}"></div>
+            <div class="col-md-2"><label class="form-label">Von</label><input class="form-control" type="date" name="datum_von" value="{{ datum_von }}"></div>
+            <div class="col-md-2"><label class="form-label">Bis</label><input class="form-control" type="date" name="datum_bis" value="{{ datum_bis }}"></div>
+            <div class="col-md-1"><button class="btn btn-outline-primary w-100" type="submit">Filter</button></div>
+            <div class="col-md-12"><label class="form-label">Textsuche</label><input class="form-control" name="text" value="{{ text_filter }}"></div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Nr.</th>
+                    <th>Datum</th>
+                    <th>Soll</th>
+                    <th>Haben</th>
+                    <th>Text</th>
+                    <th class="text-end">Betrag</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for buchung in buchungen %}
+                <tr class="{% if buchung.storniert %}table-danger-subtle{% endif %}">
+                    <td>{{ buchung.buchungsnummer }}</td>
+                    <td>{{ buchung.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ buchung.soll_konto.kontonummer if buchung.soll_konto else '-' }} - {{ buchung.soll_konto.bezeichnung if buchung.soll_konto else '' }}</td>
+                    <td>{{ buchung.haben_konto.kontonummer if buchung.haben_konto else '-' }} - {{ buchung.haben_konto.bezeichnung if buchung.haben_konto else '' }}</td>
+                    <td>{{ buchung.buchungstext }}</td>
+                    <td class="text-end">{{ '%.2f'|format(buchung.betrag or 0) }}</td>
+                    <td>
+                        {% if buchung.storniert %}<span class="badge text-bg-danger">storniert</span>{% else %}<span class="badge text-bg-success">aktiv</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchung_umbuchen', buchung_id=buchung.id) }}">Umbuchen</a>
+                            <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchung_gegenkonto_aendern', buchung_id=buchung.id) }}">Gegenkonto</a>
+                            {% if not buchung.storniert %}
+                            <form method="post" action="{{ url_for('buchhaltung.buchung_stornieren', buchung_id=buchung.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-outline-danger" type="submit">Storno</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-4">Keine Buchungen gefunden.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

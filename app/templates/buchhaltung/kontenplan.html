@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Kontenplan{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Kontenplan</h1>
+        <p class="text-muted mb-0">Standardkonten, eigene Konten und Bankkonten verwalten.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('buchhaltung.standard_kontenplan_anlegen') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-primary" type="submit">Standard-Konten anlegen</button>
+        </form>
+        <a class="btn btn-primary" href="{{ url_for('buchhaltung.konto_neu') }}">Neues Konto</a>
+    </div>
+</div>
+
+{% for klasse in klassen.values()|sort(attribute='nummer') %}
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Klasse {{ klasse.nummer }} - {{ klasse.name }}</strong>
+        <span class="badge text-bg-light">{{ klasse.konten|length }} Konten</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Konto</th>
+                    <th>Bezeichnung</th>
+                    <th>Typ</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for konto in klasse.konten %}
+                <tr>
+                    <td class="fw-semibold">{{ konto.kontonummer }}</td>
+                    <td>{{ konto.bezeichnung }}</td>
+                    <td>{{ konto.kontotyp }}</td>
+                    <td>
+                        {% if konto.aktiv %}<span class="badge text-bg-success">aktiv</span>{% else %}<span class="badge text-bg-secondary">inaktiv</span>{% endif %}
+                        {% if konto.ist_importkonto %}<span class="badge text-bg-info">Import</span>{% endif %}
+                        {% if konto.jahresuebertrag %}<span class="badge text-bg-warning">Vortrag</span>{% endif %}
+                    </td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('buchhaltung.konto_bearbeiten', konto_id=konto.id) }}">Bearbeiten</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted">Keine Konten in dieser Klasse.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

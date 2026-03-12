@@ -42,6 +42,8 @@ def create():
             plz=request.form.get('plz', '').strip() or None,
             ort=request.form.get('ort', '').strip() or None,
             land=request.form.get('land', 'AT'),
+            waehrung=request.form.get('waehrung', '€'),
+            mwst_satz_standard=request.form.get('mwst_satz_standard', 20),
             uid_nummer=request.form.get('uid_nummer', '').strip() or None,
             steuernummer=request.form.get('steuernummer', '').strip() or None,
             iban=request.form.get('iban', '').strip() or None,
@@ -74,6 +76,8 @@ def edit():
         betrieb.plz = request.form.get('plz', '').strip() or None
         betrieb.ort = request.form.get('ort', '').strip() or None
         betrieb.land = request.form.get('land', 'AT')
+        betrieb.waehrung = request.form.get('waehrung', '€')
+        betrieb.mwst_satz_standard = request.form.get('mwst_satz_standard', 20)
         betrieb.uid_nummer = request.form.get('uid_nummer', '').strip() or None
         betrieb.steuernummer = request.form.get('steuernummer', '').strip() or None
         betrieb.iban = request.form.get('iban', '').strip() or None

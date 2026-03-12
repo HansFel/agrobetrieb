@@ -97,15 +97,15 @@
                             <div class="col-md-6 offset-md-6">
                                 <div class="row mb-2">
                                     <div class="col-6 text-end">Netto:</div>
-                                    <div class="col-6 text-end"><strong id="netto">CHF 0.00</strong></div>
+                                    <div class="col-6 text-end"><strong id="netto">{{ waehrung }} 0.00</strong></div>
                                 </div>
                                 <div class="row mb-2">
-                                    <div class="col-6 text-end">MwSt (8%):</div>
-                                    <div class="col-6 text-end"><strong id="mwst">CHF 0.00</strong></div>
+                                    <div class="col-6 text-end">MwSt ({{ mwst_standard }}%):</div>
+                                    <div class="col-6 text-end"><strong id="mwst">{{ waehrung }} 0.00</strong></div>
                                 </div>
                                 <div class="row mb-2 border-top pt-2">
                                     <div class="col-6 text-end"><h5>Gesamtbetrag:</h5></div>
-                                    <div class="col-6 text-end"><h5 id="brutto" class="text-primary">CHF 0.00</h5></div>
+                                    <div class="col-6 text-end"><h5 id="brutto" class="text-primary">{{ waehrung }} 0.00</h5></div>
                                 </div>
                             </div>
                         </div>
@@ -156,7 +156,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="k_uid" class="form-label">UID-Nummer</label>
-                        <input type="text" class="form-control" id="k_uid" name="uid_nummer" placeholder="CHE-123.456.789">
+                        <input type="text" class="form-control" id="k_uid" name="uid_nummer" placeholder="{{ uid_placeholder }}">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -219,12 +219,12 @@ function updateTotals() {
         const preis = parseFloat(row.querySelector('.einzelpreis').value || 0);
         netto += menge * preis;
     });
-    const mwst = netto * 0.08;
+    const mwst = netto * {{ mwst_standard / 100 }};
     const brutto = netto + mwst;
     
-    document.getElementById('netto').textContent = 'CHF ' + netto.toFixed(2);
-    document.getElementById('mwst').textContent = 'CHF ' + mwst.toFixed(2);
-    document.getElementById('brutto').textContent = 'CHF ' + brutto.toFixed(2);
+    document.getElementById('netto').textContent = '{{ waehrung }} ' + netto.toFixed(2);
+    document.getElementById('mwst').textContent = '{{ waehrung }} ' + mwst.toFixed(2);
+    document.getElementById('brutto').textContent = '{{ waehrung }} ' + brutto.toFixed(2);
 }
 
 function attachPositionListeners() {

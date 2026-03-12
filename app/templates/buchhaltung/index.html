@@ -21,7 +21,7 @@
             <div class="card border-success">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Gesamteinnahmen</h6>
-                    <h4 class="text-success">CHF {{ "%.2f"|format(gesamt_einnahmen) }}</h4>
+                    <h4 class="text-success">{{ waehrung }} {{ "%.2f"|format(gesamt_einnahmen) }}</h4>
                 </div>
             </div>
         </div>
@@ -29,7 +29,7 @@
             <div class="card border-danger">
                 <div class="card-body">
                     <h6 class="card-title text-muted">Gesamtausgaben</h6>
-                    <h4 class="text-danger">CHF {{ "%.2f"|format(gesamt_ausgaben) }}</h4>
+                    <h4 class="text-danger">{{ waehrung }} {{ "%.2f"|format(gesamt_ausgaben) }}</h4>
                 </div>
             </div>
         </div>
@@ -38,7 +38,7 @@
                 <div class="card-body">
                     <h6 class="card-title text-muted">Saldo</h6>
                     <h4 class="{% if (gesamt_einnahmen - gesamt_ausgaben) >= 0 %}text-success{% else %}text-danger{% endif %}">
-                        CHF {{ "%.2f"|format(gesamt_einnahmen - gesamt_ausgaben) }}
+                        {{ waehrung }} {{ "%.2f"|format(gesamt_einnahmen - gesamt_ausgaben) }}
                     </h4>
                 </div>
             </div>
@@ -85,9 +85,9 @@
                             <td><small>{{ buchung.datum.strftime('%d.%m.%Y') }}</small></td>
                             <td><small><strong>{{ buchung.soll_konto.nummer }}</strong> {{ buchung.soll_konto.bezeichnung }}</small></td>
                             <td><small><strong>{{ buchung.haben_konto.nummer }}</strong> {{ buchung.haben_konto.bezeichnung }}</small></td>
-                            <td class="text-end"><small>CHF {{ "%.2f"|format(buchung.betrag) }}</small></td>
+                            <td class="text-end"><small>{{ waehrung }} {{ "%.2f"|format(buchung.betrag) }}</small></td>
                             <td class="text-center"><small>{{ buchung.mwst_satz or '-' }}</small></td>
-                            <td class="text-end"><small>CHF {{ "%.2f"|format(buchung.mwst_betrag or 0) }}</small></td>
+                            <td class="text-end"><small>{{ waehrung }} {{ "%.2f"|format(buchung.mwst_betrag or 0) }}</small></td>
                             <td>
                                 {% if buchung.kategorie %}
                                     <span class="badge badge-kategorie" style="--badge-color: {{ buchung.kategorie.farbe }};">

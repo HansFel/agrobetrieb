@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Faktura{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">{{ faktura.fakturanummer }}</h1>
+        <p class="text-muted mb-0">{{ faktura.kunde.name if faktura.kunde else '-' }} | {{ faktura.datum.strftime('%d.%m.%Y') }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.pdf', id=faktura.id) }}" target="_blank">PDF</a>
+        {% if faktura.ist_rechnung and not faktura.storniert %}<a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.gutschrift_aus_rechnung', id=faktura.id) }}">Gutschrift</a>{% endif %}
+        <a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.liste') if faktura.ist_rechnung else url_for('fakturierung.gutschriften_liste') }}">Zurück</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Positionen</strong></div>
+            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Bezeichnung</th><th class="text-end">Menge</th><th>Einheit</th><th class="text-end">Einzelpreis</th><th class="text-end">Betrag</th></tr></thead><tbody>{% for position in faktura.positionen %}<tr><td>{{ position.bezeichnung }}</td><td class="text-end">{{ position.menge if position.menge is not none else '-' }}</td><td>{{ position.einheit or '-' }}</td><td class="text-end">{{ '%.2f'|format(position.einzelpreis or 0) if position.einzelpreis is not none else '-' }}</td><td class="text-end">{{ '%.2f'|format(position.betrag or 0) }}</td></tr>{% endfor %}</tbody><tfoot><tr class="table-light fw-semibold"><td colspan="4">Netto</td><td class="text-end">{{ '%.2f'|format(faktura.betrag_netto or 0) }}</td></tr></tfoot></table></div>
+        </div>
+        <div class="card shadow-sm"><div class="card-header"><strong>Details</strong></div><div class="card-body"><dl class="row mb-0"><dt class="col-sm-4">Betreff</dt><dd class="col-sm-8">{{ faktura.betreff or '-' }}</dd><dt class="col-sm-4">Status</dt><dd class="col-sm-8">{{ faktura.status }}</dd><dt class="col-sm-4">Fällig</dt><dd class="col-sm-8">{{ faktura.faellig_am.strftime('%d.%m.%Y') if faktura.faellig_am else '-' }}</dd><dt class="col-sm-4">Ertragskonto</dt><dd class="col-sm-8">{{ faktura.haben_konto.kontonummer if faktura.haben_konto else '-' }} {{ faktura.haben_konto.bezeichnung if faktura.haben_konto else '' }}</dd><dt class="col-sm-4">Forderungskonto</dt><dd class="col-sm-8">{{ faktura.forderung_konto.kontonummer if faktura.forderung_konto else '-' }} {{ faktura.forderung_konto.bezeichnung if faktura.forderung_konto else '' }}</dd><dt class="col-sm-4">Notizen</dt><dd class="col-sm-8">{{ faktura.notizen or '-' }}</dd></dl></div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4"><div class="card-header"><strong>Status</strong></div><div class="card-body">{% if faktura.status == 'offen' %}<span class="badge text-bg-warning">offen</span>{% elif faktura.status == 'bezahlt' %}<span class="badge text-bg-success">bezahlt</span>{% else %}<span class="badge text-bg-secondary">{{ faktura.status }}</span>{% endif %}</div></div>
+        {% if faktura.ist_rechnung and faktura.ist_offen and not faktura.storniert %}
+        <div class="card shadow-sm mb-4"><div class="card-header"><strong>Als bezahlt markieren</strong></div><div class="card-body"><form method="post" action="{{ url_for('fakturierung.als_bezahlt', id=faktura.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="mb-3"><label class="form-label">Zahlungsdatum</label><input class="form-control" type="date" name="bezahlt_datum" value="{{ heute }}"></div><div class="mb-3"><label class="form-label">Bankkonto</label><select class="form-select" name="bank_konto_id" required>{% for konto in bank_konten %}<option value="{{ konto.id }}">{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div><button class="btn btn-success w-100" type="submit">Zahlung buchen</button></form></div></div>
+        {% endif %}
+        {% if not faktura.storniert %}
+        <div class="card shadow-sm"><div class="card-header"><strong>Storno</strong></div><div class="card-body"><form method="post" action="{{ url_for('fakturierung.stornieren', id=faktura.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-danger w-100" type="submit">Dokument stornieren</button></form></div></div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Gegenkonto ändern{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8"><div class="card shadow-sm"><div class="card-header"><h1 class="h4 mb-0">Gegenkonto für Buchung {{ buchung.buchungsnummer }}</h1></div><div class="card-body"><p class="text-muted">Bankkonto: {{ bank_konto.kontonummer if bank_konto else '-' }} - {{ bank_konto.bezeichnung if bank_konto else '' }}</p><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label">Neues Gegenkonto</label><select class="form-select" name="gegenkonto_id" required>{% for konto in konten %}<option value="{{ konto.id }}" {% if aktuelles_gegenkonto_id == konto.id %}selected{% endif %}>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select><div class="d-flex justify-content-between mt-4"><a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.journal') }}">Abbrechen</a><button class="btn btn-primary" type="submit">Speichern</button></div></form></div></div></div></div>
+{% endblock %}

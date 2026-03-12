@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Neue Gutschrift{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-xl-10"><div class="card shadow-sm"><div class="card-header"><h1 class="h4 mb-0">{{ 'Gutschrift aus Rechnung' if rechnung else 'Neue Gutschrift' }}</h1></div><div class="card-body"><form method="post" id="gutschrift-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="row g-3">{% if not rechnung %}<div class="col-md-3"><label class="form-label">Empfänger-Typ</label><select class="form-select" name="empfaenger_typ" id="empfaenger_typ"><option value="kunde">Kunde</option><option value="dritter">Dritter</option></select></div><div class="col-md-9" id="kunde-block"><label class="form-label">Kunde</label><select class="form-select" name="kunde_id">{% for kunde in kunden %}<option value="{{ kunde.id }}">{{ kunde.name }}</option>{% endfor %}</select></div><div class="col-md-6 d-none" id="dritter-name"><label class="form-label">Name</label><input class="form-control" name="dritter_name"></div><div class="col-md-6 d-none" id="dritter-adresse"><label class="form-label">Adresse</label><input class="form-control" name="dritter_adresse"></div><div class="col-md-3 d-none" id="dritter-plz"><label class="form-label">PLZ</label><input class="form-control" name="dritter_plz"></div><div class="col-md-3 d-none" id="dritter-ort"><label class="form-label">Ort</label><input class="form-control" name="dritter_ort"></div><div class="col-md-6 d-none" id="dritter-iban"><label class="form-label">IBAN</label><input class="form-control" name="dritter_iban"></div>{% else %}<div class="col-md-6"><label class="form-label">Rechnung</label><input class="form-control" value="{{ rechnung.fakturanummer }}" disabled></div><div class="col-md-6"><label class="form-label">Kunde</label><input class="form-control" value="{{ rechnung.kunde.name if rechnung.kunde else '-' }}" disabled></div>{% endif %}<div class="col-md-3"><label class="form-label">Art</label><select class="form-select" name="art">{% for art in faktura_arten %}<option value="{{ art }}" {% if rechnung and rechnung.art == art %}selected{% endif %}>{{ art|capitalize }}</option>{% endfor %}</select></div><div class="col-md-3"><label class="form-label">Datum</label><input class="form-control" type="date" name="datum" value="{{ heute }}" required></div><div class="col-md-6"><label class="form-label">Ertrags-/Aufwandskonto</label><select class="form-select" name="haben_konto_id"><option value="">Automatisch</option>{% for konto in haben_konten %}<option value="{{ konto.id }}" {% if rechnung and rechnung.haben_konto_id == konto.id %}selected{% endif %}>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div><div class="col-md-6"><label class="form-label">Gegenkonto Klasse 2</label><select class="form-select" name="forderung_konto_id"><option value="">Automatisch</option>{% for konto in (verbindlichkeit_konten if verbindlichkeit_konten is defined else forderung_konten) %}<option value="{{ konto.id }}" {% if rechnung and rechnung.forderung_konto_id == konto.id %}selected{% endif %}>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div><div class="col-md-6"><label class="form-label">Betreff</label><input class="form-control" name="betreff" value="{{ rechnung.betreff if rechnung else '' }}"></div><div class="col-md-6"><label class="form-label">Notizen</label><input class="form-control" name="notizen"></div></div><hr class="my-4"><div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Positionen</h2><button class="btn btn-sm btn-outline-secondary" type="button" id="position-add">Position hinzufügen</button></div><div class="table-responsive"><table class="table" id="positionen-table"><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Einzelpreis</th><th>Betrag</th><th></th></tr></thead><tbody></tbody></table></div><div class="d-flex justify-content-between mt-4"><a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.gutschriften_liste') if not rechnung else url_for('fakturierung.detail', id=rechnung.id) }}">Abbrechen</a><button class="btn btn-primary" type="submit">Gutschrift speichern</button></div></form></div></div></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const tbody = document.querySelector('#positionen-table tbody');
+const initialRows = [{% if rechnung %}{% for position in rechnung.positionen %}{bezeichnung: '{{ position.bezeichnung|replace("'", "\\'") }}', menge: '{{ position.menge if position.menge is not none else '' }}', einheit: '{{ (position.einheit or '')|replace("'", "\\'") }}', einzelpreis: '{{ position.einzelpreis if position.einzelpreis is not none else '' }}', betrag: '{{ position.betrag }}'},{% endfor %}{% endif %}];
+function addPosition(values = {}) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td><input class="form-control" name="pos_bezeichnung" value="${values.bezeichnung || ''}" required></td>
+        <td><input class="form-control" name="pos_menge" value="${values.menge || ''}"></td>
+        <td><input class="form-control" name="pos_einheit" value="${values.einheit || ''}"></td>
+        <td><input class="form-control" name="pos_einzelpreis" value="${values.einzelpreis || ''}"></td>
+        <td><input class="form-control" name="pos_betrag" value="${values.betrag || ''}"></td>
+        <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button">Entfernen</button></td>`;
+    row.querySelector('button').addEventListener('click', () => row.remove());
+    tbody.appendChild(row);
+}
+document.getElementById('position-add').addEventListener('click', () => addPosition());
+if (initialRows.length) { initialRows.forEach(addPosition); } else { addPosition(); }
+const typSelect = document.getElementById('empfaenger_typ');
+function toggleEmpfaenger() {
+    if (!typSelect) return;
+    const dritter = typSelect.value === 'dritter';
+    document.getElementById('kunde-block').classList.toggle('d-none', dritter);
+    ['dritter-name','dritter-adresse','dritter-plz','dritter-ort','dritter-iban'].forEach(id => document.getElementById(id).classList.toggle('d-none', !dritter));
+}
+if (typSelect) { typSelect.addEventListener('change', toggleEmpfaenger); toggleEmpfaenger(); }
+</script>
+{% endblock %}

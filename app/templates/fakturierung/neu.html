@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Neue Rechnung{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-xl-10">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h1 class="h4 mb-0">Neue Rechnung</h1>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('fakturierung.kunde_neu') }}">Kunde anlegen</a>
+            </div>
+            <div class="card-body">
+                <form method="post" id="faktura-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label">Kunde</label><select class="form-select" name="kunde_id" required><option value="">Bitte wählen</option>{% for kunde in kunden %}<option value="{{ kunde.id }}">{{ kunde.name }}</option>{% endfor %}</select></div>
+                        <div class="col-md-2"><label class="form-label">Art</label><select class="form-select" name="art">{% for art in faktura_arten %}<option value="{{ art }}">{{ art|capitalize }}</option>{% endfor %}</select></div>
+                        <div class="col-md-3"><label class="form-label">Datum</label><input class="form-control" type="date" name="datum" value="{{ heute }}" required></div>
+                        <div class="col-md-3"><label class="form-label">Fällig am</label><input class="form-control" type="date" name="faellig_am" value="{{ faellig_default }}"></div>
+                        <div class="col-md-6"><label class="form-label">Ertragskonto</label><select class="form-select" name="haben_konto_id"><option value="">Automatisch</option>{% for konto in haben_konten %}<option value="{{ konto.id }}">{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div>
+                        <div class="col-md-6"><label class="form-label">Forderungskonto</label><select class="form-select" name="forderung_konto_id"><option value="">Automatisch</option>{% for konto in forderung_konten %}<option value="{{ konto.id }}">{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div>
+                        <div class="col-md-8"><label class="form-label">Betreff</label><input class="form-control" name="betreff"></div>
+                        <div class="col-md-4 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="ist_vorlage" value="1" id="ist_vorlage"><label class="form-check-label" for="ist_vorlage">Als Vorlage speichern</label></div></div>
+                        <div class="col-12"><label class="form-label">Vorlagenname</label><input class="form-control" name="vorlage_name" placeholder="Nur relevant für Vorlagen"></div>
+                        <div class="col-12"><label class="form-label">Notizen</label><textarea class="form-control" name="notizen" rows="3"></textarea></div>
+                    </div>
+
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Positionen</h2><button class="btn btn-sm btn-outline-secondary" type="button" id="position-add">Position hinzufügen</button></div>
+                    <div class="table-responsive"><table class="table" id="positionen-table"><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Einzelpreis</th><th>Betrag</th><th></th></tr></thead><tbody></tbody></table></div>
+
+                    <div class="d-flex justify-content-between mt-4"><a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.liste') }}">Abbrechen</a><button class="btn btn-primary" type="submit">Speichern</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const tbody = document.querySelector('#positionen-table tbody');
+function addPosition(values = {}) {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td><input class="form-control" name="pos_bezeichnung" value="${values.bezeichnung || ''}" required></td>
+        <td><input class="form-control" name="pos_menge" value="${values.menge || ''}"></td>
+        <td><input class="form-control" name="pos_einheit" value="${values.einheit || ''}"></td>
+        <td><input class="form-control" name="pos_einzelpreis" value="${values.einzelpreis || ''}"></td>
+        <td><input class="form-control" name="pos_betrag" value="${values.betrag || ''}"></td>
+        <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button">Entfernen</button></td>`;
+    row.querySelector('button').addEventListener('click', () => row.remove());
+    tbody.appendChild(row);
+}
+document.getElementById('position-add').addEventListener('click', () => addPosition());
+addPosition();
+</script>
+{% endblock %}

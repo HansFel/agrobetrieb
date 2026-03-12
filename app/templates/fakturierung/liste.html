@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Fakturierung{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Rechnungen</h1>
+        <p class="text-muted mb-0">Ausgangsrechnungen, Zahlungsstand und Vorlagen.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.vorlagen') }}">Vorlagen</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('fakturierung.gutschriften_liste') }}">Gutschriften</a>
+        <a class="btn btn-primary" href="{{ url_for('fakturierung.neu') }}">Neue Rechnung</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Summe Rechnungen</div><div class="fs-4">{{ '%.2f'|format(summe_gesamt or 0) }}</div></div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Offen</div><div class="fs-4 text-warning">{{ '%.2f'|format(summe_offen or 0) }}</div></div></div></div>
+    <div class="col-md-4"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Geschäftsjahr</div><div class="fs-4">{{ aktuelles_jahr }}</div></div></div></div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3"><label class="form-label">Jahr</label><select class="form-select" name="jahr">{% for jahr in verfuegbare_jahre %}<option value="{{ jahr }}" {% if jahr == aktuelles_jahr %}selected{% endif %}>{{ jahr }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">Alle</option>{% for status in faktura_status %}<option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><label class="form-label">Art</label><select class="form-select" name="art"><option value="">Alle</option>{% for art in faktura_arten %}<option value="{{ art }}" {% if art_filter == art %}selected{% endif %}>{{ art|capitalize }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="submit">Filtern</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Nummer</th><th>Datum</th><th>Kunde</th><th>Betreff</th><th>Status</th><th class="text-end">Netto</th><th></th></tr></thead>
+            <tbody>
+                {% for faktura in fakturen %}
+                <tr>
+                    <td class="fw-semibold">{{ faktura.fakturanummer }}</td>
+                    <td>{{ faktura.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ faktura.kunde.name if faktura.kunde else '-' }}</td>
+                    <td>{{ faktura.betreff or '-' }}</td>
+                    <td>
+                        {% if faktura.status == 'offen' %}<span class="badge text-bg-warning">offen</span>{% elif faktura.status == 'bezahlt' %}<span class="badge text-bg-success">bezahlt</span>{% else %}<span class="badge text-bg-secondary">{{ faktura.status }}</span>{% endif %}
+                    </td>
+                    <td class="text-end">{{ '%.2f'|format(faktura.betrag_netto or 0) }}</td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('fakturierung.detail', id=faktura.id) }}">Details</a></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">Keine Rechnungen gefunden.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

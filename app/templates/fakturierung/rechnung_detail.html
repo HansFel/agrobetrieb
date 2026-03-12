@@ -133,10 +133,10 @@
                                 <td>{{ pos.beschreibung }}</td>
                                 <td class="text-end">{{ "%.2f"|format(pos.menge) }}</td>
                                 <td class="text-end">{{ pos.einheit }}</td>
-                                <td class="text-end">CHF {{ "%.2f"|format(pos.einzelpreis) }}</td>
-                                <td class="text-end">CHF {{ "%.2f"|format(pos.netto) }}</td>
-                                <td class="text-end">CHF {{ "%.2f"|format(pos.mwst) }}</td>
-                                <td class="text-end"><strong>CHF {{ "%.2f"|format(pos.brutto) }}</strong></td>
+                                <td class="text-end">{{ waehrung }} {{ "%.2f"|format(pos.einzelpreis) }}</td>
+                                <td class="text-end">{{ waehrung }} {{ "%.2f"|format(pos.netto) }}</td>
+                                <td class="text-end">{{ waehrung }} {{ "%.2f"|format(pos.mwst) }}</td>
+                                <td class="text-end"><strong>{{ waehrung }} {{ "%.2f"|format(pos.brutto) }}</strong></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -150,15 +150,15 @@
                             <div class="summary-box">
                                 <div class="summary-row">
                                     <span>Netto:</span>
-                                    <span>CHF {{ "%.2f"|format(rechnung.netto_gesamt) }}</span>
+                                    <span>{{ waehrung }} {{ "%.2f"|format(rechnung.netto_gesamt) }}</span>
                                 </div>
                                 <div class="summary-row">
-                                    <span>MwSt (8%):</span>
-                                    <span>CHF {{ "%.2f"|format(rechnung.mwst_gesamt) }}</span>
+                                    <span>MwSt ({{ mwst_standard }}%):</span>
+                                    <span>{{ waehrung }} {{ "%.2f"|format(rechnung.mwst_gesamt) }}</span>
                                 </div>
                                 <div class="summary-row total">
                                     <span>GESAMTBETRAG:</span>
-                                    <span>CHF {{ "%.2f"|format(rechnung.brutto_gesamt) }}</span>
+                                    <span>{{ waehrung }} {{ "%.2f"|format(rechnung.brutto_gesamt) }}</span>
                                 </div>
                             </div>
                         </div>

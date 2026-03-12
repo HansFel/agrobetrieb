@@ -33,6 +33,8 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    import os
+    os.environ['ALEMBIC_RUNNING'] = '1'
     app = create_app()
     with app.app_context():
         configuration = config.get_section(config.config_ini_section)

@@ -61,7 +61,7 @@
                         <th>Kunde</th>
                         <th>Datum</th>
                         <th>Fällig am</th>
-                        <th class="text-end">Total CHF</th>
+                        <th class="text-end">Total {{ waehrung }}</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -84,7 +84,7 @@
                                     {% endif %}
                                 </small>
                             </td>
-                            <td class="text-end"><strong>CHF {{ "%.2f"|format(rechnung.brutto_gesamt) }}</strong></td>
+                            <td class="text-end"><strong>{{ waehrung }} {{ "%.2f"|format(rechnung.brutto_gesamt) }}</strong></td>
                             <td>
                                 {% if rechnung.status == 'offen' %}
                                     <span class="badge bg-warning">Offen</span>

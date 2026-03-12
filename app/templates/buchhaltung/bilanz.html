@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Bilanz{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Bilanz</h1>
+        <p class="text-muted mb-0">Geschäftsjahr {{ geschaeftsjahr }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.guv', jahr=geschaeftsjahr) }}">GuV</a>
+</div>
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><strong>Aktiva</strong></div>
+            <div class="table-responsive"><table class="table table-sm mb-0"><tbody>{% for konto, saldo in aktiva %}<tr><td>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</td><td class="text-end">{{ '%.2f'|format(saldo or 0) }}</td></tr>{% else %}<tr><td class="text-muted">Keine Daten</td></tr>{% endfor %}</tbody><tfoot><tr class="table-light fw-semibold"><td>Summe Aktiva</td><td class="text-end">{{ '%.2f'|format(summe_aktiva or 0) }}</td></tr></tfoot></table></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><strong>Passiva</strong></div>
+            <div class="table-responsive"><table class="table table-sm mb-0"><tbody>{% for konto, saldo in passiva %}<tr><td>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</td><td class="text-end">{{ '%.2f'|format(saldo or 0) }}</td></tr>{% else %}<tr><td class="text-muted">Keine Daten</td></tr>{% endfor %}</tbody><tfoot><tr class="table-light fw-semibold"><td>Summe Passiva</td><td class="text-end">{{ '%.2f'|format(summe_passiva or 0) }}</td></tr></tfoot></table></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -29,7 +29,10 @@ class TestingConfig(Config):
     """Testumgebung."""
     TESTING = True
     WTF_CSRF_ENABLED = False
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        'DATABASE_URL_TEST',
+        'sqlite:////Users/HTFel/OneDrive/MGRsoftware/data/AgroBetrieb/test.db'
+    )
 
 
 config = {

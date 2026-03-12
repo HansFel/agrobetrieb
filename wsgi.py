@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 from time import sleep
+from sqlalchemy import text
 from app import create_app, db
 from app.models.user import User
 
@@ -51,7 +52,7 @@ def initialize_app():
         for attempt in range(MAX_RETRIES):
             try:
                 # Test der Datenbankverbindung
-                db.session.execute("SELECT 1")
+                db.session.execute(text("SELECT 1"))
                 db.session.commit()
                 logger.info(f"✅ Datenbank verbunden (Versuch {attempt + 1})")
                 break

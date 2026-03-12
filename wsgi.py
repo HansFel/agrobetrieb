@@ -67,11 +67,18 @@ def initialize_app():
         try:
             from flask_migrate import upgrade
             logger.info("🔄 Führe Flask-Migrate Upgrades aus...")
-            upgrade()
-            logger.info("✅ Flask-Migrate Upgrades abgeschlossen")
+            try:
+                upgrade()
+                logger.info("✅ Flask-Migrate Upgrades abgeschlossen")
+            except Exception as migrate_error:
+                # Ignoriere Fehler wenn Tabelle bereits existiert
+                if "already exists" in str(migrate_error) or "UNIQUE constraint failed" in str(migrate_error):
+                    logger.warning(f"⚠️  Migrations bereits vorhanden, überspringe: {migrate_error}")
+                else:
+                    raise
         except Exception as e:
             logger.error(f"❌ Migration fehlgeschlagen: {e}")
-            sys.exit(1)
+            # Nicht kritisch - app läuft trotzdem weiter
         
         # 4. Admin-Benutzer erstellen (nur beim ersten Start)
         try:

@@ -1,0 +1,128 @@
+{$DOMAIN} {
+    # ── MGRSoftware Instanzen ──────────────────────────────
+    # handle bewahrt den Prefix → App erhält APPLICATION_PREFIX
+
+    handle /mg/* {
+        reverse_proxy web:5000
+    }
+    handle /mg {
+        reverse_proxy web:5000
+    }
+
+    handle /agr/* {
+        reverse_proxy web-agr:5000
+    }
+    handle /agr {
+        reverse_proxy web-agr:5000
+    }
+
+    handle /gem1/* {
+        reverse_proxy web-gem1:5000
+    }
+    handle /gem1 {
+        reverse_proxy web-gem1:5000
+    }
+
+    handle /gem2/* {
+        reverse_proxy web-gem2:5000
+    }
+    handle /gem2 {
+        reverse_proxy web-gem2:5000
+    }
+
+    handle /gem3/* {
+        reverse_proxy web-gem3:5000
+    }
+    handle /gem3 {
+        reverse_proxy web-gem3:5000
+    }
+
+    handle /gem4/* {
+        reverse_proxy web-gem4:5000
+    }
+    handle /gem4 {
+        reverse_proxy web-gem4:5000
+    }
+
+    handle /gem5/* {
+        reverse_proxy web-gem5:5000
+    }
+    handle /gem5 {
+        reverse_proxy web-gem5:5000
+    }
+
+    # ── AgroBetrieb Instanzen ──────────────────────────────
+
+    handle /agro1/* {
+        reverse_proxy web-agro1:5000
+    }
+    handle /agro1 {
+        reverse_proxy web-agro1:5000
+    }
+
+    handle /agro2/* {
+        reverse_proxy web-agro2:5000
+    }
+    handle /agro2 {
+        reverse_proxy web-agro2:5000
+    }
+
+    handle /agro3/* {
+        reverse_proxy web-agro3:5000
+    }
+    handle /agro3 {
+        reverse_proxy web-agro3:5000
+    }
+
+    handle /agro4/* {
+        reverse_proxy web-agro4:5000
+    }
+    handle /agro4 {
+        reverse_proxy web-agro4:5000
+    }
+
+    handle /agro5/* {
+        reverse_proxy web-agro5:5000
+    }
+    handle /agro5 {
+        reverse_proxy web-agro5:5000
+    }
+
+    handle /agro6/* {
+        reverse_proxy web-agro6:5000
+    }
+    handle /agro6 {
+        reverse_proxy web-agro6:5000
+    }
+
+    handle /agro7/* {
+        reverse_proxy web-agro7:5000
+    }
+    handle /agro7 {
+        reverse_proxy web-agro7:5000
+    }
+
+    handle /agro8/* {
+        reverse_proxy web-agro8:5000
+    }
+    handle /agro8 {
+        reverse_proxy web-agro8:5000
+    }
+
+    handle /agro9/* {
+        reverse_proxy web-agro9:5000
+    }
+    handle /agro9 {
+        reverse_proxy web-agro9:5000
+    }
+
+    handle /agro10/* {
+        reverse_proxy web-agro10:5000
+    }
+    handle /agro10 {
+        reverse_proxy web-agro10:5000
+    }
+
+    # Startseite
+    respond "MGRSoftware NAS – Bitte eine Instanz-URL verwenden." 200
+}

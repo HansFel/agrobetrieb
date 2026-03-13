@@ -11,7 +11,17 @@ echo "Build: ${COMMIT_HASH:-unknown}"
 
 # 1. Warte auf Datenbank
 echo "Warte auf Datenbank..."
-until pg_isready -h agrobetrieb-db -p 5432 -U agr_user -q; do
+# DB-Host aus DATABASE_URL extrahieren oder Fallback auf Env-Variable / Default
+if [ -n "${DB_HOST}" ]; then
+    _DB_HOST="${DB_HOST}"
+elif [ -n "${DATABASE_URL}" ]; then
+    _DB_HOST=$(echo "${DATABASE_URL}" | sed -E 's|.*@([^:/]+).*|\1|')
+else
+    _DB_HOST="agrobetrieb-db"
+fi
+_DB_USER=$(echo "${DATABASE_URL}" | sed -E 's|.*://([^:]+):.*|\1|' 2>/dev/null || echo "agr_user")
+echo "  DB-Host: ${_DB_HOST}"
+until pg_isready -h "${_DB_HOST}" -p 5432 -U "${_DB_USER}" -q; do
     echo "  DB noch nicht bereit, warte 2s..."
     sleep 2
 done

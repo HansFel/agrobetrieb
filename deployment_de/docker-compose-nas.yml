@@ -1,0 +1,676 @@
+# MGRSoftware + AgroBetrieb Multi-Instanz Deployment
+# MGRSoftware-Instanzen nutzen ghcr.io/hansfel/mgrsoftware:latest
+# AgroBetrieb-Instanzen nutzen ghcr.io/hansfel/agrobetrieb:latest
+# Alle sensiblen Daten werden aus .env gelesen
+#
+# Instanzen:
+# - mg         (Maschinengemeinschaft) unter /mg
+# - agr        (Agrargemeinschaft) unter /agr
+# - gem1-5     (Gemeinschaften) unter /gem1 bis /gem5
+# - agro1-10   (AgroBetrieb) unter /agro1 bis /agro10
+#
+# Verwendung: docker compose up -d
+
+services:
+  # ============================================================
+  # Maschinengemeinschaft (mg)
+  # ============================================================
+  db:
+    image: postgres:15
+    container_name: mgr-db
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD}@db:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /mg
+      INSTANCE_NAME: mg
+
+    volumes:
+      - uploads_mg:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  # ============================================================
+  # Agrargemeinschaft (agr)
+  # ============================================================
+  db-agr:
+    image: postgres:15
+    container_name: mgr-db-agr
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGR}
+    volumes:
+      - db_data_agr:/var/lib/postgresql/data
+
+  web-agr:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app-agr
+    restart: always
+    depends_on:
+      - db-agr
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD_AGR}@db-agr:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY_AGR}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agr
+      INSTANCE_NAME: agr
+
+    volumes:
+      - uploads_agr:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  # ============================================================
+  # Test-Instanzen (gem1-gem5)
+  # ============================================================
+  db-gem1:
+    image: postgres:15
+    container_name: mgr-db-gem1
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_GEM1}
+    volumes:
+      - db_data_gem1:/var/lib/postgresql/data
+
+  web-gem1:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app-gem1
+    restart: always
+    depends_on:
+      - db-gem1
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD_GEM1}@db-gem1:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY_GEM1}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /gem1
+      INSTANCE_NAME: gem1
+
+    volumes:
+      - uploads_gem1:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  db-gem2:
+    image: postgres:15
+    container_name: mgr-db-gem2
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_GEM2}
+    volumes:
+      - db_data_gem2:/var/lib/postgresql/data
+
+  web-gem2:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app-gem2
+    restart: always
+    depends_on:
+      - db-gem2
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD_GEM2}@db-gem2:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY_GEM2}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /gem2
+      INSTANCE_NAME: gem2
+
+    volumes:
+      - uploads_gem2:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  db-gem3:
+    image: postgres:15
+    container_name: mgr-db-gem3
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_GEM3}
+    volumes:
+      - db_data_gem3:/var/lib/postgresql/data
+
+  web-gem3:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app-gem3
+    restart: always
+    depends_on:
+      - db-gem3
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD_GEM3}@db-gem3:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY_GEM3}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /gem3
+      INSTANCE_NAME: gem3
+
+    volumes:
+      - uploads_gem3:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  db-gem4:
+    image: postgres:15
+    container_name: mgr-db-gem4
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_GEM4}
+    volumes:
+      - db_data_gem4:/var/lib/postgresql/data
+
+  web-gem4:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app-gem4
+    restart: always
+    depends_on:
+      - db-gem4
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD_GEM4}@db-gem4:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY_GEM4}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /gem4
+      INSTANCE_NAME: gem4
+
+    volumes:
+      - uploads_gem4:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  db-gem5:
+    image: postgres:15
+    container_name: mgr-db-gem5
+    restart: always
+    environment:
+      POSTGRES_DB: maschinengemeinschaft
+      POSTGRES_USER: mgr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_GEM5}
+    volumes:
+      - db_data_gem5:/var/lib/postgresql/data
+
+  web-gem5:
+    image: ghcr.io/hansfel/mgrsoftware:latest
+    container_name: mgr-app-gem5
+    restart: always
+    depends_on:
+      - db-gem5
+    environment:
+      DATABASE_URL: postgresql://mgr_user:${DB_PASSWORD_GEM5}@db-gem5:5432/maschinengemeinschaft
+      SECRET_KEY: ${SECRET_KEY_GEM5}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /gem5
+      INSTANCE_NAME: gem5
+
+    volumes:
+      - uploads_gem5:/opt/maschinengemeinschaft/app/static/uploads
+
+    expose:
+      - "5000"
+
+  # ============================================================
+  # AgroBetrieb Instanzen (agro1 – agro10)
+  # ============================================================
+
+  # ── agro1 ──────────────────────────────────────────────────
+  db-agro1:
+    image: postgres:15
+    container_name: agro-db-1
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO1}
+    volumes:
+      - db_data_agro1:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro1:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-1
+    restart: always
+    depends_on:
+      db-agro1:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO1}@db-agro1:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO1}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro1
+      INSTANCE_NAME: agro1
+    volumes:
+      - backups_agro1:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro2 ──────────────────────────────────────────────────
+  db-agro2:
+    image: postgres:15
+    container_name: agro-db-2
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO2}
+    volumes:
+      - db_data_agro2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro2:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-2
+    restart: always
+    depends_on:
+      db-agro2:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO2}@db-agro2:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO2}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro2
+      INSTANCE_NAME: agro2
+    volumes:
+      - backups_agro2:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro3 ──────────────────────────────────────────────────
+  db-agro3:
+    image: postgres:15
+    container_name: agro-db-3
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO3}
+    volumes:
+      - db_data_agro3:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro3:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-3
+    restart: always
+    depends_on:
+      db-agro3:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO3}@db-agro3:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO3}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro3
+      INSTANCE_NAME: agro3
+    volumes:
+      - backups_agro3:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro4 ──────────────────────────────────────────────────
+  db-agro4:
+    image: postgres:15
+    container_name: agro-db-4
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO4}
+    volumes:
+      - db_data_agro4:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro4:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-4
+    restart: always
+    depends_on:
+      db-agro4:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO4}@db-agro4:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO4}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro4
+      INSTANCE_NAME: agro4
+    volumes:
+      - backups_agro4:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro5 ──────────────────────────────────────────────────
+  db-agro5:
+    image: postgres:15
+    container_name: agro-db-5
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO5}
+    volumes:
+      - db_data_agro5:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro5:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-5
+    restart: always
+    depends_on:
+      db-agro5:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO5}@db-agro5:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO5}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro5
+      INSTANCE_NAME: agro5
+    volumes:
+      - backups_agro5:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro6 ──────────────────────────────────────────────────
+  db-agro6:
+    image: postgres:15
+    container_name: agro-db-6
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO6}
+    volumes:
+      - db_data_agro6:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro6:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-6
+    restart: always
+    depends_on:
+      db-agro6:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO6}@db-agro6:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO6}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro6
+      INSTANCE_NAME: agro6
+    volumes:
+      - backups_agro6:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro7 ──────────────────────────────────────────────────
+  db-agro7:
+    image: postgres:15
+    container_name: agro-db-7
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO7}
+    volumes:
+      - db_data_agro7:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro7:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-7
+    restart: always
+    depends_on:
+      db-agro7:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO7}@db-agro7:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO7}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro7
+      INSTANCE_NAME: agro7
+    volumes:
+      - backups_agro7:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro8 ──────────────────────────────────────────────────
+  db-agro8:
+    image: postgres:15
+    container_name: agro-db-8
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO8}
+    volumes:
+      - db_data_agro8:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro8:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-8
+    restart: always
+    depends_on:
+      db-agro8:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO8}@db-agro8:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO8}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro8
+      INSTANCE_NAME: agro8
+    volumes:
+      - backups_agro8:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro9 ──────────────────────────────────────────────────
+  db-agro9:
+    image: postgres:15
+    container_name: agro-db-9
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO9}
+    volumes:
+      - db_data_agro9:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro9:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-9
+    restart: always
+    depends_on:
+      db-agro9:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO9}@db-agro9:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO9}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro9
+      INSTANCE_NAME: agro9
+    volumes:
+      - backups_agro9:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro10 ─────────────────────────────────────────────────
+  db-agro10:
+    image: postgres:15
+    container_name: agro-db-10
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO10}
+    volumes:
+      - db_data_agro10:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro10:
+    image: ghcr.io/hansfel/agrobetrieb:latest
+    container_name: agro-app-10
+    restart: always
+    depends_on:
+      db-agro10:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO10}@db-agro10:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO10}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      APPLICATION_PREFIX: /agro10
+      INSTANCE_NAME: agro10
+    volumes:
+      - backups_agro10:/app/backups
+    expose:
+      - "5000"
+
+  # ============================================================
+  # Reverse Proxy (Caddy)
+  # ============================================================
+  caddy:
+    image: caddy:2
+    container_name: mgr-caddy
+    restart: always
+    depends_on:
+      - web
+      - web-agr
+      - web-gem1
+      - web-gem2
+      - web-gem3
+      - web-gem4
+      - web-gem5
+      - web-agro1
+      - web-agro2
+      - web-agro3
+      - web-agro4
+      - web-agro5
+      - web-agro6
+      - web-agro7
+      - web-agro8
+      - web-agro9
+      - web-agro10
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile
+
+volumes:
+  db_data:
+  db_data_agr:
+  db_data_gem1:
+  db_data_gem2:
+  db_data_gem3:
+  db_data_gem4:
+  db_data_gem5:
+  uploads_mg:
+  uploads_agr:
+  uploads_gem1:
+  uploads_gem2:
+  uploads_gem3:
+  uploads_gem4:
+  uploads_gem5:
+  db_data_agro1:
+  db_data_agro2:
+  db_data_agro3:
+  db_data_agro4:
+  db_data_agro5:
+  db_data_agro6:
+  db_data_agro7:
+  db_data_agro8:
+  db_data_agro9:
+  db_data_agro10:
+  backups_agro1:
+  backups_agro2:
+  backups_agro3:
+  backups_agro4:
+  backups_agro5:
+  backups_agro6:
+  backups_agro7:
+  backups_agro8:
+  backups_agro9:
+  backups_agro10:
+  caddy_data:
+  caddy_config:

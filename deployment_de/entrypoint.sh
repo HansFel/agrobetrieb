@@ -3,6 +3,12 @@ set -e
 
 echo "=== AgroBetrieb Startup ==="
 
+# Build-Hash setzen (aus BUILD_HASH-Datei wenn Env-Variable nicht gesetzt)
+if [ "${COMMIT_HASH:-unknown}" = "unknown" ] && [ -f /app/BUILD_HASH ]; then
+    export COMMIT_HASH=$(cat /app/BUILD_HASH)
+fi
+echo "Build: ${COMMIT_HASH:-unknown}"
+
 # 1. Warte auf Datenbank
 echo "Warte auf Datenbank..."
 until pg_isready -h agrobetrieb-db -p 5432 -U agr_user -q; do

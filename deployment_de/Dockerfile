@@ -10,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Kopiere Anforderungen
@@ -21,6 +22,11 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 # Kopiere App
 COPY . .
+
+# Wenn kein COMMIT_HASH übergeben, aus .git lesen und in Datei schreiben
+RUN if [ "$COMMIT_HASH" = "unknown" ] && [ -d ".git" ]; then \
+      COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+    fi && echo "$COMMIT_HASH" > /app/BUILD_HASH
 
 # Entrypoint-Script (Migrationen VOR Gunicorn)
 COPY deployment_de/entrypoint.sh /entrypoint.sh

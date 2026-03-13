@@ -9,9 +9,20 @@ APP_VERSION = '0.1.0-alpha'
 
 # Build-Referenz: Git Commit Hash oder Fallback
 def _get_build_hash():
+    # 1. Env-Variable (Docker Build-Arg → ENV)
     env_hash = os.environ.get('COMMIT_HASH')
-    if env_hash:
+    if env_hash and env_hash != 'unknown':
         return env_hash
+    # 2. Datei /app/BUILD_HASH (vom Dockerfile geschrieben)
+    try:
+        build_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'BUILD_HASH')
+        if os.path.isfile(build_file):
+            h = open(build_file).read().strip()
+            if h and h != 'unknown':
+                return h
+    except Exception:
+        pass
+    # 3. Git direkt aufrufen (lokale Entwicklung)
     try:
         result = subprocess.run(
             ['git', 'rev-parse', '--short', 'HEAD'],

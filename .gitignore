@@ -1,5 +1,6 @@
 # Environment
 .env
+BUILD_HASH
 .venv/
 venv/
 *.pyc

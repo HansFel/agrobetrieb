@@ -24,6 +24,7 @@ def _lade_statistiken(rolle):
                 Einsatz.datum >= monat_start
             ).count()
         except Exception:
+            db.session.rollback()
             stats['einsaetze_monat'] = 0
     
     # Offene Rechnungen (wenn Rolle Zugriff hat)
@@ -34,6 +35,7 @@ def _lade_statistiken(rolle):
                 Faktura.status == 'offen'
             ).count()
         except Exception:
+            db.session.rollback()
             stats['rechnungen_offen'] = 0
 
     # Maschinen-Anzahl
@@ -42,6 +44,7 @@ def _lade_statistiken(rolle):
             from app.models.maschine import Maschine
             stats['maschinen_gesamt'] = Maschine.query.count()
         except Exception:
+            db.session.rollback()
             stats['maschinen_gesamt'] = 0
 
     # Admin-spezifisch: Benutzeranzahl
@@ -56,6 +59,7 @@ def _lade_statistiken(rolle):
                 Buchung.datum >= monat_start
             ).count()
         except Exception:
+            db.session.rollback()
             stats['buchungen_monat'] = 0
 
     return stats

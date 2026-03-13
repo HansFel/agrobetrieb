@@ -22,12 +22,16 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # Kopiere App
 COPY . .
 
-# Expo se Port
+# Entrypoint-Script (Migrationen VOR Gunicorn)
+COPY deployment_de/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Expose Port
 EXPOSE 5000
 
-# Health Check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Health Check (start-period lang genug fuer Migrations)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:5000/ || exit 1
 
-# Starte mit Gunicorn, nutzt wsgi.py für Auto-Init
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
+# Entrypoint fuehrt Migrationen aus, dann startet Gunicorn
+ENTRYPOINT ["/entrypoint.sh"]

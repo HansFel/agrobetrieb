@@ -43,59 +43,8 @@ def create_app(config_name='default'):
     login_manager.init_app(app)
     csrf.init_app(app)
 
-    # Automatische Migrationen beim App-Start (nicht wenn Alembic CLI läuft)
-    if not os.environ.get('ALEMBIC_RUNNING'):
-        with app.app_context():
-            from alembic.config import Config as AlembicConfig
-            from alembic.script import ScriptDirectory
-            from alembic.runtime.migration import MigrationContext
-            from alembic.runtime.environment import EnvironmentContext
-            from alembic import command
-
-            alembic_cfg = AlembicConfig('migrations/alembic.ini')
-            alembic_cfg.set_main_option('script_location', 'migrations')
-
-            script = ScriptDirectory.from_config(alembic_cfg)
-            with db.engine.connect() as conn:
-                context = MigrationContext.configure(conn)
-                current_rev = context.get_current_revision()
-                head_rev = script.get_current_head()
-                if current_rev != head_rev:
-                    def do_upgrade(revision, context):
-                        return script._upgrade_revs('head', revision)
-                    with EnvironmentContext(alembic_cfg, script, fn=do_upgrade) as env:
-                        env.configure(connection=conn, target_metadata=db.metadata)
-                        with env.begin_transaction():
-                            env.run_migrations()
-                    conn.commit()
-            
-            # Ersten Admin-Benutzer anlegen, wenn DB leer ist
-            from app.models.user import User
-            from app.models.betrieb import Betrieb
-            if User.query.first() is None:
-                admin = User(
-                    username='admin',
-                    email='admin@agrobetrieb.local',
-                    vorname='Admin',
-                    nachname='AgroBetrieb',
-                    rolle='betriebsadmin',
-                    aktiv=True
-                )
-                admin.set_password('admin')
-                db.session.add(admin)
-                
-                # Auch einen Standard-Betrieb anlegen
-                if Betrieb.query.first() is None:
-                    betrieb = Betrieb(
-                        name='Musterbetrieb',
-                        strasse='Beispielstraße 1',
-                        plz='6900',
-                        ort='Bregenz',
-                        land='AT'
-                    )
-                    db.session.add(betrieb)
-                
-                db.session.commit()
+    # Migrationen und Admin-Erstellung laufen ueber entrypoint.sh (Docker)
+    # bzw. manuell via 'flask db upgrade' (lokal)
     
     # User Loader für Flask-Login
     @login_manager.user_loader

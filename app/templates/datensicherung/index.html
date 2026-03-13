@@ -6,22 +6,80 @@
 <div class="row mb-4">
     <div class="col-md-12">
         <h2><i class="bi bi-shield-check"></i> Datensicherung</h2>
-        <p class="text-muted">Datenbank-Backups erstellen, herunterladen und wiederherstellen</p>
+        <p class="text-muted">Datenbank-Backups erstellen, hochladen, herunterladen und wiederherstellen</p>
     </div>
 </div>
 
+{# Sicherungsstrategie-Übersicht #}
 <div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card border-primary">
+    <div class="col-md-4">
+        <div class="card border-info h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-archive text-info" style="font-size: 2rem;"></i>
+                <h3 class="mt-2 mb-0">{{ statistik.anzahl }}</h3>
+                <small class="text-muted">Backups gespeichert</small>
+                <p class="mt-1 mb-0"><small>{{ statistik.gesamtgroesse_formatiert }} belegt</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-clock-history text-success" style="font-size: 2rem;"></i>
+                <h6 class="mt-2 mb-1">Letztes Backup</h6>
+                {% if statistik.neuestes %}
+                    <span class="fw-bold">{{ statistik.neuestes.strftime('%d.%m.%Y %H:%M') }}</span>
+                {% else %}
+                    <span class="text-danger">Kein Backup vorhanden!</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-gear text-warning" style="font-size: 2rem;"></i>
+                <h6 class="mt-2 mb-1">Strategie</h6>
+                <small>
+                    Auto alle {{ statistik.auto_intervall_h }}h &middot;
+                    Max. {{ statistik.max_backups }} Stück &middot;
+                    {{ statistik.max_alter_tage }} Tage
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Aktionen: Backup erstellen + Hochladen #}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card border-primary h-100">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="card-title mb-1"><i class="bi bi-plus-circle"></i> Neues Backup erstellen</h5>
-                    <p class="card-text text-muted mb-0">Erstellt ein vollständiges Backup der aktuellen Datenbank</p>
+                    <h5 class="card-title mb-1"><i class="bi bi-plus-circle"></i> Neues Backup</h5>
+                    <p class="card-text text-muted mb-0">Vollständiges Datenbank-Backup erstellen</p>
                 </div>
                 <form method="POST" action="{{ url_for('datensicherung.erstellen') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-download"></i> Backup erstellen
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-download"></i> Erstellen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-secondary h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-2"><i class="bi bi-cloud-upload"></i> Backup hochladen</h5>
+                <form method="POST" action="{{ url_for('datensicherung.hochladen') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="flex-grow-1">
+                        <input type="file" name="backup_datei" class="form-control form-control-sm" accept=".gz" required>
+                        <small class="text-muted">.sql.gz oder .db.gz</small>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-upload"></i> Hochladen
                     </button>
                 </form>
             </div>
@@ -29,9 +87,33 @@
     </div>
 </div>
 
+{# Sicherungshinweise #}
+<div class="alert alert-info d-flex align-items-start mb-4">
+    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+    <div>
+        <strong>Sicherungsstrategie:</strong>
+        <ul class="mb-0 mt-1">
+            <li><strong>Automatisch:</strong> Alle {{ statistik.auto_intervall_h }} Stunden wird ein Backup erstellt</li>
+            <li><strong>Aufbewahrung:</strong> Maximal {{ statistik.max_backups }} Backups, älter als {{ statistik.max_alter_tage }} Tage werden gelöscht</li>
+            <li><strong>Vor Wiederherstellung:</strong> Es wird automatisch ein Sicherungs-Backup der aktuellen DB erstellt</li>
+            <li><strong>Empfehlung:</strong> Regelmäßig Backups herunterladen und extern aufbewahren</li>
+        </ul>
+    </div>
+</div>
+
+{# Backup-Tabelle #}
 <div class="card">
-    <div class="card-header bg-light">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h5 class="m-0"><i class="bi bi-clock-history"></i> Vorhandene Backups</h5>
+        {% if backups %}
+        <form method="POST" action="{{ url_for('datensicherung.aufraeumen') }}" class="d-inline"
+              onsubmit="return confirm('Aufbewahrungsrichtlinie anwenden? Alte/überzählige Backups werden gelöscht.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-brush"></i> Aufräumen
+            </button>
+        </form>
+        {% endif %}
     </div>
     <div class="card-body">
         {% if backups %}
@@ -61,6 +143,10 @@
                         <td>
                             {% if backup.typ == 'automatisch' %}
                                 <span class="badge bg-info">Automatisch</span>
+                            {% elif backup.typ == 'pre-restore' %}
+                                <span class="badge bg-warning text-dark">Vor-Restore</span>
+                            {% elif backup.typ == 'upload' %}
+                                <span class="badge bg-primary">Hochgeladen</span>
                             {% else %}
                                 <span class="badge bg-secondary">Manuell</span>
                             {% endif %}
@@ -74,13 +160,13 @@
                         </td>
                         <td>{{ backup.erstellt_von_user.username if backup.erstellt_von_user else '–' }}</td>
                         <td>{{ '%.1f s'|format(backup.dauer_sekunden) if backup.dauer_sekunden else '–' }}</td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
                             <a href="{{ url_for('datensicherung.herunterladen', backup_id=backup.id) }}"
                                class="btn btn-sm btn-outline-primary" title="Herunterladen">
                                 <i class="bi bi-cloud-download"></i>
                             </a>
                             <form method="POST" action="{{ url_for('datensicherung.wiederherstellen', backup_id=backup.id) }}"
-                                  class="d-inline" onsubmit="return confirm('ACHTUNG: Die aktuelle Datenbank wird überschrieben! Fortfahren?')">
+                                  class="d-inline" onsubmit="return confirm('ACHTUNG: Die aktuelle Datenbank wird überschrieben!\n\nEs wird vorher automatisch ein Sicherungs-Backup erstellt.\n\nFortfahren?')">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-warning" title="Wiederherstellen">
                                     <i class="bi bi-arrow-counterclockwise"></i>

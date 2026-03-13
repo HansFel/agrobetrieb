@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"Buchungsschluessel\\\\|BankImportConfig\\\\|Konto\\\\|Buchung\" /c/Users/HTFel/OneDrive/MGRsoftware/AgroBetrieb/app/models/*.py)",
+      "Bash(venv/Scripts/flask db:*)",
+      "Bash(docker compose:*)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(python -c \"from app import create_app, db; app = create_app\\(''development''\\);:*)",
+      "Bash(venv/Scripts/python -c \":*)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -o /dev/null -w \"%{http_code}\" \"http://localhost:5001/auth/login\")",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST \"http://localhost:5001/buchhaltung/konto/ajax-neu\" -H \"Content-Type: application/json\" -H \"X-CSRFToken: test\" -d '{\"\"kontonummer\"\":\"\"6810\"\",\"\"bezeichnung\"\":\"\"Testpacht\"\",\"\"kontenklasse\"\":6,\"\"kontotyp\"\":\"\"aufwand\"\"}')",
+      "Bash(curl -s -c /tmp/cookies2.txt -b /tmp/cookies2.txt \"http://localhost:5001/buchhaltung/buchungsschluessel/import-analyse\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

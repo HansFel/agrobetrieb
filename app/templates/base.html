@@ -109,6 +109,31 @@
                         <a class="nav-link" href="{{ url_for('lager.index') }}"><i class="bi bi-box-seam"></i> Lager</a>
                     </li>
                     {% endif %}
+                    {% if hat_modul_zugriff(current_user, 'legehennen') or hat_modul_zugriff(current_user, 'sortierergebnis') %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="legehennenDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-egg"></i> Legehennen
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if hat_berechtigung(current_user, 'legehennen', 'view') %}
+                            <li><a class="dropdown-item" href="{{ url_for('legehennen.index') }}">
+                                <i class="bi bi-list-ul me-1"></i>Herden-Übersicht
+                            </a></li>
+                            {% endif %}
+                            {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+                            <li><a class="dropdown-item" href="{{ url_for('legehennen.herde_neu') }}">
+                                <i class="bi bi-plus-circle me-1"></i>Neue Herde
+                            </a></li>
+                            {% endif %}
+                            {% if hat_berechtigung(current_user, 'sortierergebnis', 'view') %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('legehennen.packstelle_index') }}">
+                                <i class="bi bi-bar-chart-steps me-1"></i>Packstelle
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% set _gj_session = session.get('gj') %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Packstelle – Sortierergebnisse{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-bar-chart-steps"></i> Packstelle – Sortierergebnisse</h2>
+        <p class="text-muted">Wählen Sie eine Herde, um ein Sortierergebnis einzutragen.</p>
+    </div>
+</div>
+
+{% if herden %}
+<div class="row">
+    {% for h in herden %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ h.name }}</h5>
+                <p class="card-text text-muted">
+                    {{ haltungsformen.get(h.haltungsform, '–') }}
+                    {% if h.rasse %} · {{ h.rasse }}{% endif %}
+                    {% if h.stall_nr %}<br>Stall {{ h.stall_nr }}{% endif %}
+                </p>
+                <p class="mb-1"><strong>Bestand:</strong> {{ "{:,}".format(h.aktueller_bestand or 0).replace(",", ".") }}</p>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('legehennen.sortierung_neu', herde_id=h.id) }}" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-plus-circle"></i> Sortierergebnis eintragen
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Aktuell keine aktiven Herden vorhanden.
+</div>
+{% endif %}
+{% endblock %}

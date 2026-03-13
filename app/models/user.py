@@ -7,6 +7,7 @@ Rollen:
 - buchhaltung: Buchhaltung (nur Buchhaltungs-Module)
 - gelegentlich: Gelegentlicher Mitarbeiter (nur Arbeitsdaten eingeben)
 - praktikand: Praktikand (Lesezugriff + Arbeitsdaten)
+- packstelle: Packstelle (externer Zugang, nur Sortierergebnisse)
 """
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -29,9 +30,14 @@ class User(UserMixin, db.Model):
     telefon = db.Column(db.String(20))
     
     # Status & Rolle
-    # Mögliche Rollen: betriebsadmin, mitglied, buchhaltung, gelegentlich, praktikand
+    # Mögliche Rollen: betriebsadmin, mitglied, buchhaltung, gelegentlich, praktikand, packstelle
     rolle = db.Column(db.String(30), default='praktikand')
     aktiv = db.Column(db.Boolean, default=True)
+    
+    # Packstelle-Felder (nur bei Rolle 'packstelle')
+    packstelle_name = db.Column(db.String(200))
+    packstelle_ort = db.Column(db.String(200))
+    packstelle_nr = db.Column(db.String(50))
     
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)

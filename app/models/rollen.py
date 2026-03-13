@@ -7,6 +7,7 @@ Rollen und deren Berechtigungen:
 - mitglied: Vollständiger Zugriff (Default-Member)
 - gelegentlich: Nur Arbeitsdaten (Einsätze, Maschinen-Belegung)
 - praktikand: Lesezugriff + Arbeitsdaten eingeben
+- packstelle: Externer Zugang: Nur Sortierergebnisse eintragen
 """
 
 # Rollenübersicht
@@ -36,6 +37,11 @@ ROLLEN = {
         'beschreibung': 'Lesezugriff + Arbeitsdaten eingeben',
         'prioritaet': 50,
     },
+    'packstelle': {
+        'name': 'Packstelle',
+        'beschreibung': 'Externer Zugang: Nur Sortierergebnisse eintragen',
+        'prioritaet': 75,
+    },
 }
 
 # Detaillierte Berechtigungen pro Modul
@@ -49,6 +55,7 @@ BERECHTIGUNGEN = {
         'buchhaltung': ['view', 'create', 'edit', 'delete'],
         'fakturierung': ['view', 'create', 'edit', 'delete'],
         'lager': ['view', 'create', 'edit', 'delete'],
+        'legehennen': ['view', 'create', 'edit', 'delete'],
     },
     'mitglied': {
         'dashboard': ['view'],
@@ -59,6 +66,7 @@ BERECHTIGUNGEN = {
         'buchhaltung': ['view', 'create', 'edit', 'delete'],
         'fakturierung': ['view', 'create', 'edit', 'delete'],
         'lager': ['view', 'create', 'edit', 'delete'],
+        'legehennen': ['view', 'create', 'edit', 'delete'],
     },
     'buchhaltung': {
         'dashboard': ['view'],
@@ -89,6 +97,19 @@ BERECHTIGUNGEN = {
         'buchhaltung': ['view'],
         'fakturierung': ['view'],
         'lager': ['view'],
+        'legehennen': ['view'],
+    },
+    'packstelle': {
+        'dashboard': ['view'],
+        'betrieb': [],
+        'benutzer': [],
+        'maschinen': [],
+        'einsaetze': [],
+        'buchhaltung': [],
+        'fakturierung': [],
+        'lager': [],
+        'legehennen': ['view'],
+        'sortierergebnis': ['view', 'create', 'edit'],
     },
 }
 

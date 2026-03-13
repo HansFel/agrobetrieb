@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if herde %}Herde bearbeiten{% else %}Neue Herde{% endif %} – AgroBetrieb
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">
+                    {% if herde %}
+                        <i class="bi bi-pencil"></i> {{ herde.name }} bearbeiten
+                    {% else %}
+                        <i class="bi bi-plus-circle"></i> Neue Herde anlegen
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Stammdaten -->
+                    <h6 class="text-muted mt-0 mb-3">Stammdaten</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="name" class="form-label">Herdenname *</label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ herde.name if herde else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="rasse" class="form-label">Rasse / Hybride</label>
+                            <input type="text" class="form-control" id="rasse" name="rasse"
+                                   value="{{ herde.rasse if herde else '' }}" placeholder="z.B. Lohmann Brown">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="haltungsform" class="form-label">Haltungsform</label>
+                            <select class="form-select" id="haltungsform" name="haltungsform">
+                                {% for code, name in haltungsformen.items() %}
+                                <option value="{{ code }}" {% if herde and herde.haltungsform == code %}selected{% elif not herde and code == 2 %}selected{% endif %}>
+                                    {{ code }} – {{ name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="schlupfdatum" class="form-label">Schlupfdatum</label>
+                            <input type="date" class="form-control" id="schlupfdatum" name="schlupfdatum"
+                                   value="{{ herde.schlupfdatum.strftime('%Y-%m-%d') if herde and herde.schlupfdatum else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="lieferdatum" class="form-label">Lieferdatum</label>
+                            <input type="date" class="form-control" id="lieferdatum" name="lieferdatum"
+                                   value="{{ herde.lieferdatum.strftime('%Y-%m-%d') if herde and herde.lieferdatum else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="lieferant" class="form-label">Aufzuchtbetrieb</label>
+                            <input type="text" class="form-control" id="lieferant" name="lieferant"
+                                   value="{{ herde.lieferant if herde else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="lieferant_vvvo" class="form-label">VVVO-Nr. Lieferant</label>
+                            <input type="text" class="form-control" id="lieferant_vvvo" name="lieferant_vvvo"
+                                   value="{{ herde.lieferant_vvvo if herde else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="anfangsbestand" class="form-label">Anfangsbestand *</label>
+                            <input type="number" class="form-control" id="anfangsbestand" name="anfangsbestand"
+                                   value="{{ herde.anfangsbestand if herde else '' }}" min="1" required>
+                        </div>
+                        {% if herde %}
+                        <div class="col-md-3">
+                            <label for="aktueller_bestand" class="form-label">Aktueller Bestand</label>
+                            <input type="number" class="form-control" id="aktueller_bestand" name="aktueller_bestand"
+                                   value="{{ herde.aktueller_bestand if herde else '' }}" min="0">
+                        </div>
+                        {% endif %}
+                        <div class="col-md-3">
+                            <label for="erzeuger_code" class="form-label">Erzeugercode</label>
+                            <input type="text" class="form-control" id="erzeuger_code" name="erzeuger_code"
+                                   value="{{ herde.erzeuger_code if herde else '' }}" placeholder="z.B. 2-AT-1234567">
+                            <small class="text-muted">Haltung-Land-Betriebsnr</small>
+                        </div>
+                    </div>
+
+                    <!-- Stall -->
+                    <h6 class="text-muted mt-4 mb-3">Stall</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="stall_nr" class="form-label">Stall-Nr.</label>
+                            <input type="text" class="form-control" id="stall_nr" name="stall_nr"
+                                   value="{{ herde.stall_nr if herde else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="stall_flaeche_m2" class="form-label">Stallfläche (m²)</label>
+                            <input type="number" class="form-control" id="stall_flaeche_m2" name="stall_flaeche_m2"
+                                   value="{{ herde.stall_flaeche_m2 if herde else '' }}" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="auslauf_flaeche_m2" class="form-label">Auslauffläche (m²)</label>
+                            <input type="number" class="form-control" id="auslauf_flaeche_m2" name="auslauf_flaeche_m2"
+                                   value="{{ herde.auslauf_flaeche_m2 if herde else '' }}" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="nest_plaetze" class="form-label">Nestplätze</label>
+                            <input type="number" class="form-control" id="nest_plaetze" name="nest_plaetze"
+                                   value="{{ herde.nest_plaetze if herde else '' }}">
+                        </div>
+                    </div>
+
+                    <!-- Legeperiode -->
+                    <h6 class="text-muted mt-4 mb-3">Legeperiode</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="legebeginn" class="form-label">Legebeginn</label>
+                            <input type="date" class="form-control" id="legebeginn" name="legebeginn"
+                                   value="{{ herde.legebeginn.strftime('%Y-%m-%d') if herde and herde.legebeginn else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="erwartetes_ende" class="form-label">Erwartetes Ende</label>
+                            <input type="date" class="form-control" id="erwartetes_ende" name="erwartetes_ende"
+                                   value="{{ herde.erwartetes_ende.strftime('%Y-%m-%d') if herde and herde.erwartetes_ende else '' }}">
+                        </div>
+                        {% if herde %}
+                        <div class="col-md-3">
+                            <label for="ausstalldatum" class="form-label">Ausstalldatum</label>
+                            <input type="date" class="form-control" id="ausstalldatum" name="ausstalldatum"
+                                   value="{{ herde.ausstalldatum.strftime('%Y-%m-%d') if herde and herde.ausstalldatum else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ist_aktiv" class="form-label">Status</label>
+                            <select class="form-select" id="ist_aktiv" name="ist_aktiv">
+                                <option value="1" {% if not herde or herde.ist_aktiv %}selected{% endif %}>Aktiv</option>
+                                <option value="0" {% if herde and not herde.ist_aktiv %}selected{% endif %}>Archiviert</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Bemerkung -->
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ herde.bemerkung if herde else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {% if herde %}Speichern{% else %}Herde erstellen{% endif %}
+                        </button>
+                        <a href="{% if herde %}{{ url_for('legehennen.herde_detail', id=herde.id) }}{% else %}{{ url_for('legehennen.index') }}{% endif %}" class="btn btn-secondary">
+                            Abbrechen
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

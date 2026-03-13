@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Legehennen – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="bi bi-egg"></i> Legehennen</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <a href="{{ url_for('legehennen.herde_neu') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Neue Herde
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI-Karten -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Aktive Herden</h6>
+                <h3 class="text-primary">{{ herden_aktiv|length }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Gesamtbestand</h6>
+                <h3 class="text-success">{{ "{:,}".format(gesamtbestand).replace(",", ".") }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Eier heute</h6>
+                <h3 class="text-info">{{ "{:,}".format(eier_heute).replace(",", ".") }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Aktive Wartezeiten</h6>
+                <h3 class="{% if wartezeiten_aktiv > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ wartezeiten_aktiv }}
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aktive Herden -->
+{% if herden_aktiv %}
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="m-0"><i class="bi bi-check-circle text-success"></i> Aktive Herden</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover m-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Rasse</th>
+                    <th>Haltung</th>
+                    <th>Bestand</th>
+                    <th>Alter (Wo.)</th>
+                    <th>Mortalität</th>
+                    <th>Wartezeit</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in herden_aktiv %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('legehennen.herde_detail', id=h.id) }}">
+                            <strong>{{ h.name }}</strong>
+                        </a>
+                        {% if h.stall_nr %}<br><small class="text-muted">Stall {{ h.stall_nr }}</small>{% endif %}
+                    </td>
+                    <td>{{ h.rasse or '–' }}</td>
+                    <td><span class="badge bg-secondary">{{ haltungsformen.get(h.haltungsform, '–') }}</span></td>
+                    <td>{{ "{:,}".format(h.aktueller_bestand or 0).replace(",", ".") }}</td>
+                    <td>{{ h.alter_wochen if h.alter_wochen is not none else '–' }}</td>
+                    <td>
+                        {% set mort = h.mortalitaet_prozent %}
+                        <span class="{% if mort > 10 %}text-danger fw-bold{% elif mort > 5 %}text-warning{% endif %}">
+                            {{ "%.1f"|format(mort) }} %
+                        </span>
+                    </td>
+                    <td>
+                        {% if h.hat_aktive_wartezeit %}
+                            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Aktiv</span>
+                        {% else %}
+                            <span class="badge bg-success">Keine</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('legehennen.herde_detail', id=h.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Noch keine Herden angelegt.
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <a href="{{ url_for('legehennen.herde_neu') }}" class="btn btn-sm btn-primary ms-2">Jetzt erstellen</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Archivierte Herden -->
+{% if herden_archiv %}
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="m-0"><i class="bi bi-archive text-muted"></i> Archivierte Herden</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover m-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Rasse</th>
+                    <th>Haltung</th>
+                    <th>Ausstallung</th>
+                    <th>Endbestand</th>
+                    <th>Mortalität</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in herden_archiv %}
+                <tr class="text-muted">
+                    <td><a href="{{ url_for('legehennen.herde_detail', id=h.id) }}">{{ h.name }}</a></td>
+                    <td>{{ h.rasse or '–' }}</td>
+                    <td>{{ haltungsformen.get(h.haltungsform, '–') }}</td>
+                    <td>{{ h.ausstalldatum.strftime('%d.%m.%Y') if h.ausstalldatum else '–' }}</td>
+                    <td>{{ h.aktueller_bestand or '–' }}</td>
+                    <td>{{ "%.1f"|format(h.mortalitaet_prozent) }} %</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('legehennen.herde_detail', id=h.id) }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

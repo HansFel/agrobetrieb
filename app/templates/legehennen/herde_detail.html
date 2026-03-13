@@ -1,0 +1,945 @@
+{% extends "base.html" %}
+
+{% block title %}{{ herde.name }} – Legehennen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-card { border-left: 4px solid #0d6efd; }
+    .kpi-card.warning { border-left-color: #dc3545; }
+    .kpi-card.success { border-left-color: #198754; }
+    .kpi-value { font-size: 1.5rem; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2>
+            <i class="bi bi-egg"></i> {{ herde.name }}
+            {% if not herde.ist_aktiv %}
+                <span class="badge bg-secondary">Archiviert</span>
+            {% endif %}
+            {% if herde.hat_aktive_wartezeit %}
+                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Wartezeit aktiv</span>
+            {% endif %}
+        </h2>
+        <p class="text-muted mb-0">
+            {{ haltungsformen.get(herde.haltungsform, '–') }}
+            {% if herde.rasse %} · {{ herde.rasse }}{% endif %}
+            {% if herde.stall_nr %} · Stall {{ herde.stall_nr }}{% endif %}
+            {% if herde.erzeuger_code %} · {{ herde.erzeuger_code }}{% endif %}
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if hat_berechtigung(current_user, 'legehennen', 'edit') %}
+        <a href="{{ url_for('legehennen.herde_edit', id=herde.id) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Bearbeiten
+        </a>
+        {% endif %}
+        <a href="{{ url_for('legehennen.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Zurück
+        </a>
+    </div>
+</div>
+
+<!-- KPIs -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card kpi-card">
+            <div class="card-body py-2">
+                <small class="text-muted">Bestand</small>
+                <div class="kpi-value">{{ "{:,}".format(herde.aktueller_bestand or 0).replace(",", ".") }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card kpi-card">
+            <div class="card-body py-2">
+                <small class="text-muted">Alter</small>
+                <div class="kpi-value">{{ herde.alter_wochen if herde.alter_wochen is not none else '–' }} <small>Wo.</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card kpi-card {% if herde.mortalitaet_prozent > 10 %}warning{% else %}success{% endif %}">
+            <div class="card-body py-2">
+                <small class="text-muted">Mortalität</small>
+                <div class="kpi-value">{{ "%.1f"|format(herde.mortalitaet_prozent) }}%</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card kpi-card">
+            <div class="card-body py-2">
+                <small class="text-muted">Eier heute</small>
+                {% set letzte_tl = tagesleistungen[0] if tagesleistungen else none %}
+                <div class="kpi-value">{{ letzte_tl.eier_gesamt if letzte_tl else '–' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card kpi-card">
+            <div class="card-body py-2">
+                <small class="text-muted">Legerate</small>
+                <div class="kpi-value">{{ "%.1f"|format(letzte_tl.legerate_prozent) if letzte_tl else '–' }}{% if letzte_tl %}%{% endif %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        {% set ni = herde.naechste_impfung %}
+        <div class="card kpi-card {% if ni %}warning{% endif %}">
+            <div class="card-body py-2">
+                <small class="text-muted">Nächste Impfung</small>
+                <div class="{% if ni %}text-danger{% endif %}" style="font-size:0.9rem;font-weight:600;">
+                    {{ ni.naechste_impfung.strftime('%d.%m.%Y') if ni else '–' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="herdeTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'uebersicht' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='uebersicht') }}">
+            <i class="bi bi-info-circle"></i> Übersicht
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'stallbuch' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='stallbuch') }}">
+            <i class="bi bi-journal-text"></i> Stallbuch
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'sortierung' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='sortierung') }}">
+            <i class="bi bi-bar-chart-steps"></i> Sortierung
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'tierarzt' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='tierarzt') }}">
+            <i class="bi bi-heart-pulse"></i> Tierarzt / Medikamente
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'salmonellen' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='salmonellen') }}">
+            <i class="bi bi-shield-check"></i> Salmonellen
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'futter' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='futter') }}">
+            <i class="bi bi-basket"></i> Futter
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'ereignisse' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='ereignisse') }}">
+            <i class="bi bi-flag"></i> Ereignisse
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if tab == 'legekurve' %}active{% endif %}"
+           href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='legekurve') }}">
+            <i class="bi bi-graph-up"></i> Legekurve
+        </a>
+    </li>
+</ul>
+
+<!-- Tab-Inhalt -->
+{% if tab == 'uebersicht' %}
+<!-- ═══════════════════ ÜBERSICHT ═══════════════════ -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header bg-light"><h6 class="m-0">Stammdaten</h6></div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><th>Rasse:</th><td>{{ herde.rasse or '–' }}</td></tr>
+                    <tr><th>Haltungsform:</th><td>{{ haltungsformen.get(herde.haltungsform, '–') }}</td></tr>
+                    <tr><th>Schlupfdatum:</th><td>{{ herde.schlupfdatum.strftime('%d.%m.%Y') if herde.schlupfdatum else '–' }}</td></tr>
+                    <tr><th>Lieferdatum:</th><td>{{ herde.lieferdatum.strftime('%d.%m.%Y') if herde.lieferdatum else '–' }}</td></tr>
+                    <tr><th>Aufzuchtbetrieb:</th><td>{{ herde.lieferant or '–' }} {% if herde.lieferant_vvvo %}({{ herde.lieferant_vvvo }}){% endif %}</td></tr>
+                    <tr><th>Anfangsbestand:</th><td>{{ "{:,}".format(herde.anfangsbestand).replace(",", ".") }}</td></tr>
+                    <tr><th>Erzeugercode:</th><td>{{ herde.erzeuger_code or '–' }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-header bg-light"><h6 class="m-0">Stall & Legeperiode</h6></div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><th>Stall-Nr.:</th><td>{{ herde.stall_nr or '–' }}</td></tr>
+                    <tr><th>Stallfläche:</th><td>{{ herde.stall_flaeche_m2 or '–' }} m²</td></tr>
+                    <tr><th>Auslauffläche:</th><td>{{ herde.auslauf_flaeche_m2 or '–' }} m²</td></tr>
+                    <tr><th>Nestplätze:</th><td>{{ herde.nest_plaetze or '–' }}</td></tr>
+                    <tr><th>Legebeginn:</th><td>{{ herde.legebeginn.strftime('%d.%m.%Y') if herde.legebeginn else '–' }}</td></tr>
+                    <tr><th>Erwartetes Ende:</th><td>{{ herde.erwartetes_ende.strftime('%d.%m.%Y') if herde.erwartetes_ende else '–' }}</td></tr>
+                    <tr><th>Ausstallung:</th><td>{{ herde.ausstalldatum.strftime('%d.%m.%Y') if herde.ausstalldatum else '–' }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% if herde.bemerkung %}
+<div class="card mb-3">
+    <div class="card-body">
+        <strong>Bemerkung:</strong> {{ herde.bemerkung }}
+    </div>
+</div>
+{% endif %}
+
+{% elif tab == 'stallbuch' %}
+<!-- ═══════════════════ STALLBUCH ═══════════════════ -->
+<div class="row mb-3">
+    <div class="col text-end">
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <a href="{{ url_for('legehennen.tagesleistung_neu', herde_id=herde.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Tagesleistung erfassen
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% if tagesleistungen %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Datum</th>
+                <th>LW</th>
+                <th>Eier ges.</th>
+                <th>Legerate</th>
+                <th>Ø Gewicht</th>
+                <th>Bestand</th>
+                <th>Verluste</th>
+                <th>Futter kg</th>
+                <th>g/Tier</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tl in tagesleistungen %}
+            <tr>
+                <td>{{ tl.datum.strftime('%d.%m.%Y') }}</td>
+                <td>{{ tl.lebenswoche if tl.lebenswoche is not none else '–' }}</td>
+                <td><strong>{{ tl.eier_gesamt }}</strong></td>
+                <td>
+                    <span class="{% if tl.legerate_prozent >= 90 %}text-success{% elif tl.legerate_prozent >= 70 %}text-primary{% else %}text-warning{% endif %}">
+                        {{ "%.1f"|format(tl.legerate_prozent) }}%
+                    </span>
+                </td>
+                <td>{{ "%.1f"|format(tl.eigewicht_durchschnitt) if tl.eigewicht_durchschnitt else '–' }} g</td>
+                <td>{{ tl.tierbestand or '–' }}</td>
+                <td>{% if tl.verluste and tl.verluste > 0 %}<span class="text-danger">{{ tl.verluste }}</span>{% else %}–{% endif %}</td>
+                <td>{{ "%.1f"|format(tl.futterverbrauch_kg) if tl.futterverbrauch_kg else '–' }}</td>
+                <td>{{ "%.0f"|format(tl.futter_pro_tier_g) if tl.futter_pro_tier_g else '–' }}</td>
+                <td class="text-end">
+                    {% if hat_berechtigung(current_user, 'legehennen', 'edit') %}
+                    <a href="{{ url_for('legehennen.tagesleistung_edit', id=tl.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% endif %}
+                    {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                    <form method="POST" action="{{ url_for('legehennen.tagesleistung_delete', id=tl.id) }}" class="d-inline"
+                          onsubmit="return confirm('Tagesleistung wirklich löschen?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info"><i class="bi bi-info-circle"></i> Noch keine Tagesleistungen erfasst.</div>
+{% endif %}
+
+{% elif tab == 'sortierung' %}
+<!-- ═══════════════════ SORTIERUNG ═══════════════════ -->
+<div class="row mb-3">
+    <div class="col text-end">
+        {% if hat_berechtigung(current_user, 'sortierergebnis', 'create') %}
+        <a href="{{ url_for('legehennen.sortierung_neu', herde_id=herde.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Sortierergebnis eintragen
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% if sortierergebnisse %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Datum</th>
+                <th>Eier ges.</th>
+                <th>S (&lt;53g)</th>
+                <th>M (53-63g)</th>
+                <th>L (63-73g)</th>
+                <th>XL (&gt;73g)</th>
+                <th>Aussortiert</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sortierergebnisse %}
+            <tr>
+                <td>{{ s.datum.strftime('%d.%m.%Y') }}</td>
+                <td><strong>{{ s.eier_gesamt }}</strong></td>
+                <td>{{ s.groesse_s }} <small class="text-muted">({{ s.anteil_s }}%)</small></td>
+                <td>{{ s.groesse_m }} <small class="text-muted">({{ s.anteil_m }}%)</small></td>
+                <td>{{ s.groesse_l }} <small class="text-muted">({{ s.anteil_l }}%)</small></td>
+                <td>{{ s.groesse_xl }} <small class="text-muted">({{ s.anteil_xl }}%)</small></td>
+                <td>{{ s.aussortiert }}</td>
+                <td class="text-end">
+                    {% if hat_berechtigung(current_user, 'sortierergebnis', 'edit') %}
+                    <a href="{{ url_for('legehennen.sortierung_edit', id=s.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% endif %}
+                    {% if hat_berechtigung(current_user, 'sortierergebnis', 'delete') %}
+                    <form method="POST" action="{{ url_for('legehennen.sortierung_delete', id=s.id) }}" class="d-inline"
+                          onsubmit="return confirm('Sortierergebnis wirklich löschen?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info"><i class="bi bi-info-circle"></i> Noch keine Sortierergebnisse eingetragen.</div>
+{% endif %}
+
+{% elif tab == 'tierarzt' %}
+<!-- ═══════════════════ TIERARZT / MEDIKAMENTE ═══════════════════ -->
+
+<!-- Aktive Wartezeiten Warnung -->
+{% set aktive_meds = medikamente|selectattr('wartezeit_aktiv')|list %}
+{% if aktive_meds %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i> <strong>Aktive Wartezeiten:</strong>
+    {% for m in aktive_meds %}
+        <span class="badge bg-danger ms-1">{{ m.medikament_name }} – noch {{ m.wartezeit_resttage }} Tage (bis {{ m.wartezeit_ende.strftime('%d.%m.%Y') }})</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Impfungen -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="m-0"><i class="bi bi-shield-plus"></i> Impfungen ({{ impfungen|length }})</h6>
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#impfungForm">
+            <i class="bi bi-plus"></i> Impfung
+        </button>
+        {% endif %}
+    </div>
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <div class="collapse" id="impfungForm">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('legehennen.impfung_neu', herde_id=herde.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="datum" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" name="krankheit">
+                            <option value="">Krankheit…</option>
+                            {% for k in impf_krankheiten %}<option>{{ k }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="impfstoff" placeholder="Impfstoff">
+                    </div>
+                    <div class="col-md-1">
+                        <input type="text" class="form-control form-control-sm" name="charge" placeholder="Charge">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" name="verabreichungsart">
+                            <option value="">Art…</option>
+                            {% for v in verabreichungsarten %}<option>{{ v }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="naechste_impfung" title="Nächste Impfung">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% if impfungen %}
+    <div class="table-responsive">
+        <table class="table table-sm m-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Krankheit</th><th>Impfstoff</th><th>Charge</th><th>Art</th><th>Nächste</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for imp in impfungen %}
+                <tr>
+                    <td>{{ imp.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ imp.krankheit or '–' }}</td>
+                    <td>{{ imp.impfstoff or '–' }}</td>
+                    <td>{{ imp.charge or '–' }}</td>
+                    <td>{{ imp.verabreichungsart or '–' }}</td>
+                    <td>{{ imp.naechste_impfung.strftime('%d.%m.%Y') if imp.naechste_impfung else '–' }}</td>
+                    <td class="text-end">
+                        {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                        <form method="POST" action="{{ url_for('legehennen.impfung_delete', id=imp.id) }}" class="d-inline" onsubmit="return confirm('Impfung löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Medikamente -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="m-0"><i class="bi bi-capsule"></i> Medikamente ({{ medikamente|length }})</h6>
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#medikamentForm">
+            <i class="bi bi-plus"></i> Medikament
+        </button>
+        {% endif %}
+    </div>
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <div class="collapse" id="medikamentForm">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('legehennen.medikament_neu', herde_id=herde.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2 mb-2">
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm">Beginn *</label>
+                        <input type="date" class="form-control form-control-sm" name="beginn" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm">Ende</label>
+                        <input type="date" class="form-control form-control-sm" name="ende">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label form-label-sm">Medikament *</label>
+                        <input type="text" class="form-control form-control-sm" name="medikament_name" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm">Typ</label>
+                        <select class="form-select form-select-sm" name="typ">
+                            <option value="">–</option>
+                            {% for t in medikament_typen %}<option>{{ t }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label form-label-sm">Verabreichung</label>
+                        <select class="form-select form-select-sm" name="verabreichungsart">
+                            <option value="">–</option>
+                            {% for v in verabreichungsarten %}<option>{{ v }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label form-label-sm">Wartezeit</label>
+                        <input type="number" class="form-control form-control-sm" name="wartezeit_tage" value="0" min="0" title="Wartezeit in Tagen">
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-2"><input type="text" class="form-control form-control-sm" name="dosierung" placeholder="Dosierung"></div>
+                    <div class="col-md-2"><input type="text" class="form-control form-control-sm" name="diagnose" placeholder="Diagnose"></div>
+                    <div class="col-md-2"><input type="text" class="form-control form-control-sm" name="tierarzt" placeholder="Tierarzt"></div>
+                    <div class="col-md-1"><input type="text" class="form-control form-control-sm" name="charge" placeholder="Charge"></div>
+                    <div class="col-md-1"><input type="number" class="form-control form-control-sm" name="anzahl_tiere" placeholder="# Tiere"></div>
+                    <div class="col-md-1">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="ist_antibiotikum" value="1" id="istAB">
+                            <label class="form-check-label" for="istAB"><small>AB</small></label>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i> Speichern</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% if medikamente %}
+    <div class="table-responsive">
+        <table class="table table-sm m-0">
+            <thead class="table-light">
+                <tr><th>Beginn</th><th>Ende</th><th>Medikament</th><th>Typ</th><th>Dosierung</th><th>Wartezeit</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for m in medikamente %}
+                <tr class="{% if m.wartezeit_aktiv %}table-danger{% endif %}">
+                    <td>{{ m.beginn.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ m.ende.strftime('%d.%m.%Y') if m.ende else '–' }}</td>
+                    <td><strong>{{ m.medikament_name }}</strong>{% if m.ist_antibiotikum %} <span class="badge bg-warning text-dark">AB</span>{% endif %}</td>
+                    <td>{{ m.typ or '–' }}</td>
+                    <td>{{ m.dosierung or '–' }}</td>
+                    <td>{{ m.wartezeit_tage or 0 }} Tage</td>
+                    <td>
+                        {% if m.wartezeit_aktiv %}
+                            <span class="badge bg-danger">Wartezeit! Noch {{ m.wartezeit_resttage }} Tage</span>
+                        {% else %}
+                            <span class="badge bg-success">OK</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                        <form method="POST" action="{{ url_for('legehennen.medikament_delete', id=m.id) }}" class="d-inline" onsubmit="return confirm('Medikament löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Tierarztbesuche -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="m-0"><i class="bi bi-hospital"></i> Tierarztbesuche ({{ tierarzt_besuche|length }})</h6>
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#tierarztForm">
+            <i class="bi bi-plus"></i> Tierarztbesuch
+        </button>
+        {% endif %}
+    </div>
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <div class="collapse" id="tierarztForm">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('legehennen.tierarzt_neu', herde_id=herde.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="datum" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="tierarzt_name" placeholder="Tierarzt">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="grund" placeholder="Grund">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="diagnose" placeholder="Diagnose">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="massnahmen" placeholder="Maßnahmen">
+                    </div>
+                    <div class="col-md-1">
+                        <input type="number" class="form-control form-control-sm" name="kosten" step="0.01" placeholder="€">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% if tierarzt_besuche %}
+    <div class="table-responsive">
+        <table class="table table-sm m-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Tierarzt</th><th>Grund</th><th>Diagnose</th><th>Maßnahmen</th><th>Kosten</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for ta in tierarzt_besuche %}
+                <tr>
+                    <td>{{ ta.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ ta.tierarzt_name or '–' }}</td>
+                    <td>{{ ta.grund or '–' }}</td>
+                    <td>{{ ta.diagnose or '–' }}</td>
+                    <td>{{ ta.massnahmen or '–' }}</td>
+                    <td>{% if ta.kosten %}{{ waehrung }} {{ "%.2f"|format(ta.kosten) }}{% else %}–{% endif %}</td>
+                    <td class="text-end">
+                        {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                        <form method="POST" action="{{ url_for('legehennen.tierarzt_delete', id=ta.id) }}" class="d-inline" onsubmit="return confirm('Tierarztbesuch löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% elif tab == 'salmonellen' %}
+<!-- ═══════════════════ SALMONELLEN ═══════════════════ -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="m-0"><i class="bi bi-shield-check"></i> Salmonellen-Monitoring ({{ salmonellen|length }})</h6>
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#salmonellenForm">
+            <i class="bi bi-plus"></i> Probe
+        </button>
+        {% endif %}
+    </div>
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <div class="collapse" id="salmonellenForm">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('legehennen.salmonellen_neu', herde_id=herde.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="probenahme_datum" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" name="probenart">
+                            <option value="">Probenart…</option>
+                            {% for p in probenarten %}<option>{{ p }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="labor" placeholder="Labor">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" name="ergebnis">
+                            <option value="">Ergebnis…</option>
+                            <option value="negativ">Negativ</option>
+                            <option value="positiv">Positiv</option>
+                            <option value="ausstehend">Ausstehend</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="ergebnis_datum" title="Ergebnis am">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% if salmonellen %}
+    <div class="table-responsive">
+        <table class="table table-sm m-0">
+            <thead class="table-light">
+                <tr><th>Probenahme</th><th>Art</th><th>Labor</th><th>Ergebnis</th><th>Ergebnis am</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for sp in salmonellen %}
+                <tr class="{% if sp.ergebnis == 'positiv' %}table-danger{% elif sp.ergebnis == 'ausstehend' %}table-warning{% endif %}">
+                    <td>{{ sp.probenahme_datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ sp.probenart or '–' }}</td>
+                    <td>{{ sp.labor or '–' }}</td>
+                    <td>
+                        {% if sp.ergebnis == 'negativ' %}<span class="badge bg-success">Negativ</span>
+                        {% elif sp.ergebnis == 'positiv' %}<span class="badge bg-danger">Positiv</span>
+                        {% elif sp.ergebnis == 'ausstehend' %}<span class="badge bg-warning text-dark">Ausstehend</span>
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>{{ sp.ergebnis_datum.strftime('%d.%m.%Y') if sp.ergebnis_datum else '–' }}</td>
+                    <td class="text-end">
+                        {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                        <form method="POST" action="{{ url_for('legehennen.salmonellen_delete', id=sp.id) }}" class="d-inline" onsubmit="return confirm('Salmonellenprobe löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% elif tab == 'futter' %}
+<!-- ═══════════════════ FUTTER ═══════════════════ -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="m-0"><i class="bi bi-basket"></i> Futterlieferungen ({{ futter|length }})</h6>
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#futterForm">
+            <i class="bi bi-plus"></i> Lieferung
+        </button>
+        {% endif %}
+    </div>
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <div class="collapse" id="futterForm">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('legehennen.futter_neu', herde_id=herde.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="datum" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="futtermittel" placeholder="Futtermittel">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="text" class="form-control form-control-sm" name="lieferant" placeholder="Lieferant">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control form-control-sm" name="menge_kg" step="0.01" placeholder="Menge (kg)">
+                    </div>
+                    <div class="col-md-1">
+                        <input type="text" class="form-control form-control-sm" name="charge" placeholder="Charge">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" class="form-control form-control-sm" name="preis" step="0.01" placeholder="Preis (€)">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% if futter %}
+    <div class="table-responsive">
+        <table class="table table-sm m-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Futtermittel</th><th>Lieferant</th><th>Menge</th><th>Charge</th><th>Preis</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for fl in futter %}
+                <tr>
+                    <td>{{ fl.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ fl.futtermittel or '–' }}</td>
+                    <td>{{ fl.lieferant or '–' }}</td>
+                    <td>{{ "%.1f"|format(fl.menge_kg) if fl.menge_kg else '–' }} kg</td>
+                    <td>{{ fl.charge or '–' }}</td>
+                    <td>{% if fl.preis %}{{ waehrung }} {{ "%.2f"|format(fl.preis) }}{% else %}–{% endif %}</td>
+                    <td class="text-end">
+                        {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                        <form method="POST" action="{{ url_for('legehennen.futter_delete', id=fl.id) }}" class="d-inline" onsubmit="return confirm('Futterlieferung löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% elif tab == 'ereignisse' %}
+<!-- ═══════════════════ EREIGNISSE ═══════════════════ -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h6 class="m-0"><i class="bi bi-flag"></i> Ereignisse ({{ ereignisse|length }})</h6>
+        {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#ereignisForm">
+            <i class="bi bi-plus"></i> Ereignis
+        </button>
+        {% endif %}
+    </div>
+    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+    <div class="collapse" id="ereignisForm">
+        <div class="card-body border-bottom bg-light">
+            <form method="POST" action="{{ url_for('legehennen.ereignis_neu', herde_id=herde.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" name="datum" value="{{ now.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" name="kategorie">
+                            <option value="">Kategorie…</option>
+                            {% for k in ereignis_kategorien %}<option>{{ k }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" name="beschreibung" placeholder="Beschreibung">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" name="massnahmen" placeholder="Maßnahmen">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-check"></i></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% if ereignisse %}
+    <div class="table-responsive">
+        <table class="table table-sm m-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Kategorie</th><th>Beschreibung</th><th>Maßnahmen</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for er in ereignisse %}
+                <tr>
+                    <td>{{ er.datum.strftime('%d.%m.%Y') }}</td>
+                    <td><span class="badge bg-info">{{ er.kategorie or '–' }}</span></td>
+                    <td>{{ er.beschreibung or '–' }}</td>
+                    <td>{{ er.massnahmen or '–' }}</td>
+                    <td class="text-end">
+                        {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
+                        <form method="POST" action="{{ url_for('legehennen.ereignis_delete', id=er.id) }}" class="d-inline" onsubmit="return confirm('Ereignis löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% elif tab == 'legekurve' %}
+<!-- ═══════════════════ LEGEKURVE ═══════════════════ -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="m-0"><i class="bi bi-graph-up"></i> Legekurve & Leistungsverlauf</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="legekurveChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="m-0"><i class="bi bi-bar-chart-steps"></i> Eigrößen-Entwicklung</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="sortierungChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Löschen-Button (nur Admin, nur bei Bearbeiten-Tab) -->
+{% if tab == 'uebersicht' and hat_berechtigung(current_user, 'legehennen', 'delete') %}
+<div class="mt-4">
+    <form method="POST" action="{{ url_for('legehennen.herde_delete', id=herde.id) }}"
+          onsubmit="return confirm('Herde „{{ herde.name }}" wirklich löschen? Alle zugehörigen Daten werden gelöscht!')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash"></i> Herde löschen
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if tab == 'legekurve' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Legekurve laden
+    fetch('{{ url_for("legehennen.api_legekurve", herde_id=herde.id) }}')
+        .then(r => r.json())
+        .then(data => {
+            new Chart(document.getElementById('legekurveChart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Legerate (%)',
+                            data: data.legerate,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13,110,253,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: 'Ø Eigewicht (g)',
+                            data: data.eigewicht,
+                            borderColor: '#fd7e14',
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            yAxisID: 'y1',
+                        },
+                        {
+                            label: 'Verluste (kumuliert)',
+                            data: data.verluste_kumuliert,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220,53,69,0.1)',
+                            fill: true,
+                            tension: 0.1,
+                            yAxisID: 'y2',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { type: 'linear', position: 'left', title: { display: true, text: 'Legerate (%)' }, min: 0, max: 100 },
+                        y1: { type: 'linear', position: 'right', title: { display: true, text: 'Eigewicht (g)' }, grid: { drawOnChartArea: false } },
+                        y2: { type: 'linear', position: 'right', title: { display: true, text: 'Verluste' }, grid: { drawOnChartArea: false }, display: false },
+                    }
+                }
+            });
+        });
+
+    // Sortierung laden
+    fetch('{{ url_for("legehennen.api_sortierung", herde_id=herde.id) }}')
+        .then(r => r.json())
+        .then(data => {
+            new Chart(document.getElementById('sortierungChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        { label: 'S (<53g)', data: data.anteil_s, backgroundColor: '#6c757d' },
+                        { label: 'M (53-63g)', data: data.anteil_m, backgroundColor: '#198754' },
+                        { label: 'L (63-73g)', data: data.anteil_l, backgroundColor: '#0d6efd' },
+                        { label: 'XL (>73g)', data: data.anteil_xl, backgroundColor: '#fd7e14' },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, title: { display: true, text: 'Anteil (%)' }, max: 100 }
+                    }
+                }
+            });
+        });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -114,6 +114,7 @@ def create_app(config_name='default'):
     from app.blueprints.fakturierung import fakturierung_bp
     from app.blueprints.lager import lager_bp
     from app.blueprints.datensicherung import datensicherung_bp
+    from app.blueprints.legehennen import legehennen_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -124,6 +125,7 @@ def create_app(config_name='default'):
     app.register_blueprint(fakturierung_bp)
     app.register_blueprint(lager_bp)
     app.register_blueprint(datensicherung_bp)
+    app.register_blueprint(legehennen_bp)
     
     # CLI Commands
     @app.cli.command()

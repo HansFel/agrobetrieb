@@ -20,6 +20,17 @@ from app.models.fakturierung import (
 	DOKUMENT_TYPEN,
 )
 from app.models.backup import Backup
+from app.models.legehennen import (
+	Herde,
+	Tagesleistung,
+	Sortierergebnis,
+	TierarztBesuch,
+	Impfung,
+	MedikamentBehandlung,
+	FutterLieferung,
+	SalmonellenProbe,
+	HerdeEreignis,
+)
 
 __all__ = [
 	'User',
@@ -39,4 +50,13 @@ __all__ = [
 	'FAKTURA_STATUS',
 	'DOKUMENT_TYPEN',
 	'Backup',
+	'Herde',
+	'Tagesleistung',
+	'Sortierergebnis',
+	'TierarztBesuch',
+	'Impfung',
+	'MedikamentBehandlung',
+	'FutterLieferung',
+	'SalmonellenProbe',
+	'HerdeEreignis',
 ]

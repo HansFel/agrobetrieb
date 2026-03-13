@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if tagesleistung %}Tagesleistung bearbeiten{% else %}Tagesleistung erfassen{% endif %} – {{ herde.name }}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">
+                    {% if tagesleistung %}
+                        <i class="bi bi-pencil"></i> Tagesleistung bearbeiten
+                    {% else %}
+                        <i class="bi bi-plus-circle"></i> Tagesleistung erfassen – {{ herde.name }}
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="datum" class="form-label">Datum *</label>
+                            <input type="date" class="form-control" id="datum" name="datum"
+                                   value="{{ tagesleistung.datum.strftime('%Y-%m-%d') if tagesleistung else now.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tierbestand" class="form-label">Tierbestand</label>
+                            <input type="number" class="form-control" id="tierbestand" name="tierbestand"
+                                   value="{{ tagesleistung.tierbestand if tagesleistung else herde.aktueller_bestand }}" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Eierproduktion -->
+                    <h6 class="text-muted mt-4 mb-3">Eierproduktion</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="eier_gesamt" class="form-label">Eier gesamt *</label>
+                            <input type="number" class="form-control" id="eier_gesamt" name="eier_gesamt"
+                                   value="{{ tagesleistung.eier_gesamt if tagesleistung else '' }}" min="0" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="eier_verkaufsfaehig" class="form-label">Verkaufsfähig</label>
+                            <input type="number" class="form-control" id="eier_verkaufsfaehig" name="eier_verkaufsfaehig"
+                                   value="{{ tagesleistung.eier_verkaufsfaehig if tagesleistung else '' }}" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="eier_knick" class="form-label">Knickeier</label>
+                            <input type="number" class="form-control" id="eier_knick" name="eier_knick"
+                                   value="{{ tagesleistung.eier_knick if tagesleistung else '' }}" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="eier_bruch" class="form-label">Brucheier</label>
+                            <input type="number" class="form-control" id="eier_bruch" name="eier_bruch"
+                                   value="{{ tagesleistung.eier_bruch if tagesleistung else '' }}" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="eier_schmutzig" class="form-label">Schmutzeier</label>
+                            <input type="number" class="form-control" id="eier_schmutzig" name="eier_schmutzig"
+                                   value="{{ tagesleistung.eier_schmutzig if tagesleistung else '' }}" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="eier_wind" class="form-label">Windeier</label>
+                            <input type="number" class="form-control" id="eier_wind" name="eier_wind"
+                                   value="{{ tagesleistung.eier_wind if tagesleistung else '' }}" min="0">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="eier_boden" class="form-label">Bodeneier</label>
+                            <input type="number" class="form-control" id="eier_boden" name="eier_boden"
+                                   value="{{ tagesleistung.eier_boden if tagesleistung else '' }}" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="eigewicht_durchschnitt" class="form-label">Ø Eigewicht (g)</label>
+                            <input type="number" class="form-control" id="eigewicht_durchschnitt" name="eigewicht_durchschnitt"
+                                   value="{{ tagesleistung.eigewicht_durchschnitt if tagesleistung else '' }}" step="0.1" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Verluste -->
+                    <h6 class="text-muted mt-4 mb-3">Verluste</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-2">
+                            <label for="verluste" class="form-label">Verluste (Tiere)</label>
+                            <input type="number" class="form-control" id="verluste" name="verluste"
+                                   value="{{ tagesleistung.verluste if tagesleistung else '0' }}" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="verlust_ursache" class="form-label">Verlustursache</label>
+                            <input type="text" class="form-control" id="verlust_ursache" name="verlust_ursache"
+                                   value="{{ tagesleistung.verlust_ursache if tagesleistung else '' }}">
+                        </div>
+                    </div>
+
+                    <!-- Verbrauch -->
+                    <h6 class="text-muted mt-4 mb-3">Verbrauch</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="futterverbrauch_kg" class="form-label">Futterverbrauch (kg)</label>
+                            <input type="number" class="form-control" id="futterverbrauch_kg" name="futterverbrauch_kg"
+                                   value="{{ tagesleistung.futterverbrauch_kg if tagesleistung else '' }}" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="wasserverbrauch_l" class="form-label">Wasserverbrauch (l)</label>
+                            <input type="number" class="form-control" id="wasserverbrauch_l" name="wasserverbrauch_l"
+                                   value="{{ tagesleistung.wasserverbrauch_l if tagesleistung else '' }}" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Klima -->
+                    <h6 class="text-muted mt-4 mb-3">Stallklima</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="temperatur_stall" class="form-label">Temperatur (°C)</label>
+                            <input type="number" class="form-control" id="temperatur_stall" name="temperatur_stall"
+                                   value="{{ tagesleistung.temperatur_stall if tagesleistung else '' }}" step="0.1">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="luftfeuchtigkeit" class="form-label">Luftfeuchtigkeit (%)</label>
+                            <input type="number" class="form-control" id="luftfeuchtigkeit" name="luftfeuchtigkeit"
+                                   value="{{ tagesleistung.luftfeuchtigkeit if tagesleistung else '' }}" step="0.1" min="0" max="100">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="lichtprogramm_std" class="form-label">Lichtprogramm (Std.)</label>
+                            <input type="number" class="form-control" id="lichtprogramm_std" name="lichtprogramm_std"
+                                   value="{{ tagesleistung.lichtprogramm_std if tagesleistung else '' }}" step="0.5" min="0" max="24">
+                        </div>
+                    </div>
+
+                    <!-- Bemerkung -->
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ tagesleistung.bemerkung if tagesleistung else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {% if tagesleistung %}Speichern{% else %}Erfassen{% endif %}
+                        </button>
+                        <a href="{{ url_for('legehennen.herde_detail', id=herde.id, tab='stallbuch') }}" class="btn btn-secondary">
+                            Abbrechen
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

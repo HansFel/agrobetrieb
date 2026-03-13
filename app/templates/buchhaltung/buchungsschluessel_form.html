@@ -1,5 +1,253 @@
 {% extends 'base.html' %}
 {% block title %}Buchungsschlüssel{% endblock %}
 {% block content %}
-<div class="row justify-content-center"><div class="col-lg-8"><div class="card shadow-sm"><div class="card-header"><h1 class="h4 mb-0">{{ 'Neuer' if not bs else 'Buchungsschlüssel bearbeiten' }}</h1></div><div class="card-body"><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="row g-3"><div class="col-md-3"><label class="form-label">Kürzel</label><input class="form-control" name="kuerzel" value="{{ bs.kuerzel if bs else '' }}" required></div><div class="col-md-9"><label class="form-label">Bezeichnung</label><input class="form-control" name="bezeichnung" value="{{ bs.bezeichnung if bs else '' }}" required></div><div class="col-12"><label class="form-label">Buchungstext</label><input class="form-control" name="buchungstext" value="{{ bs.buchungstext if bs else '' }}"></div><div class="col-md-6"><label class="form-label">Sollkonto</label><select class="form-select" name="soll_konto_id"><option value="">-</option>{% for konto in konten %}<option value="{{ konto.id }}" {% if bs and bs.soll_konto_id == konto.id %}selected{% endif %}>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div><div class="col-md-6"><label class="form-label">Habenkonto</label><select class="form-select" name="haben_konto_id"><option value="">-</option>{% for konto in konten %}<option value="{{ konto.id }}" {% if bs and bs.haben_konto_id == konto.id %}selected{% endif %}>{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div><div class="col-md-6"><label class="form-label">Soll-Klassen</label><input class="form-control" name="soll_klassen" value="{{ bs.soll_klassen if bs else '' }}"></div><div class="col-md-6"><label class="form-label">Haben-Klassen</label><input class="form-control" name="haben_klassen" value="{{ bs.haben_klassen if bs else '' }}"></div><div class="col-md-8"><label class="form-label">Suchbegriffe</label><input class="form-control" name="suchbegriffe" value="{{ bs.suchbegriffe if bs else '' }}"></div><div class="col-md-2"><label class="form-label">Sortierung</label><input class="form-control" type="number" name="sortierung" value="{{ bs.sortierung if bs else 0 }}"></div><div class="col-md-2 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" name="aktiv" id="aktiv" {% if not bs or bs.aktiv %}checked{% endif %}><label class="form-check-label" for="aktiv">Aktiv</label></div></div></div><div class="d-flex justify-content-between mt-4"><a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_liste') }}">Zurück</a><button class="btn btn-primary" type="submit">Speichern</button></div></form></div></div></div></div>
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h1 class="h4 mb-0">{{ 'Neuer Buchungsschlüssel' if not bs else 'Buchungsschlüssel bearbeiten' }}</h1>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+
+            <div class="col-md-3">
+              <label class="form-label">Kürzel <span class="text-danger">*</span></label>
+              <input class="form-control" name="kuerzel" value="{{ bs.kuerzel if bs else '' }}" required>
+            </div>
+            <div class="col-md-9">
+              <label class="form-label">Bezeichnung <span class="text-danger">*</span></label>
+              <input class="form-control" name="bezeichnung" value="{{ bs.bezeichnung if bs else '' }}" required>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Buchungstext</label>
+              <input class="form-control" name="buchungstext" value="{{ bs.buchungstext if bs else '' }}">
+            </div>
+
+            {# Sollkonto #}
+            <div class="col-md-6">
+              <label class="form-label">Sollkonto</label>
+              <div class="input-group">
+                <select class="form-select" name="soll_konto_id" id="soll_konto_id">
+                  <option value="">-</option>
+                  {% for konto in konten %}
+                  <option value="{{ konto.id }}" {% if bs and bs.soll_konto_id == konto.id %}selected{% endif %}>
+                    {{ konto.kontonummer }} – {{ konto.bezeichnung }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <button type="button" class="btn btn-outline-secondary" title="Neues Sollkonto anlegen"
+                        onclick="openKontoModal('soll')">
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            {# Habenkonto #}
+            <div class="col-md-6">
+              <label class="form-label">Habenkonto</label>
+              <div class="input-group">
+                <select class="form-select" name="haben_konto_id" id="haben_konto_id">
+                  <option value="">-</option>
+                  {% for konto in konten %}
+                  <option value="{{ konto.id }}" {% if bs and bs.haben_konto_id == konto.id %}selected{% endif %}>
+                    {{ konto.kontonummer }} – {{ konto.bezeichnung }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <button type="button" class="btn btn-outline-secondary" title="Neues Habenkonto anlegen"
+                        onclick="openKontoModal('haben')">
+                  <i class="bi bi-plus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Soll-Klassen</label>
+              <input class="form-control" name="soll_klassen" value="{{ bs.soll_klassen if bs else '' }}"
+                     placeholder="z.B. 6,9">
+              <div class="form-text">Kommagetrennte Klassen (0–9) zur Einschränkung der Kontoauswahl.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Haben-Klassen</label>
+              <input class="form-control" name="haben_klassen" value="{{ bs.haben_klassen if bs else '' }}"
+                     placeholder="z.B. 7">
+            </div>
+
+            <div class="col-md-8">
+              <label class="form-label">Suchbegriffe</label>
+              <input class="form-control" name="suchbegriffe" value="{{ bs.suchbegriffe if bs else (prefill_suchbegriff or '') }}"
+                     placeholder="z.B. AMA, Agrardiesel, Pacht">
+              <div class="form-text">Kommagetrennte Begriffe, die im Buchungstext gesucht werden (Bank-Import).</div>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Sortierung</label>
+              <input class="form-control" type="number" name="sortierung"
+                     value="{{ bs.sortierung if bs else 0 }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="aktiv" id="aktiv"
+                       {% if not bs or bs.aktiv %}checked{% endif %}>
+                <label class="form-check-label" for="aktiv">Aktiv</label>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_liste') }}">Zurück</a>
+            <button class="btn btn-primary" type="submit">Speichern</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Modal: Neues Konto anlegen #}
+<div class="modal fade" id="kontoAnlegenModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-plus-circle"></i> Neues Konto anlegen</h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="konto-modal-ziel">
+
+        <div class="mb-2">
+          <label class="form-label small fw-bold">Kontonummer <span class="text-danger">*</span></label>
+          <input type="text" id="konto-nummer" class="form-control form-control-sm" placeholder="z.B. 6810">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-bold">Bezeichnung <span class="text-danger">*</span></label>
+          <input type="text" id="konto-bezeichnung" class="form-control form-control-sm" placeholder="z.B. Pacht">
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-bold">Klasse <span class="text-danger">*</span></label>
+            <select id="konto-klasse" class="form-select form-select-sm">
+              <option value="">–</option>
+              <option value="0">0 – Anlagevermögen</option>
+              <option value="1">1 – Vorräte</option>
+              <option value="2">2 – Forderungen</option>
+              <option value="3">3 – Bank/Kassa</option>
+              <option value="4">4 – Verbindlichkeiten</option>
+              <option value="5">5 – Eigenkapital</option>
+              <option value="6">6 – Aufwendungen</option>
+              <option value="7">7 – Erträge</option>
+              <option value="8">8 – Eröffnung/Abschluss</option>
+              <option value="9">9 – Maschinen-Detail</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold">Typ <span class="text-danger">*</span></label>
+            <select id="konto-typ" class="form-select form-select-sm">
+              <option value="">–</option>
+              <option value="aktiv">Aktiv</option>
+              <option value="passiv">Passiv</option>
+              <option value="aufwand">Aufwand</option>
+              <option value="ertrag">Ertrag</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="konto-modal-error" class="alert alert-danger d-none py-1 small mb-0"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="button" class="btn btn-primary btn-sm" id="konto-modal-save">
+          <i class="bi bi-check-lg"></i> Anlegen
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var CSRF_TOKEN = '{{ csrf_token() }}';
+var URL_KONTO_NEU = '{{ url_for("buchhaltung.konto_ajax_neu") }}';
+
+// Klassen-Typ Autofill
+document.getElementById('konto-klasse').addEventListener('change', function() {
+    var typMap = {'0':'aktiv','1':'aktiv','2':'aktiv','3':'aktiv','4':'passiv','5':'passiv','6':'aufwand','7':'ertrag','8':'aktiv','9':'aufwand'};
+    var t = document.getElementById('konto-typ');
+    if (!t.value && typMap[this.value]) t.value = typMap[this.value];
+});
+
+// Kontonummer → Klasse autofill
+document.getElementById('konto-nummer').addEventListener('input', function() {
+    var kl = document.getElementById('konto-klasse');
+    if (!kl.value && this.value.length >= 1) {
+        var first = this.value[0];
+        if (first >= '0' && first <= '9') kl.value = first;
+        kl.dispatchEvent(new Event('change'));
+    }
+});
+
+function openKontoModal(ziel) {
+    document.getElementById('konto-modal-ziel').value = ziel;
+    document.getElementById('konto-nummer').value = '';
+    document.getElementById('konto-bezeichnung').value = '';
+    document.getElementById('konto-klasse').value = '';
+    document.getElementById('konto-typ').value = '';
+    document.getElementById('konto-modal-error').classList.add('d-none');
+    var modal = new bootstrap.Modal(document.getElementById('kontoAnlegenModal'));
+    modal.show();
+    setTimeout(function() { document.getElementById('konto-nummer').focus(); }, 300);
+}
+
+document.getElementById('konto-modal-save').addEventListener('click', function() {
+    var errorDiv = document.getElementById('konto-modal-error');
+    errorDiv.classList.add('d-none');
+
+    var kontonummer = document.getElementById('konto-nummer').value.trim();
+    var bezeichnung = document.getElementById('konto-bezeichnung').value.trim();
+    var kontenklasse = document.getElementById('konto-klasse').value;
+    var kontotyp = document.getElementById('konto-typ').value;
+    var ziel = document.getElementById('konto-modal-ziel').value;
+
+    if (!kontonummer || !bezeichnung || kontenklasse === '' || !kontotyp) {
+        errorDiv.textContent = 'Bitte alle Felder ausfüllen.';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    fetch(URL_KONTO_NEU, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ kontonummer: kontonummer, bezeichnung: bezeichnung,
+                               kontenklasse: parseInt(kontenklasse), kontotyp: kontotyp })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Anlegen';
+        if (data.error) {
+            errorDiv.textContent = data.error;
+            errorDiv.classList.remove('d-none');
+            return;
+        }
+        // Option in Dropdown einfügen und auswählen
+        var selectId = ziel === 'soll' ? 'soll_konto_id' : 'haben_konto_id';
+        var sel = document.getElementById(selectId);
+        var opt = new Option(data.kontonummer + ' – ' + data.bezeichnung, data.id, true, true);
+        sel.add(opt);
+        bootstrap.Modal.getInstance(document.getElementById('kontoAnlegenModal')).hide();
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Anlegen';
+        errorDiv.textContent = 'Netzwerkfehler – bitte erneut versuchen.';
+        errorDiv.classList.remove('d-none');
+    });
+});
+</script>
 {% endblock %}

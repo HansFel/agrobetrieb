@@ -474,7 +474,10 @@ def buchungsschluessel_neu():
         db.session.commit()
         flash('Buchungsschlüssel angelegt.', 'success')
         return redirect(url_for('buchhaltung.buchungsschluessel_liste'))
-    return render_template('buchhaltung/buchungsschluessel_form.html', gem=gem, bs=None, konten=konten)
+    # Suchbegriff aus Analyse-Modal vorausfüllen
+    prefill_suchbegriff = request.args.get('suchbegriff', '')
+    return render_template('buchhaltung/buchungsschluessel_form.html', gem=gem, bs=None, konten=konten,
+                           prefill_suchbegriff=prefill_suchbegriff)
 
 
 @buchhaltung_bp.route('/buchungsschluessel/<int:bs_id>', methods=['GET', 'POST'])
@@ -704,6 +707,121 @@ def bank_import_schluessel_anlegen():
         'konto_id': konto_id,
         'kuerzel': kuerzel,
         'suchbegriff': suchbegriff,
+    })
+
+
+@buchhaltung_bp.route('/konto/ajax-neu', methods=['POST'])
+@login_required
+def konto_ajax_neu():
+    """AJAX: Schnell ein neues Konto anlegen (aus Buchungsschlüssel-Formular)."""
+    from flask import jsonify
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Keine Daten'}), 400
+
+    kontonummer = (data.get('kontonummer') or '').strip()
+    bezeichnung = (data.get('bezeichnung') or '').strip()
+    kontotyp = (data.get('kontotyp') or '').strip()
+    try:
+        kontenklasse = int(data.get('kontenklasse', -1))
+    except (ValueError, TypeError):
+        kontenklasse = -1
+
+    if not kontonummer or not bezeichnung or not kontotyp or kontenklasse < 0:
+        return jsonify({'error': 'Kontonummer, Bezeichnung, Typ und Klasse sind Pflichtfelder'}), 400
+
+    if Konto.query.filter_by(kontonummer=kontonummer).first():
+        return jsonify({'error': f'Kontonummer {kontonummer} existiert bereits'}), 409
+
+    konto = Konto(
+        kontonummer=kontonummer,
+        bezeichnung=bezeichnung,
+        kontenklasse=kontenklasse,
+        kontotyp=kontotyp,
+        aktiv=True,
+    )
+    db.session.add(konto)
+    db.session.commit()
+    return jsonify({'id': konto.id, 'kontonummer': konto.kontonummer, 'bezeichnung': konto.bezeichnung})
+
+
+@buchhaltung_bp.route('/buchungsschluessel/import-analyse')
+@login_required
+def buchungsschluessel_import_analyse():
+    """
+    AJAX: Analysiert alle Import-Buchungstexte auf häufige Textfragmente
+    und schlägt neue Buchungsschlüssel vor (für Texte ohne bestehenden Schlüssel).
+    """
+    from flask import jsonify
+    import re
+    from collections import Counter
+
+    # Alle Import-Buchungstexte laden
+    texte = [
+        r[0] for r in
+        db.session.query(Buchung.buchungstext)
+        .filter(Buchung.buchungsart == 'import', Buchung.storniert == False)
+        .distinct().all()
+        if r[0]
+    ]
+
+    if not texte:
+        return jsonify({'vorschlaege': [], 'info': 'Keine Import-Buchungen vorhanden.'})
+
+    # Bestehende Suchbegriffe sammeln
+    bestehende_begriffe = set()
+    for bs in Buchungsschluessel.query.filter_by(aktiv=True).all():
+        for b in (bs.suchbegriffe or '').split(','):
+            b = b.strip().lower()
+            if b:
+                bestehende_begriffe.add(b)
+
+    # Tokens aus Texten extrahieren (Wörter ≥ 4 Zeichen, Zahlen ignorieren)
+    token_counter = Counter()
+    text_pro_token = {}  # token → Liste von Beispieltexten
+    for text in texte:
+        # Tokens: zusammenhängende Buchstabenfolgen ≥ 4 Zeichen
+        tokens = re.findall(r'[A-Za-zÄÖÜäöüß]{4,}', text)
+        # Auch 2-Wort-Kombinationen als Phrase
+        woerter = [t for t in tokens if len(t) >= 4]
+        alle = list(woerter)
+        for i in range(len(woerter) - 1):
+            phrase = woerter[i] + ' ' + woerter[i + 1]
+            alle.append(phrase)
+
+        gesehen = set()
+        for tok in alle:
+            tok_lower = tok.lower()
+            if tok_lower not in gesehen:
+                gesehen.add(tok_lower)
+                token_counter[tok_lower] += 1
+                if tok_lower not in text_pro_token:
+                    text_pro_token[tok_lower] = []
+                if len(text_pro_token[tok_lower]) < 3:
+                    text_pro_token[tok_lower].append(text[:80])
+
+    # Mindestens 2x vorkommen, nicht bereits als Suchbegriff erfasst
+    MIN_TREFFER = 2
+    vorschlaege = []
+    for token, count in token_counter.most_common(50):
+        if count < MIN_TREFFER:
+            break
+        # Überspringen wenn bereits durch bestehenden Schlüssel abgedeckt
+        bereits_abgedeckt = any(token in b or b in token for b in bestehende_begriffe)
+        if bereits_abgedeckt:
+            continue
+        vorschlaege.append({
+            'fragment': token,
+            'anzahl': count,
+            'beispiele': text_pro_token.get(token, []),
+        })
+        if len(vorschlaege) >= 20:
+            break
+
+    return jsonify({
+        'vorschlaege': vorschlaege,
+        'gesamt_texte': len(texte),
+        'info': f'{len(texte)} Import-Buchungstexte analysiert.',
     })
 
 

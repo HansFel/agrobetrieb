@@ -1,6 +1,187 @@
 {% extends 'base.html' %}
 {% block title %}Buchungsschlüssel{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h3 mb-1">Buchungsschlüssel</h1><p class="text-muted mb-0">Vorlagen für manuelle Buchungen und Bankimport.</p></div><div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_import') }}">Import</a><a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_export') }}">Export</a><a class="btn btn-primary" href="{{ url_for('buchhaltung.buchungsschluessel_neu') }}">Neu</a></div></div>
-<div class="card shadow-sm"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Kürzel</th><th>Bezeichnung</th><th>Suchbegriffe</th><th>Status</th><th></th></tr></thead><tbody>{% for bs in schluessel %}<tr><td class="fw-semibold">{{ bs.kuerzel }}</td><td>{{ bs.bezeichnung }}</td><td>{{ bs.suchbegriffe or '-' }}</td><td>{% if bs.aktiv %}<span class="badge text-bg-success">aktiv</span>{% else %}<span class="badge text-bg-secondary">inaktiv</span>{% endif %}</td><td class="text-end"><div class="btn-group btn-group-sm"><a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_bearbeiten', bs_id=bs.id) }}">Bearbeiten</a><form method="post" action="{{ url_for('buchhaltung.buchungsschluessel_loeschen', bs_id=bs.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-danger" type="submit">Löschen</button></form></div></td></tr>{% else %}<tr><td colspan="5" class="text-center text-muted py-4">Noch keine Buchungsschlüssel vorhanden.</td></tr>{% endfor %}</tbody></table></div></div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Buchungsschlüssel</h1>
+    <p class="text-muted mb-0">Vorlagen für manuelle Buchungen und Bankimport.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <button type="button" class="btn btn-outline-info" id="btn-analyse"
+            title="Import-Buchungstexte analysieren und Schlüssel-Vorschläge generieren">
+      <i class="bi bi-lightbulb"></i> Vorschläge analysieren
+    </button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_import') }}">Import</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchungsschluessel_export') }}">Export</a>
+    <a class="btn btn-primary" href="{{ url_for('buchhaltung.buchungsschluessel_neu') }}">Neu</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Kürzel</th>
+          <th>Bezeichnung</th>
+          <th>Sollkonto</th>
+          <th>Habenkonto</th>
+          <th>Suchbegriffe</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bs in schluessel %}
+        <tr>
+          <td class="fw-semibold">{{ bs.kuerzel }}</td>
+          <td>{{ bs.bezeichnung }}</td>
+          <td class="small text-muted">
+            {% if bs.soll_konto %}{{ bs.soll_konto.kontonummer }} {{ bs.soll_konto.bezeichnung }}{% else %}–{% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if bs.haben_konto %}{{ bs.haben_konto.kontonummer }} {{ bs.haben_konto.bezeichnung }}{% else %}–{% endif %}
+          </td>
+          <td><small>{{ bs.suchbegriffe or '–' }}</small></td>
+          <td>
+            {% if bs.aktiv %}
+            <span class="badge text-bg-success">aktiv</span>
+            {% else %}
+            <span class="badge text-bg-secondary">inaktiv</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-secondary"
+                 href="{{ url_for('buchhaltung.buchungsschluessel_bearbeiten', bs_id=bs.id) }}">Bearbeiten</a>
+              <form method="post"
+                    action="{{ url_for('buchhaltung.buchungsschluessel_loeschen', bs_id=bs.id) }}"
+                    onsubmit="return confirm('Buchungsschlüssel löschen?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-danger" type="submit">Löschen</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">Noch keine Buchungsschlüssel vorhanden.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+{# Modal: Import-Analyse Vorschläge #}
+<div class="modal fade" id="analyseModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-lightbulb"></i> Schlüssel-Vorschläge aus Import-Texten</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <div id="analyse-loading" class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+          <p class="mt-2 text-muted">Analysiere Import-Buchungstexte …</p>
+        </div>
+
+        <div id="analyse-result" class="d-none">
+          <p id="analyse-info" class="text-muted small mb-3"></p>
+          <div id="analyse-leer" class="alert alert-info d-none">
+            Keine neuen Vorschläge – alle häufigen Fragmente sind bereits durch Buchungsschlüssel abgedeckt.
+          </div>
+          <div id="analyse-tabelle" class="d-none">
+            <p class="small text-muted mb-2">
+              Häufige Textfragmente ohne bestehenden Buchungsschlüssel. Klick auf
+              <strong>Schlüssel anlegen</strong> öffnet das Formular mit vorausgefülltem Suchbegriff.
+            </p>
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Fragment</th>
+                  <th class="text-end">Vorkommen</th>
+                  <th>Beispiel-Texte</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="analyse-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="analyse-error" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var URL_ANALYSE = '{{ url_for("buchhaltung.buchungsschluessel_import_analyse") }}';
+var URL_SCHLUESSEL_NEU = '{{ url_for("buchhaltung.buchungsschluessel_neu") }}';
+
+document.getElementById('btn-analyse').addEventListener('click', function() {
+    // Reset
+    document.getElementById('analyse-loading').classList.remove('d-none');
+    document.getElementById('analyse-result').classList.add('d-none');
+    document.getElementById('analyse-error').classList.add('d-none');
+    document.getElementById('analyse-leer').classList.add('d-none');
+    document.getElementById('analyse-tabelle').classList.add('d-none');
+    document.getElementById('analyse-tbody').innerHTML = '';
+
+    var modal = new bootstrap.Modal(document.getElementById('analyseModal'));
+    modal.show();
+
+    fetch(URL_ANALYSE)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            document.getElementById('analyse-loading').classList.add('d-none');
+            document.getElementById('analyse-result').classList.remove('d-none');
+            document.getElementById('analyse-info').textContent = data.info || '';
+
+            if (!data.vorschlaege || data.vorschlaege.length === 0) {
+                document.getElementById('analyse-leer').classList.remove('d-none');
+                return;
+            }
+
+            document.getElementById('analyse-tabelle').classList.remove('d-none');
+            var tbody = document.getElementById('analyse-tbody');
+
+            data.vorschlaege.forEach(function(v) {
+                var beispiele = (v.beispiele || []).map(function(t) {
+                    return '<span class="d-block text-truncate" style="max-width:300px" title="' +
+                        t.replace(/"/g,'&quot;') + '">' + escHtml(t) + '</span>';
+                }).join('');
+
+                var url = URL_SCHLUESSEL_NEU + '?suchbegriff=' + encodeURIComponent(v.fragment);
+
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td><code>' + escHtml(v.fragment) + '</code></td>' +
+                    '<td class="text-end fw-semibold">' + v.anzahl + '×</td>' +
+                    '<td class="small text-muted">' + beispiele + '</td>' +
+                    '<td><a href="' + url + '" class="btn btn-sm btn-outline-primary">' +
+                    '<i class="bi bi-plus"></i> Schlüssel anlegen</a></td>';
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(function(err) {
+            document.getElementById('analyse-loading').classList.add('d-none');
+            var errDiv = document.getElementById('analyse-error');
+            errDiv.textContent = 'Fehler beim Laden der Analyse: ' + err;
+            errDiv.classList.remove('d-none');
+        });
+});
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
 {% endblock %}

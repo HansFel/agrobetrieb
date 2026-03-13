@@ -20,7 +20,6 @@
 {% endif %}
 
 {# Schnellzuweisung #}
-{% if schluessel %}
 <div class="mb-3 p-2 bg-light rounded">
     <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
         <small class="text-muted fw-bold mb-0">Schnellzuweisung:</small>
@@ -30,7 +29,12 @@
                 Auch bereits zugewiesene Zeilen überschreiben
             </label>
         </div>
+        <button type="button" class="btn btn-outline-info btn-sm ms-auto" id="btn-textanalyse"
+                title="Texte dieser Datei analysieren und fehlende Schlüssel vorschlagen">
+            <i class="bi bi-lightbulb"></i> Texte analysieren
+        </button>
     </div>
+    {% if schluessel %}
     <div class="d-flex flex-wrap gap-1">
         {% for bs in schluessel %}
         <button type="button" class="btn btn-outline-secondary btn-sm schluessel-global-btn"
@@ -44,8 +48,35 @@
     <small class="text-muted d-block mt-1">
         Klick belegt alle unzugewiesenen Zeilen. Einnahmen (+) &rarr; Haben-Konto, Ausgaben (&minus;) &rarr; Soll-Konto.
     </small>
+    {% endif %}
 </div>
-{% endif %}
+
+{# Analyse-Ergebnis (wird per JS befüllt) #}
+<div id="analyse-panel" class="mb-3 d-none">
+    <div class="card border-info">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center bg-info bg-opacity-10">
+            <small class="fw-bold"><i class="bi bi-lightbulb"></i> Häufige Textfragmente ohne Buchungsschlüssel</small>
+            <button type="button" class="btn-close btn-sm" onclick="document.getElementById('analyse-panel').classList.add('d-none')"></button>
+        </div>
+        <div class="card-body p-2">
+            <p class="small text-muted mb-2" id="analyse-panel-info"></p>
+            <div id="analyse-panel-leer" class="text-muted small d-none">
+                Alle häufigen Fragmente sind bereits durch Buchungsschlüssel abgedeckt.
+            </div>
+            <div id="analyse-panel-tabelle" class="d-none">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr>
+                        <th>Fragment</th>
+                        <th class="text-end">Zeilen</th>
+                        <th>Beispiel</th>
+                        <th></th>
+                    </tr></thead>
+                    <tbody id="analyse-panel-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 {# Legende #}
 <div class="mb-2 d-flex gap-2 flex-wrap align-items-center">
@@ -340,6 +371,98 @@ document.querySelectorAll('.schluessel-global-btn').forEach(function(btn) {
         this.classList.remove('btn-outline-secondary');
         this.classList.add('btn-secondary');
     });
+});
+
+// ---- Textanalyse der aktuellen Vorschau-Zeilen ----
+var BESTEHENDE_SUCHBEGRIFFE = [
+    {% for bs in schluessel %}
+    {% for begriff in (bs.suchbegriffe or '').split(',') %}
+    {% if begriff.strip() %}"{{ begriff.strip().lower() }}",{% endif %}
+    {% endfor %}
+    {% endfor %}
+];
+var URL_SCHLUESSEL_NEU = '{{ url_for("buchhaltung.buchungsschluessel_neu") }}';
+
+document.getElementById('btn-textanalyse').addEventListener('click', function() {
+    // Alle importierbaren Zeilen-Texte sammeln
+    var texte = [];
+    document.querySelectorAll('tr[data-text]').forEach(function(tr) {
+        var t = (tr.dataset.text || '').trim();
+        if (t) texte.push(t);
+    });
+
+    if (texte.length === 0) {
+        alert('Keine importierbaren Zeilen zum Analysieren gefunden.');
+        return;
+    }
+
+    // Token-Zählung clientseitig
+    var counter = {};
+    var beispiele = {};
+    texte.forEach(function(text) {
+        var tokens = [];
+        // Wörter ≥ 4 Buchstaben
+        var woerter = (text.match(/[A-Za-z\u00C0-\u017E]{4,}/g) || []);
+        woerter.forEach(function(w) { tokens.push(w.toLowerCase()); });
+        // 2-Wort-Phrasen
+        for (var i = 0; i < woerter.length - 1; i++) {
+            tokens.push((woerter[i] + ' ' + woerter[i+1]).toLowerCase());
+        }
+        // Unique pro Zeile
+        var gesehen = {};
+        tokens.forEach(function(tok) {
+            if (gesehen[tok]) return;
+            gesehen[tok] = true;
+            counter[tok] = (counter[tok] || 0) + 1;
+            if (!beispiele[tok]) beispiele[tok] = [];
+            if (beispiele[tok].length < 2) beispiele[tok].push(text.substring(0, 70));
+        });
+    });
+
+    // Sortieren, filtern
+    var vorschlaege = Object.keys(counter)
+        .filter(function(tok) { return counter[tok] >= 2; })
+        .filter(function(tok) {
+            return !BESTEHENDE_SUCHBEGRIFFE.some(function(b) {
+                return tok.includes(b) || b.includes(tok);
+            });
+        })
+        .sort(function(a, b) { return counter[b] - counter[a]; })
+        .slice(0, 15);
+
+    // Panel befüllen
+    var panel = document.getElementById('analyse-panel');
+    var info = document.getElementById('analyse-panel-info');
+    var leer = document.getElementById('analyse-panel-leer');
+    var tab = document.getElementById('analyse-panel-tabelle');
+    var tbody = document.getElementById('analyse-panel-tbody');
+
+    info.textContent = texte.length + ' Zeilen analysiert.';
+    tbody.innerHTML = '';
+    leer.classList.add('d-none');
+    tab.classList.add('d-none');
+
+    if (vorschlaege.length === 0) {
+        leer.classList.remove('d-none');
+    } else {
+        vorschlaege.forEach(function(tok) {
+            var url = URL_SCHLUESSEL_NEU + '?suchbegriff=' + encodeURIComponent(tok);
+            var bsp = (beispiele[tok] || []).map(function(e) {
+                return '<span class="d-block text-truncate" style="max-width:260px">' + escHtml(e) + '</span>';
+            }).join('');
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td><code>' + escHtml(tok) + '</code></td>' +
+                '<td class="text-end fw-semibold">' + counter[tok] + '×</td>' +
+                '<td class="small text-muted">' + bsp + '</td>' +
+                '<td><a href="' + url + '" target="_blank" class="btn btn-sm btn-outline-primary">' +
+                '<i class="bi bi-plus"></i> Schlüssel</a></td>';
+            tbody.appendChild(tr);
+        });
+        tab.classList.remove('d-none');
+    }
+
+    panel.classList.remove('d-none');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
 </script>
 {% endblock %}

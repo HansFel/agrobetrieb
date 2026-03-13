@@ -47,7 +47,8 @@ def run_migrations_online() -> None:
 
         with engine.connect() as connection:
             context.configure(
-                connection=connection, target_metadata=target_metadata
+                connection=connection, target_metadata=target_metadata,
+                render_as_batch=True,  # SQLite-kompatibles ALTER TABLE
             )
 
             with context.begin_transaction():

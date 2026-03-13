@@ -34,6 +34,8 @@ services:
       - POSTGRES_USER=agr_user
       - POSTGRES_PASSWORD=agr_password
       - POSTGRES_DB=agrobetrieb
+    ports:
+      - "5433:5432"
     volumes:
       - agrobetrieb-db-data:/var/lib/postgresql/data
     restart: unless-stopped

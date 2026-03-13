@@ -7,6 +7,7 @@ Create Date: 2026-03-12
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.engine.reflection import Inspector
 
 
 revision = 'b3c4d5e6f7g8'
@@ -16,177 +17,158 @@ depends_on = None
 
 
 def upgrade():
+    conn = op.get_bind()
+    inspector = Inspector.from_engine(conn)
+
     # ============================================================
-    # KONTO: nummer → kontonummer, typ → kontenklasse + kontotyp
+    # KONTO: nummer → kontonummer, typ → kontotyp + neue Spalten
     # ============================================================
-    
-    # Spalte 'nummer' umbenennen zu 'kontonummer'
-    op.alter_column('konto', 'nummer', new_column_name='kontonummer', type_=sa.Text())
-    
-    # Bestehende 'typ'-Spalte in 'kontotyp' umbenennen
-    op.alter_column('konto', 'typ', new_column_name='kontotyp', type_=sa.Text())
-    
-    # Neue Spalten hinzufügen
-    op.add_column('konto', sa.Column('kontenklasse', sa.Integer(), nullable=True))
-    op.add_column('konto', sa.Column('maschine_id', sa.Integer(), nullable=True))
-    op.add_column('konto', sa.Column('jahresuebertrag', sa.Boolean(), server_default='false'))
-    op.add_column('konto', sa.Column('ist_sammelkonto', sa.Boolean(), server_default='false'))
-    op.add_column('konto', sa.Column('ist_importkonto', sa.Boolean(), server_default='false'))
-    op.add_column('konto', sa.Column('aktiv', sa.Boolean(), server_default='true'))
-    
-    # Kontenklasse aus Kontonummer ableiten (erste Ziffer)
+    konto_cols = [c['name'] for c in inspector.get_columns('konto')]
+
+    with op.batch_alter_table('konto', recreate='always') as batch_op:
+        if 'nummer' in konto_cols:
+            batch_op.alter_column('nummer', new_column_name='kontonummer', type_=sa.Text())
+        if 'typ' in konto_cols:
+            batch_op.alter_column('typ', new_column_name='kontotyp', type_=sa.Text())
+        if 'kontenklasse' not in konto_cols:
+            batch_op.add_column(sa.Column('kontenklasse', sa.Integer(), nullable=True))
+        if 'maschine_id' not in konto_cols:
+            batch_op.add_column(sa.Column('maschine_id', sa.Integer(), nullable=True))
+        if 'jahresuebertrag' not in konto_cols:
+            batch_op.add_column(sa.Column('jahresuebertrag', sa.Boolean(), server_default='0'))
+        if 'ist_sammelkonto' not in konto_cols:
+            batch_op.add_column(sa.Column('ist_sammelkonto', sa.Boolean(), server_default='0'))
+        if 'ist_importkonto' not in konto_cols:
+            batch_op.add_column(sa.Column('ist_importkonto', sa.Boolean(), server_default='0'))
+        if 'aktiv' not in konto_cols:
+            batch_op.add_column(sa.Column('aktiv', sa.Boolean(), server_default='1'))
+
+    # Kontenklasse aus Kontonummer ableiten (SQLite-kompatibel)
     op.execute("""
-        UPDATE konto SET kontenklasse = CASE
-            WHEN kontonummer ~ '^[0-9]' THEN CAST(LEFT(kontonummer, 1) AS INTEGER)
-            ELSE 0
-        END
+        UPDATE konto SET kontenklasse = CAST(SUBSTR(kontonummer, 1, 1) AS INTEGER)
+        WHERE kontenklasse IS NULL AND kontonummer GLOB '[0-9]*'
     """)
-    op.alter_column('konto', 'kontenklasse', nullable=False)
-    
-    # aktiv auf true setzen
-    op.execute("UPDATE konto SET aktiv = true")
-    
-    # FK zu maschine
-    op.create_foreign_key('fk_konto_maschine', 'konto', 'maschine', ['maschine_id'], ['id'])
-    
+    op.execute("UPDATE konto SET kontenklasse = 0 WHERE kontenklasse IS NULL")
+    op.execute("UPDATE konto SET aktiv = 1 WHERE aktiv IS NULL")
+
     # ============================================================
     # BUCHUNG: Schema-Upgrade
     # ============================================================
-    
-    # Neue Spalten
-    op.add_column('buchung', sa.Column('geschaeftsjahr', sa.Integer(), nullable=True))
-    op.add_column('buchung', sa.Column('buchungsnummer', sa.Text(), nullable=True))
-    op.add_column('buchung', sa.Column('buchungstext', sa.Text(), nullable=True))
-    op.add_column('buchung', sa.Column('beleg_datum', sa.Date(), nullable=True))
-    op.add_column('buchung', sa.Column('buchungsart', sa.Text(), server_default='manuell'))
-    op.add_column('buchung', sa.Column('sammel_id', sa.Integer(), nullable=True))
-    op.add_column('buchung', sa.Column('einsatz_id', sa.Integer(), nullable=True))
-    op.add_column('buchung', sa.Column('bank_transaktion_id', sa.Integer(), nullable=True))
-    op.add_column('buchung', sa.Column('storniert', sa.Boolean(), server_default='false'))
-    op.add_column('buchung', sa.Column('storniert_am', sa.DateTime(), nullable=True))
-    op.add_column('buchung', sa.Column('storniert_von', sa.Integer(), nullable=True))
-    
-    # Daten migrieren: beschreibung → buchungstext
-    op.execute("UPDATE buchung SET buchungstext = beschreibung WHERE beschreibung IS NOT NULL")
+    buchung_cols = [c['name'] for c in inspector.get_columns('buchung')]
+
+    with op.batch_alter_table('buchung', recreate='always') as batch_op:
+        if 'geschaeftsjahr' not in buchung_cols:
+            batch_op.add_column(sa.Column('geschaeftsjahr', sa.Integer(), nullable=True))
+        if 'buchungsnummer' not in buchung_cols:
+            batch_op.add_column(sa.Column('buchungsnummer', sa.Text(), nullable=True))
+        if 'buchungstext' not in buchung_cols:
+            batch_op.add_column(sa.Column('buchungstext', sa.Text(), nullable=True))
+        if 'beleg_datum' not in buchung_cols:
+            batch_op.add_column(sa.Column('beleg_datum', sa.Date(), nullable=True))
+        if 'buchungsart' not in buchung_cols:
+            batch_op.add_column(sa.Column('buchungsart', sa.Text(), server_default='manuell'))
+        if 'sammel_id' not in buchung_cols:
+            batch_op.add_column(sa.Column('sammel_id', sa.Integer(), nullable=True))
+        if 'einsatz_id' not in buchung_cols:
+            batch_op.add_column(sa.Column('einsatz_id', sa.Integer(), nullable=True))
+        if 'bank_transaktion_id' not in buchung_cols:
+            batch_op.add_column(sa.Column('bank_transaktion_id', sa.Integer(), nullable=True))
+        if 'storniert' not in buchung_cols:
+            batch_op.add_column(sa.Column('storniert', sa.Boolean(), server_default='0'))
+        if 'storniert_am' not in buchung_cols:
+            batch_op.add_column(sa.Column('storniert_am', sa.DateTime(), nullable=True))
+        if 'storniert_von' not in buchung_cols:
+            batch_op.add_column(sa.Column('storniert_von', sa.Integer(), nullable=True))
+        # erstellt_von_id → erstellt_von umbenennen
+        if 'erstellt_von_id' in buchung_cols and 'erstellt_von' not in buchung_cols:
+            batch_op.alter_column('erstellt_von_id', new_column_name='erstellt_von')
+        # Alte Spalten entfernen
+        if 'beschreibung' in buchung_cols:
+            batch_op.drop_column('beschreibung')
+        if 'kategorie_id' in buchung_cols:
+            batch_op.drop_column('kategorie_id')
+        if 'mwst_satz' in buchung_cols:
+            batch_op.drop_column('mwst_satz')
+        if 'mwst_betrag' in buchung_cols:
+            batch_op.drop_column('mwst_betrag')
+        if 'bezahlt' in buchung_cols:
+            batch_op.drop_column('bezahlt')
+
+    # Daten befüllen (SQLite-kompatibel)
     op.execute("UPDATE buchung SET buchungstext = '-' WHERE buchungstext IS NULL")
-    
-    # geschaeftsjahr aus datum ableiten
-    op.execute("UPDATE buchung SET geschaeftsjahr = EXTRACT(YEAR FROM datum)")
-    op.alter_column('buchung', 'geschaeftsjahr', nullable=False)
-    
-    # buchungsnummer generieren
+    op.execute("UPDATE buchung SET geschaeftsjahr = CAST(STRFTIME('%Y', datum) AS INTEGER) WHERE geschaeftsjahr IS NULL")
     op.execute("""
-        UPDATE buchung SET buchungsnummer = 
-            geschaeftsjahr::text || '-' || LPAD(id::text, 3, '0')
+        UPDATE buchung SET buchungsnummer =
+            CAST(geschaeftsjahr AS TEXT) || '-' || PRINTF('%04d', id)
+        WHERE buchungsnummer IS NULL
     """)
-    op.alter_column('buchung', 'buchungsnummer', nullable=False)
-    op.alter_column('buchung', 'buchungstext', nullable=False)
-    
-    # erstellt_von_id → erstellt_von
-    op.alter_column('buchung', 'erstellt_von_id', new_column_name='erstellt_von')
-    
-    # FK für storniert_von
-    op.create_foreign_key('fk_buchung_storniert_von', 'buchung', 'user', ['storniert_von'], ['id'])
-    
-    # Unique constraint
-    op.create_unique_constraint('uq_buchung_nummer', 'buchung', ['geschaeftsjahr', 'buchungsnummer'])
-    
-    # Alte Spalten entfernen
-    op.drop_constraint('buchung_kategorie_id_fkey', 'buchung', type_='foreignkey')
-    op.drop_column('buchung', 'kategorie_id')
-    op.drop_column('buchung', 'beschreibung')
-    op.drop_column('buchung', 'mwst_satz')
-    op.drop_column('buchung', 'mwst_betrag')
-    op.drop_column('buchung', 'bezahlt')
-    
-    # beleg_nummer Typ anpassen
-    op.alter_column('buchung', 'beleg_nummer', type_=sa.Text())
-    
+    op.execute("UPDATE buchung SET storniert = 0 WHERE storniert IS NULL")
+
     # ============================================================
     # KUNDE: Schema an neues Model anpassen
     # ============================================================
-    
-    # Neue Spalten
-    op.add_column('kunde', sa.Column('adresse', sa.Text(), nullable=True))
-    op.add_column('kunde', sa.Column('notizen', sa.Text(), nullable=True))
-    op.add_column('kunde', sa.Column('iban', sa.Text(), nullable=True))
-    op.add_column('kunde', sa.Column('aktiv', sa.Boolean(), server_default='true'))
-    op.add_column('kunde', sa.Column('konto_id', sa.Integer(), nullable=True))
-    
-    # Daten migrieren: strasse → adresse
-    op.execute("UPDATE kunde SET adresse = strasse WHERE strasse IS NOT NULL")
-    op.execute("UPDATE kunde SET aktiv = true")
-    
-    # name Typ anpassen
-    op.alter_column('kunde', 'name', type_=sa.Text())
-    op.alter_column('kunde', 'plz', type_=sa.Text())
-    op.alter_column('kunde', 'ort', type_=sa.Text())
-    op.alter_column('kunde', 'email', type_=sa.Text())
-    op.alter_column('kunde', 'telefon', type_=sa.Text())
-    op.alter_column('kunde', 'uid_nummer', type_=sa.Text())
-    
-    # FK
-    op.create_foreign_key('fk_kunde_konto', 'kunde', 'konto', ['konto_id'], ['id'], ondelete='SET NULL')
-    
-    # Alte Spalten entfernen
-    op.drop_column('kunde', 'strasse')
-    op.drop_column('kunde', 'land')
-    op.drop_column('kunde', 'kontakt')
-    op.drop_column('kunde', 'beschreibung')
+    kunde_cols = [c['name'] for c in inspector.get_columns('kunde')]
+
+    with op.batch_alter_table('kunde', recreate='always') as batch_op:
+        if 'adresse' not in kunde_cols:
+            batch_op.add_column(sa.Column('adresse', sa.Text(), nullable=True))
+        if 'notizen' not in kunde_cols:
+            batch_op.add_column(sa.Column('notizen', sa.Text(), nullable=True))
+        if 'iban' not in kunde_cols:
+            batch_op.add_column(sa.Column('iban', sa.Text(), nullable=True))
+        if 'aktiv' not in kunde_cols:
+            batch_op.add_column(sa.Column('aktiv', sa.Boolean(), server_default='1'))
+        if 'konto_id' not in kunde_cols:
+            batch_op.add_column(sa.Column('konto_id', sa.Integer(), nullable=True))
+        if 'strasse' in kunde_cols:
+            batch_op.drop_column('strasse')
+        if 'land' in kunde_cols:
+            batch_op.drop_column('land')
+        if 'kontakt' in kunde_cols:
+            batch_op.drop_column('kontakt')
+        if 'beschreibung' in kunde_cols:
+            batch_op.drop_column('beschreibung')
+
+    op.execute("UPDATE kunde SET aktiv = 1 WHERE aktiv IS NULL")
 
 
 def downgrade():
-    # Buchung: Spalten zurück
-    op.add_column('buchung', sa.Column('beschreibung', sa.Text(), nullable=True))
-    op.execute("UPDATE buchung SET beschreibung = buchungstext")
-    op.alter_column('buchung', 'beschreibung', nullable=False)
-    op.add_column('buchung', sa.Column('kategorie_id', sa.Integer(), nullable=True))
-    op.add_column('buchung', sa.Column('mwst_satz', sa.Numeric(5, 2), nullable=True))
-    op.add_column('buchung', sa.Column('mwst_betrag', sa.Numeric(12, 2), nullable=True))
-    op.add_column('buchung', sa.Column('bezahlt', sa.Boolean(), nullable=True))
-    op.create_foreign_key('buchung_kategorie_id_fkey', 'buchung', 'kategorie', ['kategorie_id'], ['id'])
-    op.alter_column('buchung', 'erstellt_von', new_column_name='erstellt_von_id')
-    op.drop_constraint('uq_buchung_nummer', 'buchung', type_='unique')
-    op.drop_constraint('fk_buchung_storniert_von', 'buchung', type_='foreignkey')
-    op.drop_column('buchung', 'storniert_von')
-    op.drop_column('buchung', 'storniert_am')
-    op.drop_column('buchung', 'storniert')
-    op.drop_column('buchung', 'bank_transaktion_id')
-    op.drop_column('buchung', 'einsatz_id')
-    op.drop_column('buchung', 'sammel_id')
-    op.drop_column('buchung', 'buchungsart')
-    op.drop_column('buchung', 'beleg_datum')
-    op.drop_column('buchung', 'buchungstext')
-    op.drop_column('buchung', 'buchungsnummer')
-    op.drop_column('buchung', 'geschaeftsjahr')
-    op.alter_column('buchung', 'beleg_nummer', type_=sa.String(50))
-    
-    # Konto: Spalten zurück
-    op.alter_column('konto', 'kontonummer', new_column_name='nummer', type_=sa.String(20))
-    op.alter_column('konto', 'kontotyp', new_column_name='typ', type_=sa.String(20))
-    op.drop_constraint('fk_konto_maschine', 'konto', type_='foreignkey')
-    op.drop_column('konto', 'aktiv')
-    op.drop_column('konto', 'ist_importkonto')
-    op.drop_column('konto', 'ist_sammelkonto')
-    op.drop_column('konto', 'jahresuebertrag')
-    op.drop_column('konto', 'maschine_id')
-    op.drop_column('konto', 'kontenklasse')
-    
-    # Kunde: Spalten zurück
-    op.add_column('kunde', sa.Column('strasse', sa.String(255), nullable=True))
-    op.add_column('kunde', sa.Column('land', sa.String(2), nullable=True))
-    op.add_column('kunde', sa.Column('kontakt', sa.String(255), nullable=True))
-    op.add_column('kunde', sa.Column('beschreibung', sa.Text(), nullable=True))
-    op.execute("UPDATE kunde SET strasse = adresse")
-    op.drop_constraint('fk_kunde_konto', 'kunde', type_='foreignkey')
-    op.drop_column('kunde', 'konto_id')
-    op.drop_column('kunde', 'aktiv')
-    op.drop_column('kunde', 'iban')
-    op.drop_column('kunde', 'notizen')
-    op.drop_column('kunde', 'adresse')
-    op.alter_column('kunde', 'name', type_=sa.String(255))
-    op.alter_column('kunde', 'plz', type_=sa.String(10))
-    op.alter_column('kunde', 'ort', type_=sa.String(120))
-    op.alter_column('kunde', 'email', type_=sa.String(120))
-    op.alter_column('kunde', 'telefon', type_=sa.String(20))
-    op.alter_column('kunde', 'uid_nummer', type_=sa.String(20))
+    with op.batch_alter_table('buchung', recreate='always') as batch_op:
+        batch_op.add_column(sa.Column('beschreibung', sa.Text(), nullable=True))
+        batch_op.add_column(sa.Column('kategorie_id', sa.Integer(), nullable=True))
+        batch_op.add_column(sa.Column('mwst_satz', sa.Numeric(5, 2), nullable=True))
+        batch_op.add_column(sa.Column('mwst_betrag', sa.Numeric(12, 2), nullable=True))
+        batch_op.add_column(sa.Column('bezahlt', sa.Boolean(), nullable=True))
+        batch_op.drop_column('storniert_von')
+        batch_op.drop_column('storniert_am')
+        batch_op.drop_column('storniert')
+        batch_op.drop_column('bank_transaktion_id')
+        batch_op.drop_column('einsatz_id')
+        batch_op.drop_column('sammel_id')
+        batch_op.drop_column('buchungsart')
+        batch_op.drop_column('beleg_datum')
+        batch_op.drop_column('buchungstext')
+        batch_op.drop_column('buchungsnummer')
+        batch_op.drop_column('geschaeftsjahr')
+        batch_op.alter_column('erstellt_von', new_column_name='erstellt_von_id')
+
+    with op.batch_alter_table('konto', recreate='always') as batch_op:
+        batch_op.alter_column('kontonummer', new_column_name='nummer', type_=sa.String(20))
+        batch_op.alter_column('kontotyp', new_column_name='typ', type_=sa.String(20))
+        batch_op.drop_column('aktiv')
+        batch_op.drop_column('ist_importkonto')
+        batch_op.drop_column('ist_sammelkonto')
+        batch_op.drop_column('jahresuebertrag')
+        batch_op.drop_column('maschine_id')
+        batch_op.drop_column('kontenklasse')
+
+    with op.batch_alter_table('kunde', recreate='always') as batch_op:
+        batch_op.add_column(sa.Column('strasse', sa.String(255), nullable=True))
+        batch_op.add_column(sa.Column('land', sa.String(2), nullable=True))
+        batch_op.add_column(sa.Column('kontakt', sa.String(255), nullable=True))
+        batch_op.add_column(sa.Column('beschreibung', sa.Text(), nullable=True))
+        batch_op.drop_column('konto_id')
+        batch_op.drop_column('aktiv')
+        batch_op.drop_column('iban')
+        batch_op.drop_column('notizen')
+        batch_op.drop_column('adresse')

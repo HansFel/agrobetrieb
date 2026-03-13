@@ -212,12 +212,18 @@
 
                 <div class="mb-3">
                     <label class="form-label small fw-bold" id="modal-konto-label">Gegenkonto <span class="text-danger">*</span></label>
-                    <select id="modal-konto" class="form-select form-select-sm">
-                        <option value="">-- bitte wählen --</option>
-                        {% for konto in alle_konten %}
-                        <option value="{{ konto.id }}">{{ konto.kontonummer }} {{ konto.bezeichnung }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="input-group input-group-sm">
+                        <select id="modal-konto" class="form-select form-select-sm">
+                            <option value="">-- bitte wählen --</option>
+                            {% for konto in alle_konten %}
+                            <option value="{{ konto.id }}">{{ konto.kontonummer }} {{ konto.bezeichnung }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary" title="Neues Konto anlegen"
+                                onclick="openKontoModal()">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div id="modal-error" class="alert alert-danger d-none py-1 small mb-2"></div>
@@ -238,9 +244,70 @@
     </div>
 </div>
 
+{# Modal: Neues Konto anlegen (aus Schlüssel-Modal heraus) #}
+<div class="modal fade" id="kontoAnlegenModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-plus-circle"></i> Neues Konto anlegen</h6>
+        <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label small fw-bold">Kontonummer <span class="text-danger">*</span></label>
+          <input type="text" id="konto-nummer" class="form-control form-control-sm" placeholder="z.B. 6810">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-bold">Bezeichnung <span class="text-danger">*</span></label>
+          <input type="text" id="konto-bezeichnung" class="form-control form-control-sm" placeholder="z.B. Pacht">
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-6">
+            <label class="form-label small fw-bold">Klasse <span class="text-danger">*</span></label>
+            <select id="konto-klasse" class="form-select form-select-sm">
+              <option value="">–</option>
+              <option value="0">0 – Anlagevermögen</option>
+              <option value="1">1 – Vorräte</option>
+              <option value="2">2 – Forderungen</option>
+              <option value="3">3 – Bank/Kassa</option>
+              <option value="4">4 – Verbindlichkeiten</option>
+              <option value="5">5 – Eigenkapital</option>
+              <option value="6">6 – Aufwendungen</option>
+              <option value="7">7 – Erträge</option>
+              <option value="8">8 – Eröffnung/Abschluss</option>
+              <option value="9">9 – Maschinen-Detail</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-bold">Typ <span class="text-danger">*</span></label>
+            <select id="konto-typ" class="form-select form-select-sm">
+              <option value="">–</option>
+              <option value="aktiv">Aktiv</option>
+              <option value="passiv">Passiv</option>
+              <option value="aufwand">Aufwand</option>
+              <option value="ertrag">Ertrag</option>
+            </select>
+          </div>
+        </div>
+        <div id="konto-modal-error" class="alert alert-danger d-none py-1 small mb-0"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="button" class="btn btn-primary btn-sm" id="konto-modal-save">
+          <i class="bi bi-check-lg"></i> Anlegen
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 var CSRF_TOKEN = '{{ csrf_token() }}';
 var URL_SCHLUESSEL_ANLEGEN = '{{ url_for("buchhaltung.bank_import_schluessel_anlegen") }}';
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 // Modal öffnen mit vorausgefülltem Text
 document.querySelectorAll('.create-schluessel-btn').forEach(function(btn) {
@@ -463,6 +530,96 @@ document.getElementById('btn-textanalyse').addEventListener('click', function() 
 
     panel.classList.remove('d-none');
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+// ---- Konto schnell anlegen (aus Schlüssel-Modal) ----
+var URL_KONTO_NEU = '{{ url_for("buchhaltung.konto_ajax_neu") }}';
+
+function openKontoModal() {
+    document.getElementById('konto-nummer').value = '';
+    document.getElementById('konto-bezeichnung').value = '';
+    document.getElementById('konto-klasse').value = '';
+    document.getElementById('konto-typ').value = '';
+    document.getElementById('konto-modal-error').classList.add('d-none');
+    // Schlüssel-Modal kurz verstecken, Konto-Modal öffnen
+    var bsSchluessel = bootstrap.Modal.getInstance(document.getElementById('schluesselErstellenModal'));
+    if (bsSchluessel) bsSchluessel.hide();
+    setTimeout(function() {
+        var bsKonto = new bootstrap.Modal(document.getElementById('kontoAnlegenModal'));
+        bsKonto.show();
+        setTimeout(function() { document.getElementById('konto-nummer').focus(); }, 300);
+    }, 200);
+}
+
+document.getElementById('konto-klasse').addEventListener('change', function() {
+    var typMap = {'0':'aktiv','1':'aktiv','2':'aktiv','3':'aktiv','4':'passiv','5':'passiv','6':'aufwand','7':'ertrag','8':'aktiv','9':'aufwand'};
+    var t = document.getElementById('konto-typ');
+    if (!t.value && typMap[this.value]) t.value = typMap[this.value];
+});
+
+document.getElementById('konto-nummer').addEventListener('input', function() {
+    var kl = document.getElementById('konto-klasse');
+    if (!kl.value && this.value.length >= 1) {
+        var first = this.value[0];
+        if (first >= '0' && first <= '9') kl.value = first;
+        kl.dispatchEvent(new Event('change'));
+    }
+});
+
+document.getElementById('konto-modal-save').addEventListener('click', function() {
+    var errorDiv = document.getElementById('konto-modal-error');
+    errorDiv.classList.add('d-none');
+
+    var kontonummer = document.getElementById('konto-nummer').value.trim();
+    var bezeichnung = document.getElementById('konto-bezeichnung').value.trim();
+    var kontenklasse = document.getElementById('konto-klasse').value;
+    var kontotyp = document.getElementById('konto-typ').value;
+
+    if (!kontonummer || !bezeichnung || kontenklasse === '' || !kontotyp) {
+        errorDiv.textContent = 'Bitte alle Felder ausfüllen.';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    fetch(URL_KONTO_NEU, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ kontonummer: kontonummer, bezeichnung: bezeichnung,
+                               kontenklasse: parseInt(kontenklasse), kontotyp: kontotyp })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Anlegen';
+        if (data.error) {
+            errorDiv.textContent = data.error;
+            errorDiv.classList.remove('d-none');
+            return;
+        }
+        // Neues Konto in das Gegenkonto-Dropdown einfügen und auswählen
+        var sel = document.getElementById('modal-konto');
+        var opt = new Option(data.kontonummer + ' ' + data.bezeichnung, data.id, true, true);
+        sel.add(opt);
+        // Auch in alle Zeilen-Dropdowns hinzufügen
+        document.querySelectorAll('.gk-select').forEach(function(s) {
+            s.add(new Option(data.kontonummer + ' ' + data.bezeichnung, data.id));
+        });
+        bootstrap.Modal.getInstance(document.getElementById('kontoAnlegenModal')).hide();
+        // Schlüssel-Modal wieder öffnen
+        setTimeout(function() {
+            new bootstrap.Modal(document.getElementById('schluesselErstellenModal')).show();
+        }, 200);
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Anlegen';
+        errorDiv.textContent = 'Netzwerkfehler – bitte erneut versuchen.';
+        errorDiv.classList.remove('d-none');
+    });
 });
 </script>
 {% endblock %}

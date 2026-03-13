@@ -29,7 +29,10 @@ echo "DB bereit."
 
 # 2. Migrationen ausfuehren (einmal, sequentiell, vor Gunicorn)
 echo "Fuehre Migrationen aus..."
-flask db upgrade || echo "WARNUNG: Migration fehlgeschlagen (evtl. bereits aktuell)"
+if ! flask db upgrade; then
+    echo "WARNUNG: Migration fehlgeschlagen (evtl. bereits aktuell)"
+    echo "Versuche trotzdem fortzufahren..."
+fi
 
 # 3. Admin-Benutzer erstellen falls noetig
 echo "Pruefe Admin-Benutzer..."

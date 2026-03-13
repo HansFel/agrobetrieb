@@ -16,138 +16,188 @@ branch_labels = None
 depends_on = None
 
 
+def _is_pg(conn):
+    return conn.dialect.name == 'postgresql'
+
+
+def _alter_table(table, cols, renames, adds, drops, conn):
+    """Dual-Dialekt ALTER TABLE: PostgreSQL direkt, SQLite via batch."""
+    if _is_pg(conn):
+        for old_name, new_name, type_ in renames:
+            if old_name in cols and new_name not in cols:
+                op.execute(sa.text(
+                    f'ALTER TABLE {table} RENAME COLUMN {old_name} TO {new_name}'
+                ))
+                if type_ is not None:
+                    type_str = 'TEXT' if isinstance(type_, sa.Text) else str(type_)
+                    op.execute(sa.text(
+                        f'ALTER TABLE {table} ALTER COLUMN {new_name} TYPE {type_str}'
+                    ))
+        for col in adds:
+            if col.name not in cols:
+                op.add_column(table, col)
+        for col_name in drops:
+            if col_name in cols:
+                op.drop_column(table, col_name)
+    else:
+        with op.batch_alter_table(table, recreate='always') as batch_op:
+            for old_name, new_name, type_ in renames:
+                if old_name in cols and new_name not in cols:
+                    batch_op.alter_column(old_name, new_column_name=new_name,
+                                          type_=type_ if type_ else None)
+            for col in adds:
+                if col.name not in cols:
+                    batch_op.add_column(col)
+            for col_name in drops:
+                if col_name in cols:
+                    batch_op.drop_column(col_name)
+
+
 def upgrade():
     conn = op.get_bind()
     inspector = Inspector.from_engine(conn)
+    pg = _is_pg(conn)
 
     # ============================================================
     # KONTO: nummer → kontonummer, typ → kontotyp + neue Spalten
     # ============================================================
     konto_cols = [c['name'] for c in inspector.get_columns('konto')]
 
-    with op.batch_alter_table('konto', recreate='always') as batch_op:
-        if 'nummer' in konto_cols:
-            batch_op.alter_column('nummer', new_column_name='kontonummer', type_=sa.Text())
-        if 'typ' in konto_cols:
-            batch_op.alter_column('typ', new_column_name='kontotyp', type_=sa.Text())
-        if 'kontenklasse' not in konto_cols:
-            batch_op.add_column(sa.Column('kontenklasse', sa.Integer(), nullable=True))
-        if 'maschine_id' not in konto_cols:
-            batch_op.add_column(sa.Column('maschine_id', sa.Integer(), nullable=True))
-        if 'jahresuebertrag' not in konto_cols:
-            batch_op.add_column(sa.Column('jahresuebertrag', sa.Boolean(), server_default='0'))
-        if 'ist_sammelkonto' not in konto_cols:
-            batch_op.add_column(sa.Column('ist_sammelkonto', sa.Boolean(), server_default='0'))
-        if 'ist_importkonto' not in konto_cols:
-            batch_op.add_column(sa.Column('ist_importkonto', sa.Boolean(), server_default='0'))
-        if 'aktiv' not in konto_cols:
-            batch_op.add_column(sa.Column('aktiv', sa.Boolean(), server_default='1'))
+    _alter_table('konto', konto_cols,
+        renames=[
+            ('nummer', 'kontonummer', sa.Text()),
+            ('typ', 'kontotyp', sa.Text()),
+        ],
+        adds=[
+            sa.Column('kontenklasse', sa.Integer(), nullable=True),
+            sa.Column('maschine_id', sa.Integer(), nullable=True),
+            sa.Column('jahresuebertrag', sa.Boolean(), server_default='0'),
+            sa.Column('ist_sammelkonto', sa.Boolean(), server_default='0'),
+            sa.Column('ist_importkonto', sa.Boolean(), server_default='0'),
+            sa.Column('aktiv', sa.Boolean(), server_default='1'),
+        ],
+        drops=[],
+        conn=conn,
+    )
 
-    # Kontenklasse aus Kontonummer ableiten (SQLite-kompatibel)
-    op.execute("""
-        UPDATE konto SET kontenklasse = CAST(SUBSTR(kontonummer, 1, 1) AS INTEGER)
-        WHERE kontenklasse IS NULL AND kontonummer GLOB '[0-9]*'
-    """)
-    op.execute("UPDATE konto SET kontenklasse = 0 WHERE kontenklasse IS NULL")
-    op.execute("UPDATE konto SET aktiv = 1 WHERE aktiv IS NULL")
+    # Kontenklasse aus Kontonummer ableiten
+    if pg:
+        op.execute(sa.text("""
+            UPDATE konto SET kontenklasse = CAST(SUBSTRING(kontonummer FROM 1 FOR 1) AS INTEGER)
+            WHERE kontenklasse IS NULL AND kontonummer ~ '^[0-9]'
+        """))
+    else:
+        op.execute("""
+            UPDATE konto SET kontenklasse = CAST(SUBSTR(kontonummer, 1, 1) AS INTEGER)
+            WHERE kontenklasse IS NULL AND kontonummer GLOB '[0-9]*'
+        """)
+    op.execute(sa.text("UPDATE konto SET kontenklasse = 0 WHERE kontenklasse IS NULL"))
+    op.execute(sa.text("UPDATE konto SET aktiv = true WHERE aktiv IS NULL") if pg else
+               "UPDATE konto SET aktiv = 1 WHERE aktiv IS NULL")
 
     # ============================================================
     # BUCHUNG: Schema-Upgrade
     # ============================================================
     buchung_cols = [c['name'] for c in inspector.get_columns('buchung')]
 
-    with op.batch_alter_table('buchung', recreate='always') as batch_op:
-        if 'geschaeftsjahr' not in buchung_cols:
-            batch_op.add_column(sa.Column('geschaeftsjahr', sa.Integer(), nullable=True))
-        if 'buchungsnummer' not in buchung_cols:
-            batch_op.add_column(sa.Column('buchungsnummer', sa.Text(), nullable=True))
-        if 'buchungstext' not in buchung_cols:
-            batch_op.add_column(sa.Column('buchungstext', sa.Text(), nullable=True))
-        if 'beleg_datum' not in buchung_cols:
-            batch_op.add_column(sa.Column('beleg_datum', sa.Date(), nullable=True))
-        if 'buchungsart' not in buchung_cols:
-            batch_op.add_column(sa.Column('buchungsart', sa.Text(), server_default='manuell'))
-        if 'sammel_id' not in buchung_cols:
-            batch_op.add_column(sa.Column('sammel_id', sa.Integer(), nullable=True))
-        if 'einsatz_id' not in buchung_cols:
-            batch_op.add_column(sa.Column('einsatz_id', sa.Integer(), nullable=True))
-        if 'bank_transaktion_id' not in buchung_cols:
-            batch_op.add_column(sa.Column('bank_transaktion_id', sa.Integer(), nullable=True))
-        if 'storniert' not in buchung_cols:
-            batch_op.add_column(sa.Column('storniert', sa.Boolean(), server_default='0'))
-        if 'storniert_am' not in buchung_cols:
-            batch_op.add_column(sa.Column('storniert_am', sa.DateTime(), nullable=True))
-        if 'storniert_von' not in buchung_cols:
-            batch_op.add_column(sa.Column('storniert_von', sa.Integer(), nullable=True))
-        # erstellt_von_id → erstellt_von umbenennen
-        if 'erstellt_von_id' in buchung_cols and 'erstellt_von' not in buchung_cols:
-            batch_op.alter_column('erstellt_von_id', new_column_name='erstellt_von')
-        # Alte Spalten entfernen
-        if 'beschreibung' in buchung_cols:
-            batch_op.drop_column('beschreibung')
-        if 'kategorie_id' in buchung_cols:
-            batch_op.drop_column('kategorie_id')
-        if 'mwst_satz' in buchung_cols:
-            batch_op.drop_column('mwst_satz')
-        if 'mwst_betrag' in buchung_cols:
-            batch_op.drop_column('mwst_betrag')
-        if 'bezahlt' in buchung_cols:
-            batch_op.drop_column('bezahlt')
+    _alter_table('buchung', buchung_cols,
+        renames=[
+            ('erstellt_von_id', 'erstellt_von', None),
+        ],
+        adds=[
+            sa.Column('geschaeftsjahr', sa.Integer(), nullable=True),
+            sa.Column('buchungsnummer', sa.Text(), nullable=True),
+            sa.Column('buchungstext', sa.Text(), nullable=True),
+            sa.Column('beleg_datum', sa.Date(), nullable=True),
+            sa.Column('buchungsart', sa.Text(), server_default='manuell'),
+            sa.Column('sammel_id', sa.Integer(), nullable=True),
+            sa.Column('einsatz_id', sa.Integer(), nullable=True),
+            sa.Column('bank_transaktion_id', sa.Integer(), nullable=True),
+            sa.Column('storniert', sa.Boolean(), server_default='0'),
+            sa.Column('storniert_am', sa.DateTime(), nullable=True),
+            sa.Column('storniert_von', sa.Integer(), nullable=True),
+        ],
+        drops=['beschreibung', 'kategorie_id', 'mwst_satz', 'mwst_betrag', 'bezahlt'],
+        conn=conn,
+    )
 
-    # Daten befüllen (SQLite-kompatibel)
-    op.execute("UPDATE buchung SET buchungstext = '-' WHERE buchungstext IS NULL")
-    op.execute("UPDATE buchung SET geschaeftsjahr = CAST(STRFTIME('%Y', datum) AS INTEGER) WHERE geschaeftsjahr IS NULL")
-    op.execute("""
-        UPDATE buchung SET buchungsnummer =
-            CAST(geschaeftsjahr AS TEXT) || '-' || PRINTF('%04d', id)
-        WHERE buchungsnummer IS NULL
-    """)
-    op.execute("UPDATE buchung SET storniert = 0 WHERE storniert IS NULL")
+    # Daten befüllen
+    op.execute(sa.text("UPDATE buchung SET buchungstext = '-' WHERE buchungstext IS NULL"))
+    if pg:
+        op.execute(sa.text(
+            "UPDATE buchung SET geschaeftsjahr = EXTRACT(YEAR FROM datum)::integer "
+            "WHERE geschaeftsjahr IS NULL"
+        ))
+        op.execute(sa.text(
+            "UPDATE buchung SET buchungsnummer = "
+            "CAST(geschaeftsjahr AS TEXT) || '-' || LPAD(CAST(id AS TEXT), 4, '0') "
+            "WHERE buchungsnummer IS NULL"
+        ))
+    else:
+        op.execute(
+            "UPDATE buchung SET geschaeftsjahr = CAST(STRFTIME('%Y', datum) AS INTEGER) "
+            "WHERE geschaeftsjahr IS NULL"
+        )
+        op.execute(
+            "UPDATE buchung SET buchungsnummer = "
+            "CAST(geschaeftsjahr AS TEXT) || '-' || PRINTF('%04d', id) "
+            "WHERE buchungsnummer IS NULL"
+        )
+    op.execute(sa.text("UPDATE buchung SET storniert = false WHERE storniert IS NULL") if pg else
+               "UPDATE buchung SET storniert = 0 WHERE storniert IS NULL")
 
     # ============================================================
     # KUNDE: Schema an neues Model anpassen
     # ============================================================
     kunde_cols = [c['name'] for c in inspector.get_columns('kunde')]
 
-    with op.batch_alter_table('kunde', recreate='always') as batch_op:
-        if 'adresse' not in kunde_cols:
-            batch_op.add_column(sa.Column('adresse', sa.Text(), nullable=True))
-        if 'notizen' not in kunde_cols:
-            batch_op.add_column(sa.Column('notizen', sa.Text(), nullable=True))
-        if 'iban' not in kunde_cols:
-            batch_op.add_column(sa.Column('iban', sa.Text(), nullable=True))
-        if 'aktiv' not in kunde_cols:
-            batch_op.add_column(sa.Column('aktiv', sa.Boolean(), server_default='1'))
-        if 'konto_id' not in kunde_cols:
-            batch_op.add_column(sa.Column('konto_id', sa.Integer(), nullable=True))
-        if 'strasse' in kunde_cols:
-            batch_op.drop_column('strasse')
-        if 'land' in kunde_cols:
-            batch_op.drop_column('land')
-        if 'kontakt' in kunde_cols:
-            batch_op.drop_column('kontakt')
-        if 'beschreibung' in kunde_cols:
-            batch_op.drop_column('beschreibung')
+    _alter_table('kunde', kunde_cols,
+        renames=[],
+        adds=[
+            sa.Column('adresse', sa.Text(), nullable=True),
+            sa.Column('notizen', sa.Text(), nullable=True),
+            sa.Column('iban', sa.Text(), nullable=True),
+            sa.Column('aktiv', sa.Boolean(), server_default='1'),
+            sa.Column('konto_id', sa.Integer(), nullable=True),
+        ],
+        drops=['strasse', 'land', 'kontakt', 'beschreibung'],
+        conn=conn,
+    )
 
-    op.execute("UPDATE kunde SET aktiv = 1 WHERE aktiv IS NULL")
+    op.execute(sa.text("UPDATE kunde SET aktiv = true WHERE aktiv IS NULL") if pg else
+               "UPDATE kunde SET aktiv = 1 WHERE aktiv IS NULL")
 
 
 def downgrade():
-    with op.batch_alter_table('buchung', recreate='always') as batch_op:
-        batch_op.add_column(sa.Column('beschreibung', sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column('kategorie_id', sa.Integer(), nullable=True))
-        batch_op.add_column(sa.Column('mwst_satz', sa.Numeric(5, 2), nullable=True))
-        batch_op.add_column(sa.Column('mwst_betrag', sa.Numeric(12, 2), nullable=True))
-        batch_op.add_column(sa.Column('bezahlt', sa.Boolean(), nullable=True))
-        batch_op.drop_column('storniert_von')
-        batch_op.drop_column('storniert_am')
-        batch_op.drop_column('storniert')
-        batch_op.drop_column('bank_transaktion_id')
-        batch_op.drop_column('einsatz_id')
-        batch_op.drop_column('sammel_id')
-        batch_op.drop_column('buchungsart')
-        batch_op.drop_column('beleg_datum')
-        batch_op.drop_column('buchungstext')
+    conn = op.get_bind()
+    pg = _is_pg(conn)
+
+    if pg:
+        op.add_column('buchung', sa.Column('beschreibung', sa.Text(), nullable=True))
+        op.add_column('buchung', sa.Column('kategorie_id', sa.Integer(), nullable=True))
+        op.add_column('buchung', sa.Column('mwst_satz', sa.Numeric(5, 2), nullable=True))
+        op.add_column('buchung', sa.Column('mwst_betrag', sa.Numeric(12, 2), nullable=True))
+        op.add_column('buchung', sa.Column('bezahlt', sa.Boolean(), nullable=True))
+        for col in ('storniert_von', 'storniert_am', 'storniert',
+                     'bank_transaktion_id', 'einsatz_id', 'sammel_id',
+                     'buchungsart', 'beleg_datum', 'buchungstext'):
+            op.drop_column('buchung', col)
+    else:
+        with op.batch_alter_table('buchung', recreate='always') as batch_op:
+            batch_op.add_column(sa.Column('beschreibung', sa.Text(), nullable=True))
+            batch_op.add_column(sa.Column('kategorie_id', sa.Integer(), nullable=True))
+            batch_op.add_column(sa.Column('mwst_satz', sa.Numeric(5, 2), nullable=True))
+            batch_op.add_column(sa.Column('mwst_betrag', sa.Numeric(12, 2), nullable=True))
+            batch_op.add_column(sa.Column('bezahlt', sa.Boolean(), nullable=True))
+            batch_op.drop_column('storniert_von')
+            batch_op.drop_column('storniert_am')
+            batch_op.drop_column('storniert')
+            batch_op.drop_column('bank_transaktion_id')
+            batch_op.drop_column('einsatz_id')
+            batch_op.drop_column('sammel_id')
+            batch_op.drop_column('buchungsart')
+            batch_op.drop_column('beleg_datum')
+            batch_op.drop_column('buchungstext')
         batch_op.drop_column('buchungsnummer')
         batch_op.drop_column('geschaeftsjahr')
         batch_op.alter_column('erstellt_von', new_column_name='erstellt_von_id')

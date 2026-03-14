@@ -271,6 +271,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO1}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro1
       INSTANCE_NAME: agro1
     volumes:
@@ -307,6 +308,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO2}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro2
       INSTANCE_NAME: agro2
     volumes:
@@ -343,6 +345,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO3}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro3
       INSTANCE_NAME: agro3
     volumes:
@@ -379,6 +382,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO4}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro4
       INSTANCE_NAME: agro4
     volumes:
@@ -415,6 +419,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO5}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro5
       INSTANCE_NAME: agro5
     volumes:
@@ -451,6 +456,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO6}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro6
       INSTANCE_NAME: agro6
     volumes:
@@ -487,6 +493,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO7}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro7
       INSTANCE_NAME: agro7
     volumes:
@@ -523,6 +530,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO8}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro8
       INSTANCE_NAME: agro8
     volumes:
@@ -559,6 +567,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO9}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro9
       INSTANCE_NAME: agro9
     volumes:
@@ -595,6 +604,7 @@ services:
       SECRET_KEY: ${SECRET_KEY_AGRO10}
       FLASK_ENV: production
       FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
       APPLICATION_PREFIX: /agro10
       INSTANCE_NAME: agro10
     volumes:

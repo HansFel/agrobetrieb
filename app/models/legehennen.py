@@ -435,10 +435,12 @@ class SalmonellenProbe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     herde_id = db.Column(db.Integer, db.ForeignKey('herde.id', ondelete='CASCADE'), nullable=False)
 
-    datum = db.Column(db.Date, nullable=False)
+    probenahme_datum = db.Column(db.Date, nullable=False)
     probenart = db.Column(db.String(50))
     labor = db.Column(db.String(200))
     ergebnis = db.Column(db.String(20))  # positiv / negativ / ausstehend
+    ergebnis_datum = db.Column(db.Date)
+    massnahmen = db.Column(db.Text)
     serotyp = db.Column(db.String(100))
     beleg_nr = db.Column(db.String(100))
 
@@ -452,7 +454,7 @@ class SalmonellenProbe(db.Model):
     herde = db.relationship('Herde', back_populates='salmonellen_proben')
 
     def __repr__(self):
-        return f'<SalmonellenProbe {self.datum} {self.ergebnis}>'
+        return f'<SalmonellenProbe {self.probenahme_datum} {self.ergebnis}>'
 
 
 class HerdeEreignis(db.Model):

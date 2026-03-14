@@ -37,7 +37,7 @@ EXPOSE 5000
 
 # Health Check (start-period lang genug fuer Migrations)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:5000/ || exit 1
+    CMD curl -f "http://localhost:5000${APPLICATION_PREFIX:-}/auth/login" || exit 1
 
 # Entrypoint fuehrt Migrationen aus, dann startet Gunicorn
 ENTRYPOINT ["/entrypoint.sh"]

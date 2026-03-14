@@ -43,7 +43,7 @@ APP_BUILD = _get_build_hash()
 def create_app(config_name='default'):
     """Application Factory."""
     app = Flask(__name__)
-    
+
     # Konfiguration laden
     cfg = config.get(config_name, config['default'])
     app.config.from_object(cfg)

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Tankmilch erfassen – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0"><i class="bi bi-truck"></i>
+                    Tankmilch-Auswertung erfassen
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="jahr" class="form-label">Jahr</label>
+                            <input type="number" class="form-control" id="jahr" name="jahr"
+                                   value="{{ auswertung.jahr if auswertung else now_year|default(2026) }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="monat" class="form-label">Monat</label>
+                            <select class="form-select" id="monat" name="monat">
+                                {% for m in range(1, 13) %}
+                                {% set namen = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'] %}
+                                <option value="{{ m }}" {% if (auswertung and auswertung.monat == m) or (not auswertung and m == heute.month) %}selected{% endif %}>
+                                    {{ namen[m-1] }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="milchmenge_kg" class="form-label">Menge kg</label>
+                            <input type="number" class="form-control" id="milchmenge_kg" name="milchmenge_kg"
+                                   step="1" value="{{ auswertung.milchmenge_kg if auswertung and auswertung.milchmenge_kg else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="molkerei" class="form-label">Molkerei</label>
+                            <input type="text" class="form-control" id="molkerei" name="molkerei"
+                                   value="{{ auswertung.molkerei if auswertung and auswertung.molkerei else '' }}">
+                        </div>
+                    </div>
+                    <h6 class="text-muted mt-3 mb-3">Qualitätsparameter</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="fett_prozent" class="form-label">Fett %</label>
+                            <input type="number" class="form-control" id="fett_prozent" name="fett_prozent"
+                                   step="0.01" value="{{ auswertung.fett_prozent if auswertung and auswertung.fett_prozent else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="eiweiss_prozent" class="form-label">Eiweiß %</label>
+                            <input type="number" class="form-control" id="eiweiss_prozent" name="eiweiss_prozent"
+                                   step="0.01" value="{{ auswertung.eiweiss_prozent if auswertung and auswertung.eiweiss_prozent else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="gesamtkeimzahl" class="form-label">Keimzahl /ml</label>
+                            <input type="number" class="form-control" id="gesamtkeimzahl" name="gesamtkeimzahl"
+                                   value="{{ auswertung.gesamtkeimzahl if auswertung and auswertung.gesamtkeimzahl else '' }}"
+                                   placeholder="Grenzwert: 100.000">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="zellzahl_tank" class="form-label">Zellzahl /ml</label>
+                            <input type="number" class="form-control" id="zellzahl_tank" name="zellzahl_tank"
+                                   value="{{ auswertung.zellzahl_tank if auswertung and auswertung.zellzahl_tank else '' }}"
+                                   placeholder="Grenzwert: 400.000">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="gefrierpunkt" class="form-label">Gefrierpunkt °C</label>
+                            <input type="number" class="form-control" id="gefrierpunkt" name="gefrierpunkt"
+                                   step="0.001" value="{{ auswertung.gefrierpunkt if auswertung and auswertung.gefrierpunkt else '' }}"
+                                   placeholder="≤ -0,520">
+                        </div>
+                        <div class="col-md-3 mt-2">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="hemmstoff" name="hemmstoff" value="1"
+                                       {% if auswertung and auswertung.hemmstoff %}checked{% endif %}>
+                                <label class="form-check-label text-danger fw-bold" for="hemmstoff">
+                                    Hemmstoff positiv!
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="auszahlungspreis_ct_kg" class="form-label">Preis ct/kg</label>
+                            <input type="number" class="form-control" id="auszahlungspreis_ct_kg" name="auszahlungspreis_ct_kg"
+                                   step="0.001" value="{{ auswertung.auszahlungspreis_ct_kg if auswertung and auswertung.auszahlungspreis_ct_kg else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="qualitaetszuschlag_ct" class="form-label">Qualitätszuschlag ct</label>
+                            <input type="number" class="form-control" id="qualitaetszuschlag_ct" name="qualitaetszuschlag_ct"
+                                   step="0.001" value="{{ auswertung.qualitaetszuschlag_ct if auswertung and auswertung.qualitaetszuschlag_ct else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ auswertung.bemerkung if auswertung and auswertung.bemerkung else '' }}</textarea>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                        <a href="{{ url_for('milchvieh.tankmilch') }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    const heute = new Date();
+    if (!document.getElementById('jahr').value)
+        document.getElementById('jahr').value = heute.getFullYear();
+</script>
+{% endblock %}

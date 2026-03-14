@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Euterbefund – {{ rind.ohrmarke }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="m-0"><i class="bi bi-heart-pulse"></i>
+                    Euterbefund: {{ rind.ohrmarke }}{% if rind.name %} ({{ rind.name }}){% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="datum" class="form-label">Datum *</label>
+                            <input type="date" class="form-control" id="datum" name="datum"
+                                   value="" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="euterviertel" class="form-label">Euterviertel</label>
+                            <select class="form-select" id="euterviertel" name="euterviertel">
+                                <option value="">– bitte wählen –</option>
+                                {% for v in euterviertel %}
+                                <option value="{{ v }}">{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="schalmtest" class="form-label">Schalmtest</label>
+                            <select class="form-select" id="schalmtest" name="schalmtest">
+                                <option value="">–</option>
+                                {% for s in schalmtest_ergebnisse %}
+                                <option value="{{ s }}">{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="zellzahl_tsd" class="form-label">Zellzahl (Tsd./ml)</label>
+                            <input type="number" class="form-control" id="zellzahl_tsd" name="zellzahl_tsd" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="mastitis_typ" class="form-label">Mastitis-Typ</label>
+                            <select class="form-select" id="mastitis_typ" name="mastitis_typ">
+                                <option value="">– kein / unbekannt –</option>
+                                {% for t in mastitis_typen %}
+                                <option value="{{ t }}">{{ t|capitalize }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tierarzt" class="form-label">Tierarzt</label>
+                            <input type="text" class="form-control" id="tierarzt" name="tierarzt">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="erreger" class="form-label">Erreger (Labordiagnose)</label>
+                        <select class="form-select" id="erreger" name="erreger">
+                            <option value="">– nicht untersucht –</option>
+                            {% for e in mastitis_erreger %}
+                            <option value="{{ e }}">{{ e }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2"></textarea>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-warning text-dark">Befund speichern</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

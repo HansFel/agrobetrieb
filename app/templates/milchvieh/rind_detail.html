@@ -113,6 +113,27 @@
     </div>
 </div>
 
+<!-- Schnell-Aktionen Phase 2 -->
+{% if hat_berechtigung(current_user, 'milchvieh', 'create') and rind.ist_aktiv %}
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <strong class="me-2 small text-muted">Erfassen:</strong>
+        <a href="{{ url_for('milchvieh.besamung_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-primary me-1">
+            <i class="bi bi-arrow-repeat"></i> Besamung
+        </a>
+        <a href="{{ url_for('milchvieh.mlp_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-success me-1">
+            <i class="bi bi-droplet-fill"></i> MLP
+        </a>
+        <a href="{{ url_for('milchvieh.euter_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-warning me-1">
+            <i class="bi bi-heart-pulse"></i> Euterbefund
+        </a>
+        <a href="{{ url_for('milchvieh.klauen_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-secondary me-1">
+            <i class="bi bi-activity"></i> Klauenpflege
+        </a>
+    </div>
+</div>
+{% endif %}
+
 <!-- Laktationen -->
 <div class="card mb-4">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">

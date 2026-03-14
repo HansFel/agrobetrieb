@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Weidebuch – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="bi bi-tree"></i> Weidebuch {{ jahr }}</h2>
+        <p class="text-muted small">ÖPUL 2023: Mindestens 120 Weidetage mit je 4 Stunden/Tag</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if hat_berechtigung(current_user, 'milchvieh', 'create') %}
+        <a href="{{ url_for('milchvieh.weide_neu') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Weideperiode
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Jahres-KPIs -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card {% if gesamt_tage >= oepul_ziel %}border-success{% else %}border-warning{% endif %}">
+            <div class="card-body">
+                <h6 class="text-muted">Weidetage {{ jahr }}</h6>
+                <h2 class="{% if gesamt_tage >= oepul_ziel %}text-success{% else %}text-warning{% endif %}">
+                    {{ gesamt_tage }}
+                    <small class="fs-5 text-muted">/ {{ oepul_ziel }} Tage</small>
+                </h2>
+                {% if gesamt_tage >= oepul_ziel %}
+                <small class="text-success"><i class="bi bi-check-circle"></i> ÖPUL-Anforderung erfüllt</small>
+                {% else %}
+                <small class="text-warning"><i class="bi bi-clock"></i> Noch {{ oepul_ziel - gesamt_tage }} Tage bis ÖPUL-Ziel</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted">Perioden {{ jahr }}</h6>
+                <h2>{{ perioden|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="text-muted">Ø Stunden/Tag</h6>
+                <h2>
+                    {% if perioden %}
+                        {% set avg_h = perioden | selectattr('stunden_pro_tag') | map(attribute='stunden_pro_tag') | list %}
+                        {% if avg_h %}{{ (avg_h | sum / avg_h | length) | round(1) }}h{% else %}–{% endif %}
+                    {% else %}–{% endif %}
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Jahresfilter -->
+<div class="mb-3">
+    {% for j in verfuegbare_jahre %}
+    <a href="{{ url_for('milchvieh.weidebuch', jahr=j) }}"
+       class="btn btn-sm {% if j == jahr %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">{{ j }}</a>
+    {% endfor %}
+</div>
+
+{% if perioden %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Von</th>
+                    <th>Bis</th>
+                    <th>Tage</th>
+                    <th>Weide / Schlag</th>
+                    <th>Fläche ha</th>
+                    <th>Tiere</th>
+                    <th>Gruppe</th>
+                    <th>Std./Tag</th>
+                    <th>ÖPUL</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in perioden %}
+                <tr>
+                    <td>{{ p.datum_von.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ p.datum_bis.strftime('%d.%m.%Y') if p.datum_bis else '<em>laufend</em>'|safe }}</td>
+                    <td><strong>{{ p.weidetage or '–' }}</strong></td>
+                    <td>{{ p.weide_bezeichnung or '–' }}</td>
+                    <td>{{ p.weide_flaeche_ha or '–' }}</td>
+                    <td>{{ p.anzahl_tiere or '–' }}</td>
+                    <td>{{ p.tier_gruppe or '–' }}</td>
+                    <td>{{ p.stunden_pro_tag or '–' }}h</td>
+                    <td>
+                        {% if p.oepul_konform %}
+                            <i class="bi bi-check-circle text-success" title="ÖPUL-konform (≥ 4h/Tag)"></i>
+                        {% else %}
+                            <i class="bi bi-x-circle text-danger" title="Unter 4h/Tag!"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if hat_berechtigung(current_user, 'milchvieh', 'edit') %}
+                        <a href="{{ url_for('milchvieh.weide_edit', periode_id=p.id) }}"
+                           class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Noch keine Weideperioden für {{ jahr }} eingetragen.
+</div>
+{% endif %}
+
+<div class="mt-3">
+    <a href="{{ url_for('milchvieh.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Dashboard
+    </a>
+</div>
+{% endblock %}

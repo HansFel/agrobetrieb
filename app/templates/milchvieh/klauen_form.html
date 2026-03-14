@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Klauenpflege – {{ rind.ohrmarke }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="m-0"><i class="bi bi-activity"></i>
+                    Klauenpflege: {{ rind.ohrmarke }}{% if rind.name %} ({{ rind.name }}){% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="datum" class="form-label">Datum *</label>
+                            <input type="date" class="form-control" id="datum" name="datum" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="klauenpfleger" class="form-label">Klauenpfleger</label>
+                            <input type="text" class="form-control" id="klauenpfleger" name="klauenpfleger">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="befund" class="form-label">Befund</label>
+                        <select class="form-select" id="befund" name="befund">
+                            <option value="">– Routinepflege / kein Befund –</option>
+                            {% for b in klauen_befunde %}
+                            <option value="{{ b }}">{{ b }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="schweregrad" class="form-label">Schweregrad (1–4)</label>
+                            <select class="form-select" id="schweregrad" name="schweregrad">
+                                <option value="">–</option>
+                                {% for grad, name in lameness_grad.items() %}
+                                <option value="{{ grad }}">{{ grad }} – {{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="behandelt" name="behandelt" value="1">
+                                <label class="form-check-label" for="behandelt">Behandelt</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="naechste_pflege" class="form-label">Nächste Pflege</label>
+                            <input type="date" class="form-control" id="naechste_pflege" name="naechste_pflege">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2"></textarea>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-secondary">Befund speichern</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

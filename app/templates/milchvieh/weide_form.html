@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Weideperiode – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="m-0"><i class="bi bi-tree"></i>
+                    {% if periode %}Weideperiode bearbeiten{% else %}Neue Weideperiode{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="datum_von" class="form-label">Von *</label>
+                            <input type="date" class="form-control" id="datum_von" name="datum_von"
+                                   value="{{ periode.datum_von.isoformat() if periode else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="datum_bis" class="form-label">Bis</label>
+                            <input type="date" class="form-control" id="datum_bis" name="datum_bis"
+                                   value="{{ periode.datum_bis.isoformat() if periode and periode.datum_bis else '' }}">
+                            <div class="form-text">Leer = Periode noch laufend</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="stunden_pro_tag" class="form-label">Stunden/Tag *</label>
+                            <input type="number" class="form-control" id="stunden_pro_tag" name="stunden_pro_tag"
+                                   step="0.5" min="0" max="24"
+                                   value="{{ periode.stunden_pro_tag if periode and periode.stunden_pro_tag else '4' }}">
+                            <div class="form-text">ÖPUL-Mindest: 4h/Tag</div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="weide_bezeichnung" class="form-label">Weide / Schlagbezeichnung</label>
+                            <input type="text" class="form-control" id="weide_bezeichnung" name="weide_bezeichnung"
+                                   value="{{ periode.weide_bezeichnung if periode and periode.weide_bezeichnung else '' }}"
+                                   placeholder="z.B. Heimweide Nordseite">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="weide_flaeche_ha" class="form-label">Fläche ha</label>
+                            <input type="number" class="form-control" id="weide_flaeche_ha" name="weide_flaeche_ha"
+                                   step="0.01" min="0"
+                                   value="{{ periode.weide_flaeche_ha if periode and periode.weide_flaeche_ha else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="anzahl_tiere" class="form-label">Anzahl Tiere</label>
+                            <input type="number" class="form-control" id="anzahl_tiere" name="anzahl_tiere"
+                                   min="0" value="{{ periode.anzahl_tiere if periode and periode.anzahl_tiere else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tier_gruppe" class="form-label">Tiergruppe</label>
+                        <input type="text" class="form-control" id="tier_gruppe" name="tier_gruppe"
+                               value="{{ periode.tier_gruppe if periode and periode.tier_gruppe else '' }}"
+                               placeholder="z.B. Milchkühe, Kalbinnen, Kälber">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ periode.bemerkung if periode and periode.bemerkung else '' }}</textarea>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">Speichern</button>
+                        <a href="{{ url_for('milchvieh.weidebuch') }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

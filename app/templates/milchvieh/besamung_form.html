@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Besamung – {{ rind.ohrmarke }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0"><i class="bi bi-arrow-repeat"></i>
+                    Besamung: {{ rind.ohrmarke }}{% if rind.name %} ({{ rind.name }}){% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if laktation %}
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i>
+                    Aktive Laktation: Nr. {{ laktation.laktationsnummer }} –
+                    Kalbung {{ laktation.kalbedatum.strftime('%d.%m.%Y') if laktation.kalbedatum else '–' }}
+                    {% if laktation.kalbedatum %}
+                    ({{ (today - laktation.kalbedatum).days }} Tage p.p.)
+                    {% endif %}
+                </div>
+                {% endif %}
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="datum" class="form-label">Datum *</label>
+                            <input type="date" class="form-control" id="datum" name="datum"
+                                   value="{{ besamung.datum.isoformat() if besamung else '' }}" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="art" class="form-label">Art</label>
+                            <select class="form-select" id="art" name="art">
+                                {% for a in besamung_arten %}
+                                <option value="{{ a }}" {% if besamung and besamung.art == a %}selected{% endif %}>{{ a }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="stier_name" class="form-label">Stier / Bulle</label>
+                            <input type="text" class="form-control" id="stier_name" name="stier_name"
+                                   value="{{ besamung.stier_name if besamung and besamung.stier_name else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="stier_hb_nr" class="form-label">Herdbuch-/Bull-Nr.</label>
+                            <input type="text" class="form-control" id="stier_hb_nr" name="stier_hb_nr"
+                                   value="{{ besamung.stier_hb_nr if besamung and besamung.stier_hb_nr else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="portion_nr" class="form-label">Portions-Nr.</label>
+                            <input type="text" class="form-control" id="portion_nr" name="portion_nr"
+                                   value="{{ besamung.portion_nr if besamung and besamung.portion_nr else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="besamungstechniker" class="form-label">Besamungstechniker</label>
+                        <input type="text" class="form-control" id="besamungstechniker" name="besamungstechniker"
+                               value="{{ besamung.besamungstechniker if besamung and besamung.besamungstechniker else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ besamung.bemerkung if besamung and besamung.bemerkung else '' }}</textarea>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Besamung eintragen</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    const today = new Date().toISOString().split('T')[0];
+    if (!document.getElementById('datum').value)
+        document.getElementById('datum').value = today;
+</script>
+{% endblock %}

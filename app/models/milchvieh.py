@@ -1,5 +1,5 @@
 """
-Milchvieh-Modul – Datenmodelle (Phase 1).
+Milchvieh-Modul – Datenmodelle (Phase 1 + 2).
 
 Bestandsregister, Tierbewegungen, TAMG-Arzneimitteldokumentation
 und Impfungen für Milchviehhalter.
@@ -161,6 +161,14 @@ class Rind(db.Model):
                                 lazy='dynamic', cascade='all, delete-orphan')
     laktationen = db.relationship('Laktation', back_populates='rind',
                                   lazy='dynamic', cascade='all, delete-orphan')
+    besamungen = db.relationship('Besamung', back_populates='rind',
+                                 lazy='dynamic', cascade='all, delete-orphan')
+    mlp_pruefungen = db.relationship('MLPPruefung', back_populates='rind',
+                                     lazy='dynamic', cascade='all, delete-orphan')
+    euter_befunde = db.relationship('EuterGesundheit', back_populates='rind',
+                                    lazy='dynamic', cascade='all, delete-orphan')
+    klauen_befunde = db.relationship('KlauenpflegeBefund', back_populates='rind',
+                                     lazy='dynamic', cascade='all, delete-orphan')
 
     @property
     def alter_monate(self):
@@ -290,14 +298,27 @@ class Laktation(db.Model):
     eiweiss_prozent = db.Column(db.Numeric(4, 2))
     zellzahl_tsd = db.Column(db.Integer)  # somatische Zellzahl in Tausend/ml
 
+    # Transitphase / Peripartal
+    body_condition_score_trocken = db.Column(db.Numeric(3, 2))   # BCS beim Trockenstellen (Ziel: 3,5)
+    body_condition_score_kalbung = db.Column(db.Numeric(3, 2))   # BCS bei Kalbung (Ziel: 3,0–3,5)
+    body_condition_score_100d = db.Column(db.Numeric(3, 2))      # BCS 100 Tage p.p.
+    ketose_test_datum = db.Column(db.Date)
+    ketose_ergebnis = db.Column(db.String(20))   # negativ, subklinisch, klinisch
+    milchfieber = db.Column(db.Boolean, default=False)
+    labmagen = db.Column(db.Boolean, default=False)
+
     bemerkung = db.Column(db.Text)
 
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
     aktualisiert_am = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationship
+    # Relationships
     rind = db.relationship('Rind', back_populates='laktationen')
+    besamungen = db.relationship('Besamung', back_populates='laktation',
+                                 lazy='dynamic', cascade='all, delete-orphan')
+    mlp_pruefungen = db.relationship('MLPPruefung', back_populates='laktation',
+                                     lazy='dynamic', cascade='all, delete-orphan')
 
     @property
     def laktationstage(self):
@@ -305,6 +326,37 @@ class Laktation(db.Model):
             return None
         ende = self.laktations_ende or date.today()
         return (ende - self.kalbedatum).days
+
+    @property
+    def trockenstehzeit_tage(self):
+        """Tage zwischen Trockenstellen und Kalbung (rückblickend)."""
+        if self.trockenstell_datum and self.kalbedatum:
+            return (self.kalbedatum - self.trockenstell_datum).days
+        return None
+
+    @property
+    def tragende_besamung(self):
+        """Die Besamung die zur Trächtigkeit geführt hat."""
+        return self.besamungen.filter_by(traechtig=True).order_by(
+            Besamung.datum.asc()).first()
+
+    @property
+    def guestzeit_tage(self):
+        """Tage von Kalbung bis zur tragenden Besamung."""
+        bs = self.tragende_besamung
+        if self.kalbedatum and bs:
+            return (bs.datum - self.kalbedatum).days
+        return None
+
+    @property
+    def zwischenkalbezeit_tage(self):
+        """ZKZ: von dieser Kalbung bis zur nächsten (falls bekannt)."""
+        if not self.kalbedatum:
+            return None
+        bs = self.tragende_besamung
+        if bs and bs.errechneter_kalbetermin:
+            return (bs.errechneter_kalbetermin - self.kalbedatum).days
+        return None
 
     def __repr__(self):
         return f'<Laktation Rind={self.rind_id} Lakt={self.laktationsnummer}>'
@@ -420,3 +472,338 @@ class RindImpfung(db.Model):
 
     def __repr__(self):
         return f'<RindImpfung {self.datum} {self.krankheit} Rind={self.rind_id}>'
+
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 2 – Modelle
+# ═══════════════════════════════════════════════════════════════
+
+# Konstanten Phase 2
+BESAMUNG_ART = ['Künstliche Besamung (KB)', 'Natursprung']
+KALBEVERLAUF_ARTEN = ['normal', 'leicht erschwert', 'schwer (Geburtshilfe)', 'Kaiserschnitt', 'Totgeburt']
+SCHALMTEST_ERGEBNISSE = ['negativ', '(+)', '+', '++', '+++']
+MASTITIS_TYPEN = ['klinisch', 'subklinisch']
+MASTITIS_ERREGER = [
+    'Staphylococcus aureus',
+    'Streptococcus uberis',
+    'Streptococcus agalactiae',
+    'Streptococcus dysgalactiae',
+    'Escherichia coli',
+    'Klebsiella spp.',
+    'Enterococcus spp.',
+    'Trueperella pyogenes',
+    'Koagulase-negative Staphylokokken (KNS)',
+    'Sonstige',
+    'Kein Erreger nachgewiesen',
+]
+EUTERVIERTEL = ['VL', 'VR', 'HL', 'HR', 'gesamt']
+KLAUEN_BEFUNDE = [
+    'IK (Interdigitale Phlegmone)',
+    'DF (Dermatitis digitalis / Mortellaro)',
+    'BS (Ballensohlengeschwür)',
+    'DS (Doppelsohle)',
+    'WLD (White Line Disease)',
+    'LW (Limax)',
+    'KW (Klauenbedeckung)',
+    'SW (Sohlengeschwür)',
+    'Sonstiges',
+]
+LAMENESS_GRAD = {1: 'Keine Lahmheit', 2: 'Geringgradig', 3: 'Mittelgradig', 4: 'Hochgradig'}
+
+
+class Besamung(db.Model):
+    """
+    Besamungsprotokoll – einzelner Besamungsvorgang.
+
+    Jede Kuh kann pro Laktationsperiode mehrere Besamungen haben,
+    bis eine Trächtigkeit bestätigt ist.
+    """
+    __tablename__ = 'besamung'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rind_id = db.Column(db.Integer, db.ForeignKey('rind.id', ondelete='CASCADE'), nullable=False)
+    laktation_id = db.Column(db.Integer, db.ForeignKey('laktation.id', ondelete='SET NULL'))
+
+    datum = db.Column(db.Date, nullable=False)
+    art = db.Column(db.String(30), default='Künstliche Besamung (KB)')  # KB / Natursprung
+    stier_name = db.Column(db.String(100))         # Stiername oder Herdbuchnummer
+    stier_hb_nr = db.Column(db.String(50))         # Besamungsbullennummer (ZAR/RDV)
+    portion_nr = db.Column(db.String(50))          # Samenportionsnummer (Rückverfolgung)
+    besamungstechniker = db.Column(db.String(100))
+
+    # Trächtigkeitskontrolle
+    td_datum = db.Column(db.Date)                  # Datum Trächtigkeitsdiagnose
+    traechtig = db.Column(db.Boolean)              # None = noch nicht untersucht
+    td_methode = db.Column(db.String(50))          # Ultraschall / Rektalpalpation / Bluttest
+    tierarzt_td = db.Column(db.String(100))
+
+    # Berechnungen
+    errechneter_kalbetermin = db.Column(db.Date)   # wird automatisch berechnet
+
+    bemerkung = db.Column(db.Text)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    rind = db.relationship('Rind', back_populates='besamungen')
+    laktation = db.relationship('Laktation', back_populates='besamungen')
+
+    def berechne_kalbetermin(self, rasse=None):
+        """283 Tage (Holstein) / 285 Tage (Fleckvieh) ab Besamungsdatum."""
+        if self.datum:
+            tage = 285 if rasse and 'Fleckvieh' in rasse else 283
+            self.errechneter_kalbetermin = self.datum + timedelta(days=tage)
+
+    @property
+    def rastzeit_tage(self):
+        """Tage von Kalbung bis zu dieser Besamung."""
+        if self.laktation and self.laktation.kalbedatum and self.datum:
+            return (self.datum - self.laktation.kalbedatum).days
+        return None
+
+    def __repr__(self):
+        return f'<Besamung {self.datum} Rind={self.rind_id}>'
+
+
+class MLPPruefung(db.Model):
+    """
+    Monatliche Milchleistungsprüfung (MLP / Kontrollmilchprüfung).
+
+    Erfasst die tierindividuellen LKV-Prüfungsergebnisse.
+    Rechtsgrundlage: EU-VO 2016/1012 (Tierzucht-VO), LKV Austria.
+    """
+    __tablename__ = 'mlp_pruefung'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rind_id = db.Column(db.Integer, db.ForeignKey('rind.id', ondelete='CASCADE'), nullable=False)
+    laktation_id = db.Column(db.Integer, db.ForeignKey('laktation.id', ondelete='SET NULL'))
+
+    datum = db.Column(db.Date, nullable=False)
+    laktationstag = db.Column(db.Integer)          # Tag seit letzter Kalbung (auto)
+
+    # Kernwerte (LKV-Prüfung)
+    milchmenge_kg = db.Column(db.Numeric(6, 2))    # Tagesgemelk kg
+    fett_prozent = db.Column(db.Numeric(4, 2))
+    eiweiss_prozent = db.Column(db.Numeric(4, 2))
+    laktose_prozent = db.Column(db.Numeric(4, 2))
+    harnstoff_mg_dl = db.Column(db.Integer)        # mg/l; Richtwert 150–300
+
+    # Zellzahl (SCC – Somatic Cell Count)
+    zellzahl_tsd = db.Column(db.Integer)           # Tausend/ml; Alarm > 200 (subkl.) / > 400 (klin.)
+
+    # Berechnungen (werden automatisch befüllt)
+    ecm_kg = db.Column(db.Numeric(6, 2))           # Energiekorrigierte Milch
+    fett_eiweiss_quotient = db.Column(db.Numeric(4, 3))  # < 1,0 = Azidose-Risiko
+
+    # Kontrolldaten
+    pruefer = db.Column(db.String(100))            # LKV-Prüfer
+    probenahme_morgen_kg = db.Column(db.Numeric(5, 2))
+    probenahme_abend_kg = db.Column(db.Numeric(5, 2))
+
+    bemerkung = db.Column(db.Text)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
+    aktualisiert_am = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    rind = db.relationship('Rind', back_populates='mlp_pruefungen')
+    laktation = db.relationship('Laktation', back_populates='mlp_pruefungen')
+
+    def berechne_kennzahlen(self):
+        """ECM und F:E-Quotient aus Rohdaten berechnen."""
+        if self.milchmenge_kg and self.fett_prozent and self.eiweiss_prozent:
+            m = float(self.milchmenge_kg)
+            f = float(self.fett_prozent)
+            e = float(self.eiweiss_prozent)
+            # ECM-Formel (Sjaunja et al.)
+            ecm = m * (0.383 * f + 0.242 * e + 0.7832) / 3.1138
+            self.ecm_kg = round(ecm, 2)
+        if self.fett_prozent and self.eiweiss_prozent and float(self.eiweiss_prozent) > 0:
+            self.fett_eiweiss_quotient = round(
+                float(self.fett_prozent) / float(self.eiweiss_prozent), 3)
+
+    @property
+    def zellzahl_status(self):
+        """Ampel-Bewertung der Zellzahl."""
+        if not self.zellzahl_tsd:
+            return None
+        if self.zellzahl_tsd < 100:
+            return 'ok'       # gesund
+        if self.zellzahl_tsd < 200:
+            return 'warn'     # erhöht, beobachten
+        if self.zellzahl_tsd < 400:
+            return 'danger'   # subklinische Mastitis
+        return 'critical'     # klinische Mastitis, EU-Ablieferungsgrenze
+
+    @property
+    def harnstoff_status(self):
+        """Harnstoff-Bewertung als Fütterungsindikator."""
+        if not self.harnstoff_mg_dl:
+            return None
+        if self.harnstoff_mg_dl < 100:
+            return 'low'      # Energiemangel + Eiweißmangel
+        if self.harnstoff_mg_dl < 150:
+            return 'warn_low' # leichter Eiweißmangel
+        if self.harnstoff_mg_dl <= 300:
+            return 'ok'       # optimal
+        return 'high'         # Eiweißüberschuss → Fruchtbarkeitsprobleme
+
+    def __repr__(self):
+        return f'<MLPPruefung {self.datum} Rind={self.rind_id}>'
+
+
+class EuterGesundheit(db.Model):
+    """
+    Eutergesundheits-Befund – Schalmtest, Mastitis-Dokumentation.
+
+    Verbindung zum TAMG-Journal über behandlung_id.
+    """
+    __tablename__ = 'euter_gesundheit'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rind_id = db.Column(db.Integer, db.ForeignKey('rind.id', ondelete='CASCADE'), nullable=False)
+
+    datum = db.Column(db.Date, nullable=False)
+    euterviertel = db.Column(db.String(10))        # VL, VR, HL, HR, gesamt
+
+    # Schalmtest
+    schalmtest = db.Column(db.String(10))          # negativ, (+), +, ++, +++
+
+    # Labordiagnose
+    zellzahl_tsd = db.Column(db.Integer)           # Einzeltier-Zellzahl
+    erreger = db.Column(db.String(100))
+    mastitis_typ = db.Column(db.String(20))        # klinisch / subklinisch
+
+    # Behandlung
+    behandlung_id = db.Column(db.Integer,
+                               db.ForeignKey('rind_arzneimittel_anwendung.id', ondelete='SET NULL'))
+    tierarzt = db.Column(db.String(100))
+
+    bemerkung = db.Column(db.Text)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    rind = db.relationship('Rind', back_populates='euter_befunde')
+    behandlung = db.relationship('RindArzneimittelAnwendung')
+
+    def __repr__(self):
+        return f'<EuterGesundheit {self.datum} {self.euterviertel} Rind={self.rind_id}>'
+
+
+class KlauenpflegeBefund(db.Model):
+    """Klauenpflege- und Klauengesundheits-Protokoll."""
+    __tablename__ = 'klauenpflege_befund'
+
+    id = db.Column(db.Integer, primary_key=True)
+    rind_id = db.Column(db.Integer, db.ForeignKey('rind.id', ondelete='CASCADE'), nullable=False)
+
+    datum = db.Column(db.Date, nullable=False)
+    klauenpfleger = db.Column(db.String(100))
+    befund = db.Column(db.String(100))             # aus KLAUEN_BEFUNDE
+    schweregrad = db.Column(db.Integer)            # 1–4 (International Lameness Scoring)
+    behandelt = db.Column(db.Boolean, default=False)
+    behandlung_id = db.Column(db.Integer,
+                               db.ForeignKey('rind_arzneimittel_anwendung.id', ondelete='SET NULL'))
+    naechste_pflege = db.Column(db.Date)
+
+    bemerkung = db.Column(db.Text)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    rind = db.relationship('Rind', back_populates='klauen_befunde')
+    behandlung = db.relationship('RindArzneimittelAnwendung')
+
+    @property
+    def schweregrad_name(self):
+        return LAMENESS_GRAD.get(self.schweregrad, '–')
+
+    def __repr__(self):
+        return f'<KlauenpflegeBefund {self.datum} {self.befund} Rind={self.rind_id}>'
+
+
+class WeidePeriode(db.Model):
+    """
+    Weidebuch – Dokumentation für ÖPUL-Nachweis.
+
+    ÖPUL 2023 "Weidehaltung Rinder": mind. 120 Weidetage,
+    mind. 4 Stunden/Tag. Bei Kontrolle durch AMA prüfpflichtig.
+    """
+    __tablename__ = 'weide_periode'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    datum_von = db.Column(db.Date, nullable=False)
+    datum_bis = db.Column(db.Date)
+    weide_bezeichnung = db.Column(db.String(200))  # Schlagname / INVEKOS-Nr.
+    weide_flaeche_ha = db.Column(db.Numeric(8, 2))
+    anzahl_tiere = db.Column(db.Integer)
+    tier_gruppe = db.Column(db.String(100))        # Kühe, Kalbinnen, Kälber etc.
+    stunden_pro_tag = db.Column(db.Numeric(3, 1))  # Mindestanforderung ÖPUL: 4h
+
+    bemerkung = db.Column(db.Text)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
+    aktualisiert_am = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def weidetage(self):
+        if self.datum_von and self.datum_bis:
+            return (self.datum_bis - self.datum_von).days + 1
+        if self.datum_von:
+            return (date.today() - self.datum_von).days + 1
+        return None
+
+    @property
+    def oepul_konform(self):
+        """Prüft ob ÖPUL-Mindestanforderungen erfüllt (4h/Tag)."""
+        return self.stunden_pro_tag is not None and float(self.stunden_pro_tag) >= 4.0
+
+    def __repr__(self):
+        return f'<WeidePeriode {self.datum_von} – {self.datum_bis}>'
+
+
+class TankmilchAuswertung(db.Model):
+    """
+    Monatliche Tankmilch-Qualitätsauswertung (Molkerei-Abrechnung).
+
+    Gesetzliche Grenzwerte (EU-VO 853/2004):
+    - Keimzahl: < 100.000/ml (Liefersperre ab 3 Monate Überschreitung)
+    - Zellzahl: < 400.000/ml
+    """
+    __tablename__ = 'tankmilch_auswertung'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    jahr = db.Column(db.Integer, nullable=False)
+    monat = db.Column(db.Integer, nullable=False)  # 1–12
+    milchmenge_kg = db.Column(db.Numeric(10, 2))
+
+    # Qualitätsparameter
+    fett_prozent = db.Column(db.Numeric(4, 2))
+    eiweiss_prozent = db.Column(db.Numeric(4, 2))
+    gesamtkeimzahl = db.Column(db.Integer)         # /ml; Grenzwert: 100.000
+    zellzahl_tank = db.Column(db.Integer)          # /ml; Grenzwert: 400.000
+    gefrierpunkt = db.Column(db.Numeric(5, 3))     # °C; ≤ -0,520 (Wasserverfälschung)
+    hemmstoff = db.Column(db.Boolean)              # True = Hemmstoff positiv (Antibiotika!)
+
+    # Abrechnung
+    auszahlungspreis_ct_kg = db.Column(db.Numeric(6, 3))
+    qualitaetszuschlag_ct = db.Column(db.Numeric(5, 3))
+    molkerei = db.Column(db.String(100))
+
+    bemerkung = db.Column(db.Text)
+    erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def keimzahl_ok(self):
+        return self.gesamtkeimzahl is None or self.gesamtkeimzahl < 100000
+
+    @property
+    def zellzahl_ok(self):
+        return self.zellzahl_tank is None or self.zellzahl_tank < 400000
+
+    @property
+    def monat_name(self):
+        monate = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+        return monate[self.monat - 1] if 1 <= self.monat <= 12 else str(self.monat)
+
+    def __repr__(self):
+        return f'<TankmilchAuswertung {self.jahr}/{self.monat:02d}>'

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}MLP-Prüfung – {{ rind.ohrmarke }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="m-0"><i class="bi bi-droplet-fill"></i>
+                    MLP-Prüfung: {{ rind.ohrmarke }}{% if rind.name %} ({{ rind.name }}){% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if laktation %}
+                <div class="alert alert-light border small">
+                    Laktation {{ laktation.laktationsnummer }} –
+                    Kalbung {{ laktation.kalbedatum.strftime('%d.%m.%Y') if laktation.kalbedatum else '–' }}
+                </div>
+                {% endif %}
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <h6 class="text-muted mb-3">Prüfdaten</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="datum" class="form-label">Prüfdatum *</label>
+                            <input type="date" class="form-control" id="datum" name="datum"
+                                   value="{{ pruefung.datum.isoformat() if pruefung else '' }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="probenahme_morgen_kg" class="form-label">Morgengemelk kg</label>
+                            <input type="number" class="form-control" id="probenahme_morgen_kg" name="probenahme_morgen_kg"
+                                   step="0.01" value="{{ pruefung.probenahme_morgen_kg if pruefung and pruefung.probenahme_morgen_kg else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="probenahme_abend_kg" class="form-label">Abendgemelk kg</label>
+                            <input type="number" class="form-control" id="probenahme_abend_kg" name="probenahme_abend_kg"
+                                   step="0.01" value="{{ pruefung.probenahme_abend_kg if pruefung and pruefung.probenahme_abend_kg else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="milchmenge_kg" class="form-label">Tagesgemelk kg *</label>
+                            <input type="number" class="form-control" id="milchmenge_kg" name="milchmenge_kg"
+                                   step="0.1" value="{{ pruefung.milchmenge_kg if pruefung and pruefung.milchmenge_kg else '' }}" required>
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 mb-3">Inhaltsstoffe</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="fett_prozent" class="form-label">Fett %</label>
+                            <input type="number" class="form-control" id="fett_prozent" name="fett_prozent"
+                                   step="0.01" min="0" max="10"
+                                   value="{{ pruefung.fett_prozent if pruefung and pruefung.fett_prozent else '' }}"
+                                   placeholder="z.B. 4.10">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="eiweiss_prozent" class="form-label">Eiweiß %</label>
+                            <input type="number" class="form-control" id="eiweiss_prozent" name="eiweiss_prozent"
+                                   step="0.01" min="0" max="6"
+                                   value="{{ pruefung.eiweiss_prozent if pruefung and pruefung.eiweiss_prozent else '' }}"
+                                   placeholder="z.B. 3.40">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="laktose_prozent" class="form-label">Laktose %</label>
+                            <input type="number" class="form-control" id="laktose_prozent" name="laktose_prozent"
+                                   step="0.01" min="0" max="6"
+                                   value="{{ pruefung.laktose_prozent if pruefung and pruefung.laktose_prozent else '' }}"
+                                   placeholder="Richtwert ≥ 4,5">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="harnstoff_mg_dl" class="form-label">Harnstoff mg/l</label>
+                            <input type="number" class="form-control" id="harnstoff_mg_dl" name="harnstoff_mg_dl"
+                                   min="0" max="600"
+                                   value="{{ pruefung.harnstoff_mg_dl if pruefung and pruefung.harnstoff_mg_dl else '' }}"
+                                   placeholder="Richtwert 150–300">
+                            <div class="form-text">Fütterungsindikator</div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="zellzahl_tsd" class="form-label">Zellzahl (Tsd./ml)</label>
+                            <input type="number" class="form-control" id="zellzahl_tsd" name="zellzahl_tsd"
+                                   min="0"
+                                   value="{{ pruefung.zellzahl_tsd if pruefung and pruefung.zellzahl_tsd else '' }}"
+                                   placeholder="&lt; 100 = gesund; &gt; 200 = Alarm">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="pruefer" class="form-label">LKV-Prüfer</label>
+                            <input type="text" class="form-control" id="pruefer" name="pruefer"
+                                   value="{{ pruefung.pruefer if pruefung and pruefung.pruefer else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="card bg-light border mb-3">
+                        <div class="card-body small">
+                            <i class="bi bi-calculator"></i>
+                            <strong>ECM und F:E-Quotient</strong> werden automatisch berechnet und gespeichert.
+                            ECM-Formel (Sjaunja): ECM = kg × (0,383 × F% + 0,242 × E% + 0,783) / 3,114
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ pruefung.bemerkung if pruefung and pruefung.bemerkung else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">MLP speichern</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    if (!document.getElementById('datum').value)
+        document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+    // Tagesgemelk auto-berechnen
+    ['probenahme_morgen_kg', 'probenahme_abend_kg'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            const m = parseFloat(document.getElementById('probenahme_morgen_kg').value) || 0;
+            const a = parseFloat(document.getElementById('probenahme_abend_kg').value) || 0;
+            if (m + a > 0) document.getElementById('milchmenge_kg').value = (m + a).toFixed(1);
+        });
+    });
+</script>
+{% endblock %}

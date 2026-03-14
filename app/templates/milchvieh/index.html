@@ -61,11 +61,23 @@
 <!-- Schnellnavigation -->
 <div class="row mb-4">
     <div class="col">
+        <a href="{{ url_for('milchvieh.dashboard') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
         <a href="{{ url_for('milchvieh.bestand') }}" class="btn btn-outline-primary me-2">
             <i class="bi bi-list-ul"></i> Bestandsregister
         </a>
+        <a href="{{ url_for('milchvieh.mlp_auswertung') }}" class="btn btn-outline-success me-2">
+            <i class="bi bi-graph-up"></i> MLP
+        </a>
         <a href="{{ url_for('milchvieh.tamg_journal') }}" class="btn btn-outline-danger me-2">
             <i class="bi bi-journal-medical"></i> TAMG-Journal
+        </a>
+        <a href="{{ url_for('milchvieh.weidebuch') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-tree"></i> Weidebuch
+        </a>
+        <a href="{{ url_for('milchvieh.tankmilch') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-truck"></i> Tankmilch
         </a>
     </div>
 </div>

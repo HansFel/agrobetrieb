@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Milchvieh Dashboard – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2><i class="bi bi-speedometer2"></i> Milchvieh – Herden-Dashboard</h2>
+        <p class="text-muted small">Stand: {{ heute.strftime('%d.%m.%Y') }}</p>
+    </div>
+</div>
+
+<!-- Kritische Alerts -->
+{% if wartezeit_milch > 0 %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <strong>{{ wartezeit_milch }} Tier(e)</strong> mit aktiver Milch-Wartezeit!
+    <a href="{{ url_for('milchvieh.tamg_journal') }}" class="alert-link">Zum TAMG-Journal</a>
+</div>
+{% endif %}
+{% if ama_faellig > 0 %}
+<div class="alert alert-warning">
+    <i class="bi bi-clock-fill"></i>
+    <strong>{{ ama_faellig }} AMA-Meldung(en)</strong> überfällig (Frist 7 Tage)!
+    <a href="{{ url_for('milchvieh.bestand') }}" class="alert-link">Zum Bestand</a>
+</div>
+{% endif %}
+
+<!-- KPI-Karten Row 1 -->
+<div class="row mb-3 g-3">
+    <div class="col-md-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small">Aktiver Bestand</div>
+                <h2 class="text-primary mb-0">{{ n_aktiv }}</h2>
+                <small class="text-muted">davon {{ n_kuehe }} Kühe</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small">Ø Laktationszahl</div>
+                <h2 class="mb-0 {% if avg_lakt and avg_lakt >= 2.5 %}text-success{% elif avg_lakt %}text-warning{% else %}text-muted{% endif %}">
+                    {{ avg_lakt or '–' }}
+                </h2>
+                <small class="text-muted">Ziel: ≥ 2,5</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small">Milch-Wartezeit</div>
+                <h2 class="mb-0 {% if wartezeit_milch > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ wartezeit_milch }}
+                </h2>
+                <small class="text-muted">Tiere gesperrt</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small">SCC ≥ 200 Tsd</div>
+                <h2 class="mb-0 {% if scc_erhoet > 0 %}text-warning{% else %}text-success{% endif %}">
+                    {{ scc_erhoet }}
+                </h2>
+                <small class="text-muted">
+                    {% if scc_kritisch > 0 %}<span class="text-danger">{{ scc_kritisch }} kritisch</span>
+                    {% elif n_mlp > 0 %}{{ anteil_scc_ok }}% gesund{% else %}–{% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small">Ø ZKZ Tage</div>
+                <h2 class="mb-0 {% if avg_zkz and avg_zkz <= 400 %}text-success{% elif avg_zkz %}text-warning{% else %}text-muted{% endif %}">
+                    {{ avg_zkz or '–' }}
+                </h2>
+                <small class="text-muted">Ziel: 365–400</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <div class="text-muted small">Ø Güstzeit</div>
+                <h2 class="mb-0 {% if avg_guestzeit and avg_guestzeit <= 110 %}text-success{% elif avg_guestzeit %}text-warning{% else %}text-muted{% endif %}">
+                    {{ avg_guestzeit or '–' }}
+                </h2>
+                <small class="text-muted">Ziel: &lt; 110 T</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ÖPUL + Tankmilch -->
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <strong><i class="bi bi-tree"></i> ÖPUL Weidehaltung {{ heute.year }}</strong>
+            </div>
+            <div class="card-body text-center">
+                <div class="display-5 {% if weidetage_jahr >= 120 %}text-success{% else %}text-warning{% endif %}">
+                    {{ weidetage_jahr }}
+                </div>
+                <div class="text-muted">von 120 Weidetagen</div>
+                <div class="progress mt-2" style="height: 8px;">
+                    <div class="progress-bar {% if weidetage_jahr >= 120 %}bg-success{% else %}bg-warning{% endif %}"
+                         role="progressbar"
+                         style="width: {{ [weidetage_jahr / 120 * 100, 100] | min }}%"></div>
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('milchvieh.weidebuch') }}" class="btn btn-sm btn-outline-success">Weidebuch</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-light d-flex justify-content-between">
+                <strong><i class="bi bi-truck"></i> Tankmilch letzte 3 Monate</strong>
+                <a href="{{ url_for('milchvieh.tankmilch') }}" class="btn btn-sm btn-outline-secondary">Alle</a>
+            </div>
+            {% if letzte_tankmilch %}
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Monat</th>
+                            <th>Menge kg</th>
+                            <th>F %</th>
+                            <th>E %</th>
+                            <th>Keimz.</th>
+                            <th>SCC</th>
+                            <th>Hemm.</th>
+                            <th>ct/kg</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in letzte_tankmilch %}
+                        <tr {% if a.hemmstoff or not a.keimzahl_ok or not a.zellzahl_ok %}class="table-danger"{% endif %}>
+                            <td><strong>{{ a.monat_name }} {{ a.jahr }}</strong></td>
+                            <td>{{ "{:,.0f}".format(a.milchmenge_kg | float) if a.milchmenge_kg else '–' }}</td>
+                            <td>{{ a.fett_prozent or '–' }}</td>
+                            <td>{{ a.eiweiss_prozent or '–' }}</td>
+                            <td>
+                                {% if a.gesamtkeimzahl %}
+                                    {% if not a.keimzahl_ok %}<span class="text-danger fw-bold">{{ "{:,}".format(a.gesamtkeimzahl) }}</span>
+                                    {% else %}{{ "{:,}".format(a.gesamtkeimzahl) }}{% endif %}
+                                {% else %}–{% endif %}
+                            </td>
+                            <td>
+                                {% if a.zellzahl_tank %}
+                                    {% if not a.zellzahl_ok %}<span class="text-danger fw-bold">{{ "{:,}".format(a.zellzahl_tank) }}</span>
+                                    {% else %}{{ "{:,}".format(a.zellzahl_tank) }}{% endif %}
+                                {% else %}–{% endif %}
+                            </td>
+                            <td>
+                                {% if a.hemmstoff %}<span class="badge bg-danger">!</span>
+                                {% else %}<i class="bi bi-check text-success"></i>{% endif %}
+                            </td>
+                            <td>{{ a.auszahlungspreis_ct_kg or '–' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="card-body text-muted small">Noch keine Tankmilch-Daten.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Schnellnavigation -->
+<div class="row g-2">
+    <div class="col-auto">
+        <a href="{{ url_for('milchvieh.bestand') }}" class="btn btn-outline-primary">
+            <i class="bi bi-list-ul"></i> Bestand
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('milchvieh.mlp_auswertung') }}" class="btn btn-outline-success">
+            <i class="bi bi-graph-up"></i> MLP-Auswertung
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('milchvieh.tamg_journal') }}" class="btn btn-outline-danger">
+            <i class="bi bi-journal-medical"></i> TAMG-Journal
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('milchvieh.weidebuch') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-tree"></i> Weidebuch
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('milchvieh.tankmilch') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-truck"></i> Tankmilch
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,8 +1,9 @@
 """
-Milchvieh-Modul – Blueprint (Phase 1).
+Milchvieh-Modul – Blueprint (Phase 1 + 2).
 
 Bestandsregister, Tierbewegungen, TAMG-Arzneimitteldokumentation,
-Impfungen und Laktationserfassung.
+Impfungen, Laktationserfassung, Reproduktion, MLP, Eutergesundheit,
+Klauenpflege, Weidebuch, Tankmilch und KPI-Dashboard.
 """
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
@@ -10,8 +11,12 @@ from app.extensions import db
 from app.auth_decorators import requires_permission
 from app.models.milchvieh import (
     Rind, Tierbewegung, Laktation, RindArzneimittelAnwendung, RindImpfung,
+    Besamung, MLPPruefung, EuterGesundheit, KlauenpflegeBefund,
+    WeidePeriode, TankmilchAuswertung,
     RASSEN_MILCH, TIERBEWEGUNG_TYPEN, VERABREICHUNGSARTEN_RIND,
     IMPF_KRANKHEITEN_RIND, ABGANGSURSACHEN, RIND_STATUS, LAKTATION_STATUS,
+    BESAMUNG_ART, SCHALMTEST_ERGEBNISSE, MASTITIS_TYPEN, MASTITIS_ERREGER,
+    EUTERVIERTEL, KLAUEN_BEFUNDE, LAMENESS_GRAD,
 )
 from datetime import datetime, date
 
@@ -400,3 +405,349 @@ def tamg_journal():
                            anwendungen=anwendungen,
                            aktive_wartezeiten=aktive_wartezeiten,
                            heute=heute)
+
+# ── Reproduktion – Besamung ───────────────────────────────────────
+
+@milchvieh_bp.route('/rind/<int:rind_id>/besamung/neu', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'create')
+def besamung_neu(rind_id):
+    rind = Rind.query.get_or_404(rind_id)
+    laktation = rind.laktationen.filter_by(ist_aktiv=True).first()
+    if request.method == 'POST':
+        bs = Besamung(
+            rind_id=rind.id,
+            laktation_id=laktation.id if laktation else None,
+            datum=_parse_date(request.form.get('datum')) or date.today(),
+            art=request.form.get('art', 'Künstliche Besamung (KB)'),
+            stier_name=request.form.get('stier_name', '').strip() or None,
+            stier_hb_nr=request.form.get('stier_hb_nr', '').strip() or None,
+            portion_nr=request.form.get('portion_nr', '').strip() or None,
+            besamungstechniker=request.form.get('besamungstechniker', '').strip() or None,
+            bemerkung=request.form.get('bemerkung', '').strip() or None,
+        )
+        bs.berechne_kalbetermin(rind.rasse)
+        db.session.add(bs)
+        db.session.commit()
+        flash('Besamung eingetragen.', 'success')
+        return redirect(url_for('milchvieh.rind_detail', rind_id=rind.id))
+    return render_template('milchvieh/besamung_form.html',
+                           rind=rind, besamung=None,
+                           besamung_arten=BESAMUNG_ART,
+                           laktation=laktation)
+
+
+@milchvieh_bp.route('/besamung/<int:bs_id>/td', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'edit')
+def besamung_td(bs_id):
+    bs = Besamung.query.get_or_404(bs_id)
+    rind = bs.rind
+    if request.method == 'POST':
+        bs.td_datum = _parse_date(request.form.get('td_datum')) or date.today()
+        bs.traechtig = request.form.get('traechtig') == '1'
+        bs.td_methode = request.form.get('td_methode', '').strip() or None
+        bs.tierarzt_td = request.form.get('tierarzt_td', '').strip() or None
+        db.session.commit()
+        flash('Trächtigkeitsdiagnose gespeichert.', 'success')
+        return redirect(url_for('milchvieh.rind_detail', rind_id=rind.id))
+    return render_template('milchvieh/besamung_td.html', bs=bs, rind=rind)
+
+
+# ── MLP – Milchleistungsprüfung ───────────────────────────────────
+
+@milchvieh_bp.route('/rind/<int:rind_id>/mlp/neu', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'create')
+def mlp_neu(rind_id):
+    rind = Rind.query.get_or_404(rind_id)
+    laktation = rind.laktationen.filter_by(ist_aktiv=True).first()
+    if request.method == 'POST':
+        pruefung = MLPPruefung(
+            rind_id=rind.id,
+            laktation_id=laktation.id if laktation else None,
+            datum=_parse_date(request.form.get('datum')) or date.today(),
+            milchmenge_kg=_parse_float(request.form.get('milchmenge_kg')),
+            fett_prozent=_parse_float(request.form.get('fett_prozent')),
+            eiweiss_prozent=_parse_float(request.form.get('eiweiss_prozent')),
+            laktose_prozent=_parse_float(request.form.get('laktose_prozent')),
+            harnstoff_mg_dl=_parse_int(request.form.get('harnstoff_mg_dl')),
+            zellzahl_tsd=_parse_int(request.form.get('zellzahl_tsd')),
+            pruefer=request.form.get('pruefer', '').strip() or None,
+            probenahme_morgen_kg=_parse_float(request.form.get('probenahme_morgen_kg')),
+            probenahme_abend_kg=_parse_float(request.form.get('probenahme_abend_kg')),
+            bemerkung=request.form.get('bemerkung', '').strip() or None,
+        )
+        if laktation and laktation.kalbedatum and pruefung.datum:
+            pruefung.laktationstag = (pruefung.datum - laktation.kalbedatum).days
+        pruefung.berechne_kennzahlen()
+        db.session.add(pruefung)
+        db.session.commit()
+        flash('MLP-Prüfung eingetragen.', 'success')
+        return redirect(url_for('milchvieh.rind_detail', rind_id=rind.id))
+    return render_template('milchvieh/mlp_form.html',
+                           rind=rind, pruefung=None, laktation=laktation)
+
+
+@milchvieh_bp.route('/mlp-auswertung')
+@login_required
+@requires_permission('milchvieh', 'view')
+def mlp_auswertung():
+    heute = date.today()
+    sub = db.session.query(
+        MLPPruefung.rind_id,
+        db.func.max(MLPPruefung.datum).label('max_datum')
+    ).group_by(MLPPruefung.rind_id).subquery()
+    letzte_pruefungen = db.session.query(MLPPruefung).join(
+        sub, db.and_(
+            MLPPruefung.rind_id == sub.c.rind_id,
+            MLPPruefung.datum == sub.c.max_datum
+        )
+    ).join(Rind).filter(Rind.status == 'aktiv').all()
+    return render_template('milchvieh/mlp_auswertung.html',
+                           pruefungen=letzte_pruefungen,
+                           heute=heute)
+
+
+# ── Eutergesundheit ───────────────────────────────────────────────
+
+@milchvieh_bp.route('/rind/<int:rind_id>/euter/neu', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'create')
+def euter_neu(rind_id):
+    rind = Rind.query.get_or_404(rind_id)
+    if request.method == 'POST':
+        befund = EuterGesundheit(
+            rind_id=rind.id,
+            datum=_parse_date(request.form.get('datum')) or date.today(),
+            euterviertel=request.form.get('euterviertel', '').strip() or None,
+            schalmtest=request.form.get('schalmtest', '').strip() or None,
+            zellzahl_tsd=_parse_int(request.form.get('zellzahl_tsd')),
+            erreger=request.form.get('erreger', '').strip() or None,
+            mastitis_typ=request.form.get('mastitis_typ', '').strip() or None,
+            tierarzt=request.form.get('tierarzt', '').strip() or None,
+            bemerkung=request.form.get('bemerkung', '').strip() or None,
+        )
+        db.session.add(befund)
+        db.session.commit()
+        flash('Euterbefund eingetragen.', 'success')
+        return redirect(url_for('milchvieh.rind_detail', rind_id=rind.id))
+    return render_template('milchvieh/euter_form.html',
+                           rind=rind,
+                           schalmtest_ergebnisse=SCHALMTEST_ERGEBNISSE,
+                           mastitis_typen=MASTITIS_TYPEN,
+                           mastitis_erreger=MASTITIS_ERREGER,
+                           euterviertel=EUTERVIERTEL)
+
+
+# ── Klauenpflege ──────────────────────────────────────────────────
+
+@milchvieh_bp.route('/rind/<int:rind_id>/klauen/neu', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'create')
+def klauen_neu(rind_id):
+    rind = Rind.query.get_or_404(rind_id)
+    if request.method == 'POST':
+        befund = KlauenpflegeBefund(
+            rind_id=rind.id,
+            datum=_parse_date(request.form.get('datum')) or date.today(),
+            klauenpfleger=request.form.get('klauenpfleger', '').strip() or None,
+            befund=request.form.get('befund', '').strip() or None,
+            schweregrad=_parse_int(request.form.get('schweregrad')),
+            behandelt=request.form.get('behandelt') == '1',
+            naechste_pflege=_parse_date(request.form.get('naechste_pflege')),
+            bemerkung=request.form.get('bemerkung', '').strip() or None,
+        )
+        db.session.add(befund)
+        db.session.commit()
+        flash('Klauenbefund eingetragen.', 'success')
+        return redirect(url_for('milchvieh.rind_detail', rind_id=rind.id))
+    return render_template('milchvieh/klauen_form.html',
+                           rind=rind,
+                           klauen_befunde=KLAUEN_BEFUNDE,
+                           lameness_grad=LAMENESS_GRAD)
+
+
+# ── Weidebuch ─────────────────────────────────────────────────────
+
+@milchvieh_bp.route('/weidebuch')
+@login_required
+@requires_permission('milchvieh', 'view')
+def weidebuch():
+    jahr = request.args.get('jahr', date.today().year, type=int)
+    perioden = WeidePeriode.query.filter(
+        db.extract('year', WeidePeriode.datum_von) == jahr
+    ).order_by(WeidePeriode.datum_von.desc()).all()
+    gesamt_tage = sum(p.weidetage or 0 for p in perioden)
+    jahre_raw = db.session.query(
+        db.extract('year', WeidePeriode.datum_von).label('j')
+    ).distinct().order_by(db.text('j desc')).all()
+    verfuegbare_jahre = [int(r.j) for r in jahre_raw] or [date.today().year]
+    return render_template('milchvieh/weidebuch.html',
+                           perioden=perioden,
+                           gesamt_tage=gesamt_tage,
+                           oepul_ziel=120,
+                           jahr=jahr,
+                           verfuegbare_jahre=verfuegbare_jahre)
+
+
+@milchvieh_bp.route('/weidebuch/neu', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'create')
+def weide_neu():
+    if request.method == 'POST':
+        periode = WeidePeriode(
+            datum_von=_parse_date(request.form.get('datum_von')) or date.today(),
+            datum_bis=_parse_date(request.form.get('datum_bis')),
+            weide_bezeichnung=request.form.get('weide_bezeichnung', '').strip() or None,
+            weide_flaeche_ha=_parse_float(request.form.get('weide_flaeche_ha')),
+            anzahl_tiere=_parse_int(request.form.get('anzahl_tiere')),
+            tier_gruppe=request.form.get('tier_gruppe', '').strip() or None,
+            stunden_pro_tag=_parse_float(request.form.get('stunden_pro_tag')),
+            bemerkung=request.form.get('bemerkung', '').strip() or None,
+        )
+        db.session.add(periode)
+        db.session.commit()
+        flash('Weideperiode eingetragen.', 'success')
+        return redirect(url_for('milchvieh.weidebuch'))
+    return render_template('milchvieh/weide_form.html', periode=None)
+
+
+@milchvieh_bp.route('/weidebuch/<int:periode_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'edit')
+def weide_edit(periode_id):
+    periode = WeidePeriode.query.get_or_404(periode_id)
+    if request.method == 'POST':
+        periode.datum_von = _parse_date(request.form.get('datum_von')) or periode.datum_von
+        periode.datum_bis = _parse_date(request.form.get('datum_bis'))
+        periode.weide_bezeichnung = request.form.get('weide_bezeichnung', '').strip() or None
+        periode.weide_flaeche_ha = _parse_float(request.form.get('weide_flaeche_ha'))
+        periode.anzahl_tiere = _parse_int(request.form.get('anzahl_tiere'))
+        periode.tier_gruppe = request.form.get('tier_gruppe', '').strip() or None
+        periode.stunden_pro_tag = _parse_float(request.form.get('stunden_pro_tag'))
+        periode.bemerkung = request.form.get('bemerkung', '').strip() or None
+        db.session.commit()
+        flash('Weideperiode gespeichert.', 'success')
+        return redirect(url_for('milchvieh.weidebuch'))
+    return render_template('milchvieh/weide_form.html', periode=periode)
+
+
+# ── Tankmilch ─────────────────────────────────────────────────────
+
+@milchvieh_bp.route('/tankmilch')
+@login_required
+@requires_permission('milchvieh', 'view')
+def tankmilch():
+    auswertungen = TankmilchAuswertung.query.order_by(
+        TankmilchAuswertung.jahr.desc(),
+        TankmilchAuswertung.monat.desc()
+    ).limit(24).all()
+    return render_template('milchvieh/tankmilch.html', auswertungen=auswertungen)
+
+
+@milchvieh_bp.route('/tankmilch/neu', methods=['GET', 'POST'])
+@login_required
+@requires_permission('milchvieh', 'create')
+def tankmilch_neu():
+    if request.method == 'POST':
+        auswertung = TankmilchAuswertung(
+            jahr=_parse_int(request.form.get('jahr'), date.today().year),
+            monat=_parse_int(request.form.get('monat'), date.today().month),
+            milchmenge_kg=_parse_float(request.form.get('milchmenge_kg')),
+            fett_prozent=_parse_float(request.form.get('fett_prozent')),
+            eiweiss_prozent=_parse_float(request.form.get('eiweiss_prozent')),
+            gesamtkeimzahl=_parse_int(request.form.get('gesamtkeimzahl')),
+            zellzahl_tank=_parse_int(request.form.get('zellzahl_tank')),
+            gefrierpunkt=_parse_float(request.form.get('gefrierpunkt')),
+            hemmstoff=request.form.get('hemmstoff') == '1',
+            auszahlungspreis_ct_kg=_parse_float(request.form.get('auszahlungspreis_ct_kg')),
+            qualitaetszuschlag_ct=_parse_float(request.form.get('qualitaetszuschlag_ct')),
+            molkerei=request.form.get('molkerei', '').strip() or None,
+            bemerkung=request.form.get('bemerkung', '').strip() or None,
+        )
+        db.session.add(auswertung)
+        db.session.commit()
+        flash('Tankmilch-Auswertung gespeichert.', 'success')
+        return redirect(url_for('milchvieh.tankmilch'))
+    return render_template('milchvieh/tankmilch_form.html', auswertung=None)
+
+
+# ── KPI-Dashboard ─────────────────────────────────────────────────
+
+@milchvieh_bp.route('/dashboard')
+@login_required
+@requires_permission('milchvieh', 'view')
+def dashboard():
+    heute = date.today()
+    rinder_aktiv = Rind.query.filter_by(status='aktiv').all()
+    n = len(rinder_aktiv)
+    kuehe = [r for r in rinder_aktiv if r.geschlecht == 'W' and
+             r.alter_monate and r.alter_monate >= 24]
+
+    lakt_zahlen = []
+    for r in kuehe:
+        lakt = r.laktationen.filter_by(ist_aktiv=True).first()
+        if lakt and lakt.laktationsnummer:
+            lakt_zahlen.append(lakt.laktationsnummer)
+    avg_lakt = round(sum(lakt_zahlen) / len(lakt_zahlen), 1) if lakt_zahlen else None
+
+    wartezeit_milch = RindArzneimittelAnwendung.query.filter(
+        RindArzneimittelAnwendung.wartezeit_milch_ende >= heute
+    ).count()
+    wartezeit_fleisch = RindArzneimittelAnwendung.query.filter(
+        RindArzneimittelAnwendung.wartezeit_fleisch_ende >= heute
+    ).count()
+
+    sub = db.session.query(
+        MLPPruefung.rind_id,
+        db.func.max(MLPPruefung.datum).label('md')
+    ).group_by(MLPPruefung.rind_id).subquery()
+    letzte_mlp = db.session.query(MLPPruefung).join(
+        sub, db.and_(MLPPruefung.rind_id == sub.c.rind_id, MLPPruefung.datum == sub.c.md)
+    ).join(Rind).filter(Rind.status == 'aktiv').all()
+
+    scc_erhoet = sum(1 for p in letzte_mlp if p.zellzahl_tsd and p.zellzahl_tsd >= 200)
+    scc_kritisch = sum(1 for p in letzte_mlp if p.zellzahl_tsd and p.zellzahl_tsd >= 400)
+    anteil_scc_ok = round((len(letzte_mlp) - scc_erhoet) / len(letzte_mlp) * 100) if letzte_mlp else None
+
+    zkz_werte = []
+    guestzeit_werte = []
+    for r in kuehe:
+        lakt = r.laktationen.filter_by(ist_aktiv=True).first()
+        if lakt:
+            if lakt.zwischenkalbezeit_tage:
+                zkz_werte.append(lakt.zwischenkalbezeit_tage)
+            if lakt.guestzeit_tage:
+                guestzeit_werte.append(lakt.guestzeit_tage)
+    avg_zkz = round(sum(zkz_werte) / len(zkz_werte)) if zkz_werte else None
+    avg_guestzeit = round(sum(guestzeit_werte) / len(guestzeit_werte)) if guestzeit_werte else None
+
+    letzte_tankmilch = TankmilchAuswertung.query.order_by(
+        TankmilchAuswertung.jahr.desc(), TankmilchAuswertung.monat.desc()
+    ).limit(3).all()
+
+    ama_faellig = sum(1 for r in rinder_aktiv if r.ama_meldung_faellig)
+
+    weidetage_jahr = sum(
+        (p.weidetage or 0) for p in WeidePeriode.query.filter(
+            db.extract('year', WeidePeriode.datum_von) == heute.year
+        ).all()
+    )
+
+    return render_template('milchvieh/dashboard.html',
+                           heute=heute,
+                           n_aktiv=n,
+                           n_kuehe=len(kuehe),
+                           avg_lakt=avg_lakt,
+                           wartezeit_milch=wartezeit_milch,
+                           wartezeit_fleisch=wartezeit_fleisch,
+                           scc_erhoet=scc_erhoet,
+                           scc_kritisch=scc_kritisch,
+                           anteil_scc_ok=anteil_scc_ok,
+                           n_mlp=len(letzte_mlp),
+                           avg_zkz=avg_zkz,
+                           avg_guestzeit=avg_guestzeit,
+                           letzte_tankmilch=letzte_tankmilch,
+                           ama_faellig=ama_faellig,
+                           weidetage_jahr=weidetage_jahr)

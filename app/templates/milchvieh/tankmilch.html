@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Tankmilch – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="bi bi-truck"></i> Tankmilch-Auswertung</h2>
+        <p class="text-muted small">EU-VO 853/2004: Keimzahl &lt; 100.000/ml | Zellzahl &lt; 400.000/ml</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if hat_berechtigung(current_user, 'milchvieh', 'create') %}
+        <a href="{{ url_for('milchvieh.tankmilch_neu') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Monat erfassen
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if auswertungen %}
+
+{% for a in auswertungen %}
+{% if a.hemmstoff %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <strong>Hemmstoff positiv: {{ a.monat_name }} {{ a.jahr }}!</strong>
+    Milch nicht lieferfähig – sofortige Maßnahmen erforderlich!
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Monat</th>
+                    <th>Menge kg</th>
+                    <th>Fett %</th>
+                    <th>Eiweiß %</th>
+                    <th>Keimzahl /ml</th>
+                    <th>Zellzahl /ml</th>
+                    <th>Gefrierpunkt</th>
+                    <th>Hemmstoff</th>
+                    <th>Preis ct/kg</th>
+                    <th>Molkerei</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in auswertungen %}
+                <tr {% if a.hemmstoff or not a.keimzahl_ok or not a.zellzahl_ok %}class="table-danger"{% endif %}>
+                    <td><strong>{{ a.monat_name }} {{ a.jahr }}</strong></td>
+                    <td>{{ "{:,.0f}".format(a.milchmenge_kg | float) if a.milchmenge_kg else '–' }}</td>
+                    <td>{{ a.fett_prozent or '–' }}</td>
+                    <td>{{ a.eiweiss_prozent or '–' }}</td>
+                    <td>
+                        {% if a.gesamtkeimzahl %}
+                            {% if not a.keimzahl_ok %}
+                                <span class="badge bg-danger">{{ "{:,}".format(a.gesamtkeimzahl) }}</span>
+                                <i class="bi bi-exclamation-triangle text-danger" title="Grenzwert überschritten!"></i>
+                            {% else %}
+                                <span class="text-success">{{ "{:,}".format(a.gesamtkeimzahl) }}</span>
+                            {% endif %}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if a.zellzahl_tank %}
+                            {% if not a.zellzahl_ok %}
+                                <span class="badge bg-danger">{{ "{:,}".format(a.zellzahl_tank) }}</span>
+                            {% else %}
+                                <span class="text-success">{{ "{:,}".format(a.zellzahl_tank) }}</span>
+                            {% endif %}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if a.gefrierpunkt %}
+                            {% if a.gefrierpunkt > -0.520 %}
+                                <span class="text-warning">{{ a.gefrierpunkt }}°C</span>
+                            {% else %}
+                                {{ a.gefrierpunkt }}°C
+                            {% endif %}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if a.hemmstoff %}
+                            <span class="badge bg-danger">POSITIV!</span>
+                        {% else %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> negativ</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ a.auszahlungspreis_ct_kg or '–' }}</td>
+                    <td>{{ a.molkerei or '–' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer small text-muted">
+        {{ auswertungen|length }} Monate | Grenzwerte EU-VO 853/2004
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Noch keine Tankmilch-Auswertungen erfasst.
+</div>
+{% endif %}
+
+<div class="mt-3">
+    <a href="{{ url_for('milchvieh.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Dashboard
+    </a>
+</div>
+{% endblock %}

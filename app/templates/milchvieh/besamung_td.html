@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Trächtigkeitsdiagnose – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="m-0"><i class="bi bi-clipboard2-pulse"></i>
+                    Trächtigkeitsdiagnose: {{ rind.ohrmarke }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-light border">
+                    <strong>Besamung vom {{ bs.datum.strftime('%d.%m.%Y') }}</strong>
+                    {% if bs.stier_name %} – Stier: {{ bs.stier_name }}{% endif %}<br>
+                    Errechneter Kalbetermin:
+                    <strong>{{ bs.errechneter_kalbetermin.strftime('%d.%m.%Y') if bs.errechneter_kalbetermin else 'nicht berechnet' }}</strong>
+                </div>
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="td_datum" class="form-label">TD-Datum *</label>
+                            <input type="date" class="form-control" id="td_datum" name="td_datum"
+                                   value="{{ bs.td_datum.isoformat() if bs.td_datum else '' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ergebnis</label>
+                            <div class="mt-1">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="traechtig" value="1"
+                                           {% if bs.traechtig %}checked{% endif %} id="td_ja">
+                                    <label class="form-check-label text-success" for="td_ja"><strong>Trächtig</strong></label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="traechtig" value="0"
+                                           {% if bs.traechtig == False %}checked{% endif %} id="td_nein">
+                                    <label class="form-check-label text-danger" for="td_nein">Nicht trächtig</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="td_methode" class="form-label">Methode</label>
+                            <select class="form-select" id="td_methode" name="td_methode">
+                                <option value="">–</option>
+                                <option value="Ultraschall" {% if bs.td_methode == 'Ultraschall' %}selected{% endif %}>Ultraschall</option>
+                                <option value="Rektalpalpation" {% if bs.td_methode == 'Rektalpalpation' %}selected{% endif %}>Rektalpalpation</option>
+                                <option value="Bluttest (PAG)" {% if bs.td_methode == 'Bluttest (PAG)' %}selected{% endif %}>Bluttest (PAG)</option>
+                                <option value="Milchtest" {% if bs.td_methode == 'Milchtest' %}selected{% endif %}>Milchtest</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tierarzt_td" class="form-label">Tierarzt</label>
+                        <input type="text" class="form-control" id="tierarzt_td" name="tierarzt_td"
+                               value="{{ bs.tierarzt_td if bs.tierarzt_td else '' }}">
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-info text-white">TD speichern</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    if (!document.getElementById('td_datum').value)
+        document.getElementById('td_datum').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

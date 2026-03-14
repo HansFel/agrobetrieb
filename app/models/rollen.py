@@ -131,17 +131,40 @@ def hat_berechtigung(user, modul, aktion):
     
     rolle_perms = BERECHTIGUNGEN.get(user.rolle, {})
     modul_perms = rolle_perms.get(modul, [])
-    
-    return aktion in modul_perms
+
+    if aktion not in modul_perms:
+        return False
+    return ist_modul_lizenziert(modul)
 
 
 def hat_modul_zugriff(user, modul):
-    """Prüft ob Benutzer irgendwelche Berechtigungen im Modul hat."""
+    """Prüft ob Benutzer irgendwelche Berechtigungen im Modul hat
+    UND das Modul im Betrieb lizenziert ist."""
     if not user or not user.aktiv:
         return False
     rolle_perms = BERECHTIGUNGEN.get(user.rolle, {})
     modul_perms = rolle_perms.get(modul, [])
-    return len(modul_perms) > 0
+    if not modul_perms:
+        return False
+    return ist_modul_lizenziert(modul)
+
+
+# Module die eine explizite Betrieb-Lizenz benötigen
+LIZENZPFLICHTIGE_MODULE = {'legehennen', 'sortierergebnis'}
+
+
+def ist_modul_lizenziert(modul):
+    """Prüft ob ein Modul im aktuellen Betrieb freigeschaltet ist."""
+    if modul not in LIZENZPFLICHTIGE_MODULE:
+        return True  # Basis-Module sind immer verfügbar
+    from app.models.betrieb import Betrieb
+    betrieb = Betrieb.query.first()
+    if not betrieb:
+        return False
+    if betrieb.ist_testbetrieb:
+        return True
+    modul_feld = f'modul_{modul.replace("sortierergebnis", "legehennen")}'
+    return bool(getattr(betrieb, modul_feld, False))
 
 
 def ist_betriebsadmin(user):

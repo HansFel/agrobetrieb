@@ -52,6 +52,8 @@ def create():
             telefon=request.form.get('telefon', '').strip() or None,
             email=request.form.get('email', '').strip() or None,
             website=request.form.get('website', '').strip() or None,
+            ist_testbetrieb=request.form.get('ist_testbetrieb') == '1',
+            modul_legehennen=request.form.get('modul_legehennen') == '1',
         )
         db.session.add(betrieb)
         db.session.commit()
@@ -86,6 +88,8 @@ def edit():
         betrieb.telefon = request.form.get('telefon', '').strip() or None
         betrieb.email = request.form.get('email', '').strip() or None
         betrieb.website = request.form.get('website', '').strip() or None
+        betrieb.ist_testbetrieb = request.form.get('ist_testbetrieb') == '1'
+        betrieb.modul_legehennen = request.form.get('modul_legehennen') == '1'
         db.session.commit()
         flash('Betrieb gespeichert.', 'success')
         return redirect(url_for('betrieb.index'))

@@ -38,7 +38,11 @@ class Betrieb(db.Model):
     # Betrieb
     logo_path = db.Column(db.String(255))
     hintergrundbild_path = db.Column(db.String(255))
-    
+
+    # Lizenz / Module
+    ist_testbetrieb = db.Column(db.Boolean, default=False)  # Testbetrieb: alle Module aktiv
+    modul_legehennen = db.Column(db.Boolean, default=False)
+
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
     aktualisiert_am = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

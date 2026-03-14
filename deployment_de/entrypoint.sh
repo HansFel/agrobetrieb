@@ -50,6 +50,19 @@ with app.app_context():
         print('Admin-Benutzer erstellt (admin / admin123)')
     else:
         print(f'{User.query.count()} Benutzer vorhanden, ueberspringe')
+
+    # Superadmin aus .env setzen
+    superadmin_username = os.getenv('SUPERADMIN_USERNAME', '').strip()
+    if superadmin_username:
+        u = User.query.filter_by(username=superadmin_username).first()
+        if u and not u.ist_superadmin:
+            u.ist_superadmin = True
+            db.session.commit()
+            print(f'Superadmin gesetzt: {superadmin_username}')
+        elif u:
+            print(f'Superadmin bereits gesetzt: {superadmin_username}')
+        else:
+            print(f'WARNUNG: Superadmin-User nicht gefunden: {superadmin_username}')
 "
 
 echo "=== Starte Gunicorn ==="

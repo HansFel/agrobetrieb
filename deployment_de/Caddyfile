@@ -116,6 +116,13 @@
         reverse_proxy web-agro9:5000
     }
 
+    handle /kaltenegger/* {
+        reverse_proxy web-agro9:5000
+    }
+    handle /kaltenegger {
+        reverse_proxy web-agro9:5000
+    }
+
     handle /agro10/* {
         reverse_proxy web-agro10:5000
     }

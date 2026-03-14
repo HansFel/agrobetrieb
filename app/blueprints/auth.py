@@ -23,6 +23,9 @@ def login():
         
         if user and user.check_password(password) and user.aktiv:
             login_user(user)
+            if user.muss_passwort_aendern:
+                flash('Bitte ändern Sie Ihr Passwort bevor Sie fortfahren.', 'warning')
+                return redirect(url_for('auth.passwort_aendern'))
             flash(f'Willkommen, {user.vorname or user.username}!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('dashboard.index'))
@@ -58,6 +61,7 @@ def passwort_aendern():
             flash('Das neue Passwort muss mindestens 6 Zeichen lang sein.', 'danger')
         else:
             current_user.set_password(neues_pw)
+            current_user.muss_passwort_aendern = False
             db.session.commit()
             flash('Passwort wurde erfolgreich geändert.', 'success')
             return redirect(url_for('dashboard.index'))

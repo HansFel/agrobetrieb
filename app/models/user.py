@@ -34,6 +34,7 @@ class User(UserMixin, db.Model):
     rolle = db.Column(db.String(30), default='praktikand')
     aktiv = db.Column(db.Boolean, default=True)
     ist_superadmin = db.Column(db.Boolean, default=False)  # Nur MGRSoftware-Entwickler
+    muss_passwort_aendern = db.Column(db.Boolean, default=False)
     
     # Packstelle-Felder (nur bei Rolle 'packstelle')
     packstelle_name = db.Column(db.String(200))

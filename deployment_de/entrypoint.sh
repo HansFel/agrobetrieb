@@ -43,26 +43,26 @@ import os
 app = create_app(os.getenv('FLASK_ENV', 'production'))
 with app.app_context():
     if User.query.count() == 0:
-        admin = User(username='admin', email='admin@agro.de', vorname='Administrator', nachname='System', rolle='betriebsadmin', aktiv=True)
+        admin = User(username='admin', email='admin@agro.de', vorname='Administrator', nachname='System', rolle='betriebsadmin', aktiv=True, muss_passwort_aendern=True)
         admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()
-        print('Admin-Benutzer erstellt (admin / admin123)')
+        print('Admin-Benutzer erstellt (admin / admin123) - Passwort muss geaendert werden')
     else:
         print(f'{User.query.count()} Benutzer vorhanden, ueberspringe')
 
-    # Superadmin aus .env setzen
-    superadmin_username = os.getenv('SUPERADMIN_USERNAME', '').strip()
-    if superadmin_username:
-        u = User.query.filter_by(username=superadmin_username).first()
+    # Superadmins aus .env setzen (kommagetrennte Liste)
+    superadmin_usernames = [u.strip() for u in os.getenv('SUPERADMIN_USERNAMES', '').split(',') if u.strip()]
+    for username in superadmin_usernames:
+        u = User.query.filter_by(username=username).first()
         if u and not u.ist_superadmin:
             u.ist_superadmin = True
             db.session.commit()
-            print(f'Superadmin gesetzt: {superadmin_username}')
+            print(f'Superadmin gesetzt: {username}')
         elif u:
-            print(f'Superadmin bereits gesetzt: {superadmin_username}')
+            print(f'Superadmin bereits gesetzt: {username}')
         else:
-            print(f'WARNUNG: Superadmin-User nicht gefunden: {superadmin_username}')
+            print(f'WARNUNG: Superadmin-User nicht gefunden: {username}')
 "
 
 echo "=== Starte Gunicorn ==="

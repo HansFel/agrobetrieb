@@ -52,8 +52,8 @@ def create():
             telefon=request.form.get('telefon', '').strip() or None,
             email=request.form.get('email', '').strip() or None,
             website=request.form.get('website', '').strip() or None,
+            modul_legehennen=request.form.get('modul_legehennen') == '1',
             ist_testbetrieb=current_user.ist_superadmin and request.form.get('ist_testbetrieb') == '1',
-            modul_legehennen=current_user.ist_superadmin and request.form.get('modul_legehennen') == '1',
         )
         db.session.add(betrieb)
         db.session.commit()
@@ -88,9 +88,9 @@ def edit():
         betrieb.telefon = request.form.get('telefon', '').strip() or None
         betrieb.email = request.form.get('email', '').strip() or None
         betrieb.website = request.form.get('website', '').strip() or None
+        betrieb.modul_legehennen = request.form.get('modul_legehennen') == '1'
         if current_user.ist_superadmin:
             betrieb.ist_testbetrieb = request.form.get('ist_testbetrieb') == '1'
-            betrieb.modul_legehennen = request.form.get('modul_legehennen') == '1'
         db.session.commit()
         flash('Betrieb gespeichert.', 'success')
         return redirect(url_for('betrieb.index'))

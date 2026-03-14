@@ -1,4 +1,4 @@
-{$DOMAIN} {
+mgrattenberg.duckdns.org {
     # ── MGRSoftware Instanzen ──────────────────────────────
     # handle bewahrt den Prefix → App erhält APPLICATION_PREFIX
 
@@ -113,15 +113,6 @@
         reverse_proxy web-agro9:5000
     }
     handle /agro9 {
-        reverse_proxy web-agro9:5000
-    }
-
-    handle /kaltenegger/* {
-        rewrite * /agro9{path}
-        reverse_proxy web-agro9:5000
-    }
-    handle /kaltenegger {
-        rewrite * /agro9
         reverse_proxy web-agro9:5000
     }
 

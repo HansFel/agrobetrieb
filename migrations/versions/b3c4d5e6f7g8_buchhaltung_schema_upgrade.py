@@ -65,22 +65,7 @@ def upgrade():
         konto_cols = [c['name'] for c in inspector.get_columns('konto')]
         # Nur ausführen, wenn konto_cols gesetzt wurde
 
-    _alter_table('konto', konto_cols,
-        renames=[
-            ('nummer', 'kontonummer', sa.Text()),
-            ('typ', 'kontotyp', sa.Text()),
-        ],
-        adds=[
-            sa.Column('kontenklasse', sa.Integer(), nullable=True),
-            sa.Column('maschine_id', sa.Integer(), nullable=True),
-            sa.Column('jahresuebertrag', sa.Boolean(), server_default='0'),
-            sa.Column('ist_sammelkonto', sa.Boolean(), server_default='0'),
-            sa.Column('ist_importkonto', sa.Boolean(), server_default='0'),
-            sa.Column('aktiv', sa.Boolean(), server_default='1'),
-        ],
-        drops=[],
-        conn=conn,
-    )
+    # Entfernt: _alter_table('konto', ...) außerhalb des if-Blocks
 
     # Alle SQL-Operationen auf konto nur ausführen, wenn die Tabelle existiert
     if 'konto' in inspector.get_table_names():

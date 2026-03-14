@@ -468,6 +468,7 @@ class HerdeEreignis(db.Model):
     kategorie = db.Column(db.String(50))
     beschreibung = db.Column(db.Text)
     massnahmen = db.Column(db.Text)  # Optionales Feld für Maßnahmen
+    bemerkung = db.Column(db.Text)  # Optionales Feld für Bemerkungen
 
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)

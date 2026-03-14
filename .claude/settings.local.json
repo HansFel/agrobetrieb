@@ -11,7 +11,9 @@
       "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST \"http://localhost:5001/buchhaltung/konto/ajax-neu\" -H \"Content-Type: application/json\" -H \"X-CSRFToken: test\" -d '{\"\"kontonummer\"\":\"\"6810\"\",\"\"bezeichnung\"\":\"\"Testpacht\"\",\"\"kontenklasse\"\":6,\"\"kontotyp\"\":\"\"aufwand\"\"}')",
       "Bash(curl -s -c /tmp/cookies2.txt -b /tmp/cookies2.txt \"http://localhost:5001/buchhaltung/buchungsschluessel/import-analyse\")",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(.venv/Scripts/flask db:*)",
+      "Bash(.venv/Scripts/python -c \":*)"
     ]
   }
 }

@@ -128,7 +128,8 @@
                                value="{{ betrieb.website if betrieb else '' }}">
                     </div>
                     
-                    <h6 class="text-muted mt-4 mb-3"><i class="bi bi-puzzle"></i> Module / Lizenz</h6>
+                    {% if current_user.ist_superadmin %}
+                    <h6 class="text-muted mt-4 mb-3"><i class="bi bi-puzzle"></i> Module / Lizenz <span class="badge bg-danger">Superadmin</span></h6>
                     <div class="card border-warning mb-3">
                         <div class="card-body">
                             <div class="form-check mb-2">
@@ -148,6 +149,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
 
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">

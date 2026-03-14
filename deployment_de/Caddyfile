@@ -117,9 +117,11 @@
     }
 
     handle /kaltenegger/* {
+        rewrite * /agro9{path}
         reverse_proxy web-agro9:5000
     }
     handle /kaltenegger {
+        rewrite * /agro9
         reverse_proxy web-agro9:5000
     }
 

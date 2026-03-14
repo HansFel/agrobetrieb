@@ -56,6 +56,7 @@ BERECHTIGUNGEN = {
         'fakturierung': ['view', 'create', 'edit', 'delete'],
         'lager': ['view', 'create', 'edit', 'delete'],
         'legehennen': ['view', 'create', 'edit', 'delete'],
+        'milchvieh': ['view', 'create', 'edit', 'delete'],
     },
     'mitglied': {
         'dashboard': ['view'],
@@ -67,6 +68,7 @@ BERECHTIGUNGEN = {
         'fakturierung': ['view', 'create', 'edit', 'delete'],
         'lager': ['view', 'create', 'edit', 'delete'],
         'legehennen': ['view', 'create', 'edit', 'delete'],
+        'milchvieh': ['view', 'create', 'edit', 'delete'],
     },
     'buchhaltung': {
         'dashboard': ['view'],
@@ -98,6 +100,7 @@ BERECHTIGUNGEN = {
         'fakturierung': ['view'],
         'lager': ['view'],
         'legehennen': ['view'],
+        'milchvieh': ['view'],
     },
     'packstelle': {
         'dashboard': ['view'],
@@ -150,7 +153,12 @@ def hat_modul_zugriff(user, modul):
 
 
 # Module die eine explizite Betrieb-Lizenz benötigen
-LIZENZPFLICHTIGE_MODULE = {'legehennen', 'sortierergebnis'}
+LIZENZPFLICHTIGE_MODULE = {'legehennen', 'sortierergebnis', 'milchvieh'}
+
+# Mapping: Modul-Name → Betrieb-Feld (wenn abweichend)
+_MODUL_FELD_MAP = {
+    'sortierergebnis': 'modul_legehennen',
+}
 
 
 def ist_modul_lizenziert(modul):
@@ -163,7 +171,7 @@ def ist_modul_lizenziert(modul):
         return False
     if betrieb.ist_testbetrieb:
         return True
-    modul_feld = f'modul_{modul.replace("sortierergebnis", "legehennen")}'
+    modul_feld = _MODUL_FELD_MAP.get(modul, f'modul_{modul}')
     return bool(getattr(betrieb, modul_feld, False))
 
 

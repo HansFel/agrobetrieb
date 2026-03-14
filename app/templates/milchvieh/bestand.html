@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Bestandsregister Milchvieh – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="bi bi-list-ul"></i> Bestandsregister Milchvieh</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if hat_berechtigung(current_user, 'milchvieh', 'create') %}
+        <a href="{{ url_for('milchvieh.rind_neu') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Tier anlegen
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="mb-3">
+    {% for s in rind_status %}
+    <a href="{{ url_for('milchvieh.bestand', status=s) }}"
+       class="btn btn-sm {% if status_filter == s %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">
+        {{ s|capitalize }}
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('milchvieh.bestand', status='alle') }}"
+       class="btn btn-sm {% if status_filter == 'alle' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        Alle
+    </a>
+</div>
+
+{% if rinder %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Ohrmarke</th>
+                    <th>Name</th>
+                    <th>Rasse</th>
+                    <th>Geschlecht</th>
+                    <th>Geburt</th>
+                    <th>Alter</th>
+                    <th>Nutzung</th>
+                    <th>Status</th>
+                    <th>AMA</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rind in rinder %}
+                <tr>
+                    <td><a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}"><code>{{ rind.ohrmarke }}</code></a></td>
+                    <td>{{ rind.name or '–' }}</td>
+                    <td>{{ rind.rasse or '–' }}</td>
+                    <td>{{ 'männl.' if rind.geschlecht == 'M' else 'weibl.' }}</td>
+                    <td>{{ rind.geburtsdatum.strftime('%d.%m.%Y') if rind.geburtsdatum else '–' }}</td>
+                    <td>
+                        {% if rind.alter_jahre is not none %}{{ rind.alter_jahre }} J
+                        {% elif rind.alter_monate is not none %}{{ rind.alter_monate }} Mon.
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>{{ rind.nutzungsart or '–' }}</td>
+                    <td>
+                        {% if rind.status == 'aktiv' %}
+                            <span class="badge bg-success">aktiv</span>
+                        {% elif rind.status == 'verendet' %}
+                            <span class="badge bg-danger">verendet</span>
+                        {% elif rind.status == 'geschlachtet' %}
+                            <span class="badge bg-secondary">geschlachtet</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">{{ rind.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if rind.ama_gemeldet %}
+                            <i class="bi bi-check-circle text-success" title="Gemeldet"></i>
+                        {% elif rind.ama_meldung_faellig %}
+                            <i class="bi bi-exclamation-triangle text-danger" title="Meldung überfällig!"></i>
+                        {% else %}
+                            <i class="bi bi-clock text-warning" title="Noch nicht gemeldet"></i>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}"
+                           class="btn btn-sm btn-outline-primary">Detail</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">{{ rinder|length }} Tiere</div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Keine Tiere gefunden.
+</div>
+{% endif %}
+
+{% endblock %}

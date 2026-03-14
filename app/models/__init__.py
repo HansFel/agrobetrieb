@@ -20,6 +20,13 @@ from app.models.fakturierung import (
 	DOKUMENT_TYPEN,
 )
 from app.models.backup import Backup
+from app.models.milchvieh import (
+	Rind,
+	Tierbewegung,
+	Laktation,
+	RindArzneimittelAnwendung,
+	RindImpfung,
+)
 from app.models.legehennen import (
 	Herde,
 	Tagesleistung,
@@ -50,6 +57,11 @@ __all__ = [
 	'FAKTURA_STATUS',
 	'DOKUMENT_TYPEN',
 	'Backup',
+	'Rind',
+	'Tierbewegung',
+	'Laktation',
+	'RindArzneimittelAnwendung',
+	'RindImpfung',
 	'Herde',
 	'Tagesleistung',
 	'Sortierergebnis',

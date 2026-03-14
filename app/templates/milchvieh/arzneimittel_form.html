@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}{% if anwendung %}Behandlung bearbeiten{% else %}Behandlung eintragen{% endif %} – TAMG – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="m-0">
+                    <i class="bi bi-capsule"></i>
+                    TAMG – Behandlungsjournal: {{ rind.ohrmarke }}{% if rind.name %} ({{ rind.name }}){% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i>
+                    Pflichtdokumentation gemäß TAMG (Tierarzneimittelgesetz).
+                    Bitte alle Felder vollständig ausfüllen, insbesondere Chargen-Nr. und Wartezeiten.
+                </div>
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <h6 class="text-muted mb-3">Behandlungszeitraum</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="beginn" class="form-label">Beginn *</label>
+                            <input type="date" class="form-control" id="beginn" name="beginn"
+                                   value="{{ anwendung.beginn.isoformat() if anwendung and anwendung.beginn else '' }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ende" class="form-label">Ende</label>
+                            <input type="date" class="form-control" id="ende" name="ende"
+                                   value="{{ anwendung.ende.isoformat() if anwendung and anwendung.ende else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="behandlungsdauer_tage" class="form-label">Dauer (Tage)</label>
+                            <input type="number" class="form-control" id="behandlungsdauer_tage" name="behandlungsdauer_tage"
+                                   min="1" value="{{ anwendung.behandlungsdauer_tage if anwendung and anwendung.behandlungsdauer_tage else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="anzahl_tiere" class="form-label">Anzahl Tiere</label>
+                            <input type="number" class="form-control" id="anzahl_tiere" name="anzahl_tiere"
+                                   min="1" value="{{ anwendung.anzahl_tiere if anwendung else 1 }}">
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 mb-3">Arzneimittel</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="arzneimittel_name" class="form-label">Arzneimittel *</label>
+                            <input type="text" class="form-control" id="arzneimittel_name" name="arzneimittel_name"
+                                   value="{{ anwendung.arzneimittel_name if anwendung else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="wirkstoff" class="form-label">Wirkstoff</label>
+                            <input type="text" class="form-control" id="wirkstoff" name="wirkstoff"
+                                   value="{{ anwendung.wirkstoff if anwendung and anwendung.wirkstoff else '' }}">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="zulassungsnummer" class="form-label">Zulassungsnummer</label>
+                            <input type="text" class="form-control" id="zulassungsnummer" name="zulassungsnummer"
+                                   value="{{ anwendung.zulassungsnummer if anwendung and anwendung.zulassungsnummer else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="charge" class="form-label">Chargen-Nr. *</label>
+                            <input type="text" class="form-control" id="charge" name="charge"
+                                   value="{{ anwendung.charge if anwendung and anwendung.charge else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dosierung" class="form-label">Dosierung</label>
+                            <input type="text" class="form-control" id="dosierung" name="dosierung"
+                                   value="{{ anwendung.dosierung if anwendung and anwendung.dosierung else '' }}"
+                                   placeholder="z.B. 10 ml/100 kg">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="verabreichungsart" class="form-label">Verabreichungsart</label>
+                            <select class="form-select" id="verabreichungsart" name="verabreichungsart">
+                                <option value="">– bitte wählen –</option>
+                                {% for v in verabreichungsarten %}
+                                <option value="{{ v }}" {% if anwendung and anwendung.verabreichungsart == v %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="checkbox" id="ist_antibiotikum" name="ist_antibiotikum" value="1"
+                                       {% if anwendung and anwendung.ist_antibiotikum %}checked{% endif %}>
+                                <label class="form-check-label text-warning fw-bold" for="ist_antibiotikum">
+                                    Antibiotikum (ABR-pflichtig)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 mb-3">Verschreibung / Diagnose</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="diagnose" class="form-label">Diagnose</label>
+                            <input type="text" class="form-control" id="diagnose" name="diagnose"
+                                   value="{{ anwendung.diagnose if anwendung and anwendung.diagnose else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tierarzt_name" class="form-label">Tierarzt</label>
+                            <input type="text" class="form-control" id="tierarzt_name" name="tierarzt_name"
+                                   value="{{ anwendung.tierarzt_name if anwendung and anwendung.tierarzt_name else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="rezept_nr" class="form-label">Rezept-Nr.</label>
+                            <input type="text" class="form-control" id="rezept_nr" name="rezept_nr"
+                                   value="{{ anwendung.rezept_nr if anwendung and anwendung.rezept_nr else '' }}">
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 mb-3">Wartezeiten (TAMG-Pflichtfeld)</h6>
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Wartezeiten gelten ab dem letzten Behandlungstag. Sie werden automatisch berechnet.
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="wartezeit_milch_tage" class="form-label">Wartezeit Milch (Tage)</label>
+                            <input type="number" class="form-control" id="wartezeit_milch_tage" name="wartezeit_milch_tage"
+                                   min="0" value="{{ anwendung.wartezeit_milch_tage if anwendung else 0 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="wartezeit_fleisch_tage" class="form-label">Wartezeit Fleisch (Tage)</label>
+                            <input type="number" class="form-control" id="wartezeit_fleisch_tage" name="wartezeit_fleisch_tage"
+                                   min="0" value="{{ anwendung.wartezeit_fleisch_tage if anwendung else 0 }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="beleg_nr" class="form-label">Beleg-Nr.</label>
+                            <input type="text" class="form-control" id="beleg_nr" name="beleg_nr"
+                                   value="{{ anwendung.beleg_nr if anwendung and anwendung.beleg_nr else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ anwendung.bemerkung if anwendung and anwendung.bemerkung else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger">
+                            {% if anwendung %}Speichern{% else %}Behandlung eintragen{% endif %}
+                        </button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

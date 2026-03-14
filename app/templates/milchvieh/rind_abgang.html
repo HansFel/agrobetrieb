@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Abgang erfassen – {{ rind.ohrmarke }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="m-0"><i class="bi bi-box-arrow-right"></i> Abgang erfassen: {{ rind.ohrmarke }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i>
+                    Der Abgang muss innerhalb von <strong>7 Tagen</strong> bei der AMA gemeldet werden.
+                </div>
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label for="typ" class="form-label">Art des Abgangs *</label>
+                        <select class="form-select" id="typ" name="typ" required>
+                            <option value="abgang_verkauf">Verkauf / Abgang</option>
+                            <option value="abgang_schlachtung">Schlachtung</option>
+                            <option value="abgang_verendung">Verendung / Tod</option>
+                            <option value="abgang_sonstig">Sonstiger Abgang</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="datum" class="form-label">Abgangsdatum *</label>
+                        <input type="date" class="form-control" id="datum" name="datum"
+                               value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="abgangsursache" class="form-label">Abgangsursache</label>
+                        <select class="form-select" id="abgangsursache" name="abgangsursache">
+                            <option value="">– bitte wählen –</option>
+                            {% for u in abgangsursachen %}
+                            <option value="{{ u }}">{{ u }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="gegenpartei_betrieb" class="form-label">Käufer / Schlachthof</label>
+                        <input type="text" class="form-control" id="gegenpartei_betrieb" name="gegenpartei_betrieb">
+                    </div>
+                    <div class="mb-3" id="schlachthof_row">
+                        <label for="schlachthof" class="form-label">Schlachthof</label>
+                        <input type="text" class="form-control" id="schlachthof" name="schlachthof">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="gewicht_kg" class="form-label">Gewicht kg</label>
+                            <input type="number" class="form-control" id="gewicht_kg" name="gewicht_kg" step="0.1">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="preis" class="form-label">Erlös €</label>
+                            <input type="number" class="form-control" id="preis" name="preis" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="beleg_nr" class="form-label">Beleg-Nr.</label>
+                            <input type="text" class="form-control" id="beleg_nr" name="beleg_nr">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2"></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger">Abgang erfassen</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

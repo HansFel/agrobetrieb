@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{% if rind %}Tier bearbeiten{% else %}Neues Tier{% endif %} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">
+                    <i class="bi bi-cow"></i>
+                    {% if rind %}Tier bearbeiten: {{ rind.ohrmarke }}{% else %}Neues Tier anlegen{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <h6 class="text-muted mt-2 mb-3">Ohrmarke / Kennzeichnung</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="ohrmarke" class="form-label">Ohrmarke *</label>
+                            <input type="text" class="form-control" id="ohrmarke" name="ohrmarke"
+                                   value="{{ rind.ohrmarke if rind else '' }}"
+                                   {% if rind %}readonly{% endif %} required
+                                   placeholder="z.B. ATS-123456789012">
+                            {% if rind %}<div class="form-text">Ohrmarke kann nicht geändert werden.</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="ohrmarke_2" class="form-label">Ersatzohrmarke</label>
+                            <input type="text" class="form-control" id="ohrmarke_2" name="ohrmarke_2"
+                                   value="{{ rind.ohrmarke_2 if rind else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="name" class="form-label">Stallname / Hofname</label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ rind.name if rind else '' }}">
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 mb-3">Stammdaten</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="rasse" class="form-label">Rasse</label>
+                            <select class="form-select" id="rasse" name="rasse">
+                                <option value="">– bitte wählen –</option>
+                                {% for r in rassen %}
+                                <option value="{{ r }}" {% if rind and rind.rasse == r %}selected{% endif %}>{{ r }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="geschlecht" class="form-label">Geschlecht</label>
+                            <select class="form-select" id="geschlecht" name="geschlecht">
+                                <option value="W" {% if not rind or rind.geschlecht == 'W' %}selected{% endif %}>Weiblich</option>
+                                <option value="M" {% if rind and rind.geschlecht == 'M' %}selected{% endif %}>Männlich</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="geburtsdatum" class="form-label">Geburtsdatum</label>
+                            <input type="date" class="form-control" id="geburtsdatum" name="geburtsdatum"
+                                   value="{{ rind.geburtsdatum.isoformat() if rind and rind.geburtsdatum else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="geburtsgewicht_kg" class="form-label">Geburtsgewicht kg</label>
+                            <input type="number" class="form-control" id="geburtsgewicht_kg" name="geburtsgewicht_kg"
+                                   step="0.1" value="{{ rind.geburtsgewicht_kg if rind and rind.geburtsgewicht_kg else '' }}">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="nutzungsart" class="form-label">Nutzungsart</label>
+                            <select class="form-select" id="nutzungsart" name="nutzungsart">
+                                {% for n in ['Milch', 'Mast', 'Zucht', 'Gemischt'] %}
+                                <option value="{{ n }}" {% if rind and rind.nutzungsart == n %}selected{% endif %}>{{ n }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="mutter_ohrmarke" class="form-label">Mutter-Ohrmarke</label>
+                            <input type="text" class="form-control" id="mutter_ohrmarke" name="mutter_ohrmarke"
+                                   value="{{ rind.mutter_ohrmarke if rind and rind.mutter_ohrmarke else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="vater_hb_nr" class="form-label">Vater Herdbuch-Nr.</label>
+                            <input type="text" class="form-control" id="vater_hb_nr" name="vater_hb_nr"
+                                   value="{{ rind.vater_hb_nr if rind and rind.vater_hb_nr else '' }}">
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 mb-3">Herkunft (bei Zukauf)</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="herkunft_betrieb" class="form-label">Herkunftsbetrieb</label>
+                            <input type="text" class="form-control" id="herkunft_betrieb" name="herkunft_betrieb"
+                                   value="{{ rind.herkunft_betrieb if rind and rind.herkunft_betrieb else '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="herkunft_land" class="form-label">Land</label>
+                            <input type="text" class="form-control" id="herkunft_land" name="herkunft_land"
+                                   value="{{ rind.herkunft_land if rind and rind.herkunft_land else '' }}"
+                                   maxlength="2" placeholder="AT">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="eingang_datum" class="form-label">Eingang / Zugangsdatum</label>
+                            <input type="date" class="form-control" id="eingang_datum" name="eingang_datum"
+                                   value="{{ rind.eingang_datum.isoformat() if rind and rind.eingang_datum else '' }}">
+                        </div>
+                    </div>
+
+                    {% if not rind %}
+                    <h6 class="text-muted mt-4 mb-3">Zugangsereignis</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="bewegung_typ" class="form-label">Art des Zugangs</label>
+                            <select class="form-select" id="bewegung_typ" name="bewegung_typ">
+                                <option value="geburt">Geburt im Betrieb</option>
+                                <option value="zukauf">Zukauf / Zugang</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if rind %}
+                    <h6 class="text-muted mt-4 mb-3">AMA-Meldung</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="ama_gemeldet" name="ama_gemeldet" value="1"
+                                       {% if rind.ama_gemeldet %}checked{% endif %}>
+                                <label class="form-check-label" for="ama_gemeldet">AMA gemeldet</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ama_meldedatum" class="form-label">Meldedatum</label>
+                            <input type="date" class="form-control" id="ama_meldedatum" name="ama_meldedatum"
+                                   value="{{ rind.ama_meldedatum.isoformat() if rind.ama_meldedatum else '' }}">
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ rind.bemerkung if rind and rind.bemerkung else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {% if rind %}Speichern{% else %}Anlegen{% endif %}
+                        </button>
+                        {% if rind %}
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                        {% else %}
+                        <a href="{{ url_for('milchvieh.index') }}" class="btn btn-secondary">Abbrechen</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

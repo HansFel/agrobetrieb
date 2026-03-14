@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}{{ rind.ohrmarke }} – Milchvieh – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2>
+            <i class="bi bi-cow"></i> {{ rind.ohrmarke }}
+            {% if rind.name %}<small class="text-muted">– {{ rind.name }}</small>{% endif %}
+            {% if rind.status == 'aktiv' %}<span class="badge bg-success ms-2">aktiv</span>
+            {% elif rind.status == 'verendet' %}<span class="badge bg-danger ms-2">verendet</span>
+            {% elif rind.status == 'geschlachtet' %}<span class="badge bg-secondary ms-2">geschlachtet</span>
+            {% else %}<span class="badge bg-warning text-dark ms-2">{{ rind.status }}</span>{% endif %}
+        </h2>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if hat_berechtigung(current_user, 'milchvieh', 'edit') %}
+        <a href="{{ url_for('milchvieh.rind_edit', rind_id=rind.id) }}" class="btn btn-outline-primary btn-sm me-1">
+            <i class="bi bi-pencil"></i> Bearbeiten
+        </a>
+        {% if rind.ist_aktiv %}
+        <a href="{{ url_for('milchvieh.rind_abgang', rind_id=rind.id) }}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Abgang
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Wartezeit-Alert -->
+{% if rind.hat_aktive_wartezeit %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <strong>Wartezeit aktiv!</strong> Dieses Tier hat eine aktive Arzneimittel-Wartezeit.
+    Milch und/oder Fleisch darf nicht in den Verkehr gebracht werden!
+</div>
+{% endif %}
+{% if rind.ama_meldung_faellig %}
+<div class="alert alert-warning">
+    <i class="bi bi-clock-fill"></i>
+    <strong>AMA-Meldung überfällig!</strong> Dieses Tier wurde noch nicht bei der AMA gemeldet (Frist 7 Tage).
+</div>
+{% endif %}
+
+<!-- Stammdaten -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light"><strong>Stammdaten</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Ohrmarke</dt>
+                    <dd class="col-sm-7"><code>{{ rind.ohrmarke }}</code>
+                        {% if rind.ohrmarke_2 %} / <code>{{ rind.ohrmarke_2 }}</code>{% endif %}
+                    </dd>
+                    <dt class="col-sm-5">Rasse</dt>
+                    <dd class="col-sm-7">{{ rind.rasse or '–' }}</dd>
+                    <dt class="col-sm-5">Geschlecht</dt>
+                    <dd class="col-sm-7">{{ 'Männlich' if rind.geschlecht == 'M' else 'Weiblich' }}</dd>
+                    <dt class="col-sm-5">Geburtsdatum</dt>
+                    <dd class="col-sm-7">{{ rind.geburtsdatum.strftime('%d.%m.%Y') if rind.geburtsdatum else '–' }}</dd>
+                    <dt class="col-sm-5">Alter</dt>
+                    <dd class="col-sm-7">
+                        {% if rind.alter_jahre is not none %}{{ rind.alter_jahre }} Jahre
+                        {% elif rind.alter_monate is not none %}{{ rind.alter_monate }} Monate
+                        {% else %}–{% endif %}
+                    </dd>
+                    <dt class="col-sm-5">Nutzungsart</dt>
+                    <dd class="col-sm-7">{{ rind.nutzungsart or '–' }}</dd>
+                    <dt class="col-sm-5">Mutter</dt>
+                    <dd class="col-sm-7">{{ rind.mutter_ohrmarke or '–' }}</dd>
+                    <dt class="col-sm-5">Vater Hb-Nr.</dt>
+                    <dd class="col-sm-7">{{ rind.vater_hb_nr or '–' }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light"><strong>Bestandsangaben</strong></div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Herkunft</dt>
+                    <dd class="col-sm-7">{{ rind.herkunft_betrieb or '–' }}
+                        {% if rind.herkunft_land %} ({{ rind.herkunft_land }}){% endif %}
+                    </dd>
+                    <dt class="col-sm-5">Eingang</dt>
+                    <dd class="col-sm-7">{{ rind.eingang_datum.strftime('%d.%m.%Y') if rind.eingang_datum else '–' }}</dd>
+                    <dt class="col-sm-5">AMA-Meldung</dt>
+                    <dd class="col-sm-7">
+                        {% if rind.ama_gemeldet %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> gemeldet
+                            {% if rind.ama_meldedatum %}am {{ rind.ama_meldedatum.strftime('%d.%m.%Y') }}{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="text-warning"><i class="bi bi-clock"></i> ausstehend</span>
+                        {% endif %}
+                    </dd>
+                    {% if not rind.ist_aktiv %}
+                    <dt class="col-sm-5">Abgang</dt>
+                    <dd class="col-sm-7">{{ rind.abgang_datum.strftime('%d.%m.%Y') if rind.abgang_datum else '–' }}</dd>
+                    <dt class="col-sm-5">Abgangsursache</dt>
+                    <dd class="col-sm-7">{{ rind.abgangsursache or '–' }}</dd>
+                    {% endif %}
+                    {% if rind.bemerkung %}
+                    <dt class="col-sm-5">Bemerkung</dt>
+                    <dd class="col-sm-7">{{ rind.bemerkung }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Laktationen -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-droplet"></i> Laktationen</strong>
+        {% if hat_berechtigung(current_user, 'milchvieh', 'create') and rind.ist_aktiv %}
+        <a href="{{ url_for('milchvieh.laktation_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-plus"></i> Kalbung erfassen
+        </a>
+        {% endif %}
+    </div>
+    {% if laktationen %}
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Lakt.-Nr.</th>
+                    <th>Kalbedatum</th>
+                    <th>Kalbeverlauf</th>
+                    <th>Kalb Ohrmk.</th>
+                    <th>Status</th>
+                    <th>305-T Kg</th>
+                    <th>Fett %</th>
+                    <th>Eiweiß %</th>
+                    <th>Zellzahl</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lakt in laktationen %}
+                <tr {% if lakt.ist_aktiv %}class="table-success"{% endif %}>
+                    <td>{{ lakt.laktationsnummer or '–' }}</td>
+                    <td>{{ lakt.kalbedatum.strftime('%d.%m.%Y') if lakt.kalbedatum else '–' }}</td>
+                    <td>{{ lakt.kalbeverlauf or '–' }}</td>
+                    <td>{{ lakt.kalb_ohrmarke or '–' }}</td>
+                    <td>
+                        {% if lakt.ist_aktiv %}<span class="badge bg-success">aktiv</span>
+                        {% else %}<span class="badge bg-secondary">{{ lakt.status }}</span>{% endif %}
+                    </td>
+                    <td>{{ lakt.milch_305_tage_kg or '–' }}</td>
+                    <td>{{ lakt.fett_prozent or '–' }}</td>
+                    <td>{{ lakt.eiweiss_prozent or '–' }}</td>
+                    <td>{{ lakt.zellzahl_tsd or '–' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted small">Noch keine Laktationen erfasst.</div>
+    {% endif %}
+</div>
+
+<!-- TAMG – Arzneimittel -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-capsule"></i> TAMG – Arzneimittel-Behandlungen</strong>
+        {% if hat_berechtigung(current_user, 'milchvieh', 'create') and rind.ist_aktiv %}
+        <a href="{{ url_for('milchvieh.arzneimittel_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-plus"></i> Behandlung eintragen
+        </a>
+        {% endif %}
+    </div>
+    {% if arzneimittel %}
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Beginn</th>
+                    <th>Ende</th>
+                    <th>Arzneimittel</th>
+                    <th>Diagnose</th>
+                    <th>Wartezeit Milch</th>
+                    <th>Wartezeit Fleisch</th>
+                    <th>Tierarzt</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in arzneimittel %}
+                <tr {% if a.wartezeit_milch_aktiv or a.wartezeit_fleisch_aktiv %}class="table-danger"{% endif %}>
+                    <td>{{ a.beginn.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ a.ende.strftime('%d.%m.%Y') if a.ende else '–' }}</td>
+                    <td>
+                        {{ a.arzneimittel_name }}
+                        {% if a.ist_antibiotikum %}<span class="badge bg-warning text-dark ms-1">AB</span>{% endif %}
+                    </td>
+                    <td>{{ a.diagnose or '–' }}</td>
+                    <td>
+                        {% if a.wartezeit_milch_tage %}
+                            {% if a.wartezeit_milch_aktiv %}
+                                <span class="badge bg-danger">{{ a.wartezeit_milch_resttage }} Tage</span>
+                            {% else %}
+                                <span class="text-muted">{{ a.wartezeit_milch_tage }} T / abgelaufen</span>
+                            {% endif %}
+                        {% else %}0{% endif %}
+                    </td>
+                    <td>
+                        {% if a.wartezeit_fleisch_tage %}
+                            {% if a.wartezeit_fleisch_aktiv %}
+                                <span class="badge bg-danger">{{ a.wartezeit_fleisch_resttage }} Tage</span>
+                            {% else %}
+                                <span class="text-muted">{{ a.wartezeit_fleisch_tage }} T / abgelaufen</span>
+                            {% endif %}
+                        {% else %}0{% endif %}
+                    </td>
+                    <td>{{ a.tierarzt_name or '–' }}</td>
+                    <td>
+                        {% if hat_berechtigung(current_user, 'milchvieh', 'edit') %}
+                        <a href="{{ url_for('milchvieh.arzneimittel_edit', anwendung_id=a.id) }}"
+                           class="btn btn-xs btn-outline-secondary btn-sm">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted small">Noch keine Behandlungen eingetragen.</div>
+    {% endif %}
+</div>
+
+<!-- Impfungen -->
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-shield-plus"></i> Impfungen</strong>
+        {% if hat_berechtigung(current_user, 'milchvieh', 'create') and rind.ist_aktiv %}
+        <a href="{{ url_for('milchvieh.impfung_neu', rind_id=rind.id) }}" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-plus"></i> Impfung eintragen
+        </a>
+        {% endif %}
+    </div>
+    {% if impfungen %}
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Krankheit</th>
+                    <th>Impfstoff</th>
+                    <th>Charge</th>
+                    <th>Tierarzt</th>
+                    <th>Nächste Impfung</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in impfungen %}
+                <tr>
+                    <td>{{ i.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ i.krankheit or '–' }}</td>
+                    <td>{{ i.impfstoff or '–' }}</td>
+                    <td>{{ i.charge or '–' }}</td>
+                    <td>{{ i.tierarzt or '–' }}</td>
+                    <td>
+                        {% if i.naechste_impfung %}
+                            {% if i.naechste_impfung <= today %}
+                                <span class="badge bg-warning text-dark">{{ i.naechste_impfung.strftime('%d.%m.%Y') }}</span>
+                            {% else %}
+                                {{ i.naechste_impfung.strftime('%d.%m.%Y') }}
+                            {% endif %}
+                        {% else %}–{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted small">Noch keine Impfungen eingetragen.</div>
+    {% endif %}
+</div>
+
+<!-- Tierbewegungen -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <strong><i class="bi bi-arrow-left-right"></i> Tierbewegungen</strong>
+    </div>
+    {% if bewegungen %}
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Art</th>
+                    <th>Gegenpartei / Schlachthof</th>
+                    <th>Gewicht kg</th>
+                    <th>Beleg-Nr.</th>
+                    <th>AMA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bewegungen %}
+                <tr>
+                    <td>{{ b.datum.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ b.typ_name }}</td>
+                    <td>{{ b.gegenpartei_betrieb or b.schlachthof or '–' }}</td>
+                    <td>{{ b.gewicht_kg or '–' }}</td>
+                    <td>{{ b.beleg_nr or '–' }}</td>
+                    <td>
+                        {% if b.ama_gemeldet %}
+                            <i class="bi bi-check-circle text-success"></i>
+                        {% elif b.meldung_faellig %}
+                            <i class="bi bi-exclamation-triangle text-danger" title="Meldung überfällig!"></i>
+                        {% else %}
+                            <i class="bi bi-clock text-muted"></i>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted small">Noch keine Bewegungen.</div>
+    {% endif %}
+</div>
+
+<div class="mb-4">
+    <a href="{{ url_for('milchvieh.bestand') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Zurück zum Bestand
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const today = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

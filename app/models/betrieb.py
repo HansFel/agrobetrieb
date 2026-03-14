@@ -42,6 +42,7 @@ class Betrieb(db.Model):
     # Lizenz / Module
     ist_testbetrieb = db.Column(db.Boolean, default=False)  # Testbetrieb: alle Module aktiv
     modul_legehennen = db.Column(db.Boolean, default=False)
+    modul_milchvieh = db.Column(db.Boolean, default=False)
 
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)

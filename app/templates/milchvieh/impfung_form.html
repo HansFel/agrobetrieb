@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Impfung eintragen – {{ rind.ohrmarke }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="m-0">
+                    <i class="bi bi-shield-plus"></i>
+                    Impfung: {{ rind.ohrmarke }}{% if rind.name %} ({{ rind.name }}){% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="datum" class="form-label">Datum *</label>
+                            <input type="date" class="form-control" id="datum" name="datum"
+                                   value="{{ impfung.datum.isoformat() if impfung else '' }}" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="krankheit" class="form-label">Krankheit / Indikation</label>
+                            <select class="form-select" id="krankheit" name="krankheit">
+                                <option value="">– bitte wählen –</option>
+                                {% for k in krankheiten %}
+                                <option value="{{ k }}" {% if impfung and impfung.krankheit == k %}selected{% endif %}>{{ k }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="impfstoff" class="form-label">Impfstoff</label>
+                            <input type="text" class="form-control" id="impfstoff" name="impfstoff"
+                                   value="{{ impfung.impfstoff if impfung and impfung.impfstoff else '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="charge" class="form-label">Chargen-Nr.</label>
+                            <input type="text" class="form-control" id="charge" name="charge"
+                                   value="{{ impfung.charge if impfung and impfung.charge else '' }}">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <label for="verabreichungsart" class="form-label">Verabreichungsart</label>
+                            <select class="form-select" id="verabreichungsart" name="verabreichungsart">
+                                <option value="">– bitte wählen –</option>
+                                {% for v in verabreichungsarten %}
+                                <option value="{{ v }}" {% if impfung and impfung.verabreichungsart == v %}selected{% endif %}>{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tierarzt" class="form-label">Tierarzt</label>
+                            <input type="text" class="form-control" id="tierarzt" name="tierarzt"
+                                   value="{{ impfung.tierarzt if impfung and impfung.tierarzt else '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="naechste_impfung" class="form-label">Nächste Impfung</label>
+                            <input type="date" class="form-control" id="naechste_impfung" name="naechste_impfung"
+                                   value="{{ impfung.naechste_impfung.isoformat() if impfung and impfung.naechste_impfung else '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bemerkung" class="form-label">Bemerkung</label>
+                        <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ impfung.bemerkung if impfung and impfung.bemerkung else '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">Impfung speichern</button>
+                        <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (!document.getElementById('datum').value) {
+        document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+    }
+</script>
+{% endblock %}

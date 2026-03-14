@@ -134,6 +134,13 @@
                         </ul>
                     </li>
                     {% endif %}
+                    {% if hat_modul_zugriff(current_user, 'milchvieh') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('milchvieh.index') }}">
+                            <i class="bi bi-cow"></i> Milchvieh
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% set _gj_session = session.get('gj') %}

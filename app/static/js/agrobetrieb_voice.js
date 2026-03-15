@@ -239,19 +239,21 @@ const FormularWalker = {
         const form = document.querySelector('form');
         const container = form || document.body;
 
-        const elemente = container.querySelectorAll(
-            'input:not([type=hidden]):not([type=submit]):not([type=button]):not([name=csrf_token]),' +
-            'textarea, select'
+        const alle = container.querySelectorAll(
+            'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]):not([name=csrf_token]),' +
+            'input[type=checkbox], input[type=radio], textarea, select'
         );
 
-        return Array.from(elemente)
+        console.log('[AgroVoice] Gefundene Rohelemente:', alle.length, Array.from(alle).map(e => e.tagName + '#' + e.id + '[' + e.type + ']'));
+
+        return Array.from(alle)
             .filter(el => {
                 if (el.disabled || el.readOnly) return false;
-                const r = el.getBoundingClientRect();
-                // sichtbar wenn Breite > 0 (auch außerhalb Viewport zulassen)
-                return r.width > 0 || el.type === 'hidden';
+                // Sichtbarkeit: nicht display:none oder visibility:hidden
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden') return false;
+                return true;
             })
-            .filter(el => el.type !== 'hidden')
             .map(el => {
                 // Label-Text ermitteln
                 let label = '';

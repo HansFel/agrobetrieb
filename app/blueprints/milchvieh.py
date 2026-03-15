@@ -406,6 +406,37 @@ def tamg_journal():
                            aktive_wartezeiten=aktive_wartezeiten,
                            heute=heute)
 
+
+@milchvieh_bp.route('/arzneimittel/<int:anwendung_id>/signatur', methods=['POST'])
+@login_required
+@requires_permission('milchvieh', 'edit')
+def tamg_signatur(anwendung_id):
+    """Tierarzt-Signatur für TAMG-Eintrag speichern (JSON API)."""
+    anwendung = RindArzneimittelAnwendung.query.get_or_404(anwendung_id)
+    data = request.get_json()
+    if not data or not data.get('signatur_data'):
+        return jsonify({'ok': False, 'fehler': 'Keine Signatur-Daten'}), 400
+    anwendung.signatur_data = data['signatur_data']
+    anwendung.signatur_name = data.get('signatur_name', '').strip() or None
+    anwendung.signatur_datum = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@milchvieh_bp.route('/arzneimittel/<int:anwendung_id>/signatur/loeschen', methods=['POST'])
+@login_required
+@requires_permission('milchvieh', 'edit')
+def tamg_signatur_loeschen(anwendung_id):
+    """Tierarzt-Signatur löschen."""
+    anwendung = RindArzneimittelAnwendung.query.get_or_404(anwendung_id)
+    anwendung.signatur_data = None
+    anwendung.signatur_datum = None
+    anwendung.signatur_name = None
+    db.session.commit()
+    flash('Signatur gelöscht.', 'warning')
+    return redirect(url_for('milchvieh.tamg_journal'))
+
+
 # ── Reproduktion – Besamung ───────────────────────────────────────
 
 @milchvieh_bp.route('/rind/<int:rind_id>/besamung/neu', methods=['GET', 'POST'])

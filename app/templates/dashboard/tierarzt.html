@@ -36,7 +36,7 @@
         <div class="card border-primary h-100">
             <div class="card-body text-center">
                 <i class="bi bi-cow fs-2 text-primary"></i>
-                <div class="fw-bold fs-3 text-primary mt-1">{{ stats.get('rinder_gesamt', 0) }}</div>
+                <div class="fw-bold fs-3 text-primary mt-1">{{ stats.get('rinder_aktiv', 0) }}</div>
                 <div class="text-muted small">Rinder aktiv</div>
             </div>
         </div>
@@ -170,6 +170,66 @@
 </div>
 {% endif %}
 
+<!-- Milchvieh TAMG-Einträge -->
+{% if hat_berechtigung(current_user, 'milchvieh', 'view') and tamg_eintraege %}
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="m-0"><i class="bi bi-journal-medical text-primary"></i> TAMG-Behandlungen Milchvieh</h5>
+        <a href="{{ url_for('milchvieh.tamg_journal') }}" class="btn btn-sm btn-outline-primary">Alle anzeigen</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover m-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Tier</th>
+                    <th>Beginn</th>
+                    <th>Arzneimittel</th>
+                    <th>Diagnose</th>
+                    <th>WZ Milch</th>
+                    <th>WZ Fleisch</th>
+                    <th>Signatur</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in tamg_eintraege %}
+                <tr {% if not a.signatur_data %}class="table-warning"{% endif %}>
+                    <td><a href="{{ url_for('milchvieh.rind_detail', rind_id=a.rind_id) }}"><code>{{ a.rind.ohrmarke }}</code></a></td>
+                    <td class="text-nowrap">{{ a.beginn.strftime('%d.%m.%Y') }}</td>
+                    <td>{{ a.arzneimittel_name }}</td>
+                    <td>{{ a.diagnose or '–' }}</td>
+                    <td>
+                        {% if a.wartezeit_milch_aktiv %}
+                            <span class="badge bg-danger">{{ a.wartezeit_milch_resttage }} T</span>
+                        {% elif a.wartezeit_milch_tage %}
+                            <span class="text-muted">✓</span>
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if a.wartezeit_fleisch_aktiv %}
+                            <span class="badge bg-danger">{{ a.wartezeit_fleisch_resttage }} T</span>
+                        {% elif a.wartezeit_fleisch_tage %}
+                            <span class="text-muted">✓</span>
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if a.signatur_data %}
+                        <span class="text-success"><i class="bi bi-patch-check-fill"></i> {{ a.signatur_name or '' }}</span>
+                        {% elif hat_berechtigung(current_user, 'milchvieh', 'edit') %}
+                        <button class="btn btn-sm btn-warning tamg-sig-btn"
+                                data-id="{{ a.id }}"
+                                data-label="{{ a.arzneimittel_name }} ({{ a.rind.ohrmarke }})">
+                            <i class="bi bi-pen"></i> signieren
+                        </button>
+                        {% else %}–{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 <!-- Signatur Modal (gleich wie in herde_detail.html) -->
 <div class="modal fade" id="signaturModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -205,10 +265,11 @@
 {% block extra_js %}
 <script>
 (function() {
+    const modal = document.getElementById('signaturModal');
     const canvas = document.getElementById('sig-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    let malen = false, aktivId = null;
+    let malen = false, aktivId = null, aktivTyp = 'legehennen';
 
     function resize() {
         const w = canvas.parentElement.getBoundingClientRect().width;
@@ -228,7 +289,25 @@
     canvas.addEventListener('touchmove',  e => { e.preventDefault(); if(!malen) return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }, {passive:false});
     canvas.addEventListener('touchend',   () => malen=false);
     document.getElementById('sig-clear').addEventListener('click', () => ctx.clearRect(0,0,canvas.width,canvas.height));
-    document.getElementById('signaturModal').addEventListener('shown.bs.modal', resize);
+    modal.addEventListener('shown.bs.modal', resize);
+
+    // Legehennen Tierarztbesuch
+    window.oeffneSignaturDialog = function(id, name) {
+        aktivId = id; aktivTyp = 'legehennen';
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        document.getElementById('sig-name').value = name || '';
+        new bootstrap.Modal(modal).show();
+    };
+
+    // TAMG Milchvieh
+    document.querySelectorAll('.tamg-sig-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            aktivId = this.dataset.id; aktivTyp = 'milchvieh';
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            document.getElementById('sig-name').value = '{{ current_user.vorname or current_user.username }}';
+            new bootstrap.Modal(modal).show();
+        });
+    });
 
     document.getElementById('sig-speichern').addEventListener('click', async () => {
         if (!aktivId) return;
@@ -237,22 +316,20 @@
         const btn = document.getElementById('sig-speichern');
         btn.disabled = true;
         try {
-            const r = await fetch(`/legehennen/tierarzt/${aktivId}/signatur`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ signatur: canvas.toDataURL('image/png'), name: document.getElementById('sig-name').value })
-            });
+            let url, body;
+            if (aktivTyp === 'milchvieh') {
+                url = `/milchvieh/arzneimittel/${aktivId}/signatur`;
+                body = JSON.stringify({ signatur_data: canvas.toDataURL('image/png'), signatur_name: document.getElementById('sig-name').value });
+            } else {
+                url = `/legehennen/tierarzt/${aktivId}/signatur`;
+                body = JSON.stringify({ signatur: canvas.toDataURL('image/png'), name: document.getElementById('sig-name').value });
+            }
+            const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body });
             const data = await r.json();
-            if (data.ok) { bootstrap.Modal.getInstance(document.getElementById('signaturModal')).hide(); location.reload(); }
-        } catch(e) { alert('Fehler'); }
+            if (data.ok) { bootstrap.Modal.getInstance(modal).hide(); location.reload(); }
+        } catch(e) { alert('Fehler beim Speichern.'); }
         btn.disabled = false;
     });
-
-    window.oeffneSignaturDialog = function(id, name) {
-        aktivId = id;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        document.getElementById('sig-name').value = name || '';
-        new bootstrap.Modal(document.getElementById('signaturModal')).show();
-    };
 })();
 </script>
 {% endblock %}

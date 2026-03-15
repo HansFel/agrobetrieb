@@ -10,6 +10,39 @@
     </div>
 </div>
 
+<!-- Signatur-Modal -->
+<div class="modal fade" id="signaturModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-pen"></i> Tierarzt-Signatur</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Behandlung: <strong id="sig_mv_label"></strong></p>
+                <div class="mb-2">
+                    <label class="form-label">Name des Tierarztes</label>
+                    <input type="text" class="form-control" id="sig_mv_name" placeholder="Dr. Max Mustermann">
+                </div>
+                <label class="form-label">Signatur</label>
+                <canvas id="sig_mv_canvas" width="420" height="160"
+                        style="border:1px solid #ccc; border-radius:4px; cursor:crosshair; touch-action:none; width:100%"></canvas>
+                <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" id="sig_mv_clear">
+                        <i class="bi bi-eraser"></i> Löschen
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="sig_mv_speichern">
+                    <i class="bi bi-check-lg"></i> Signatur speichern
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% if aktive_wartezeiten %}
 <div class="alert alert-danger">
     <i class="bi bi-exclamation-triangle-fill"></i>
@@ -39,6 +72,7 @@
                     <th>WZ Milch</th>
                     <th>WZ Fleisch</th>
                     <th>AB</th>
+                    <th>Signatur</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,6 +121,29 @@
                             <span class="badge bg-warning text-dark">AB</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if a.signatur_data %}
+                            <span class="badge bg-success" title="Signiert von {{ a.signatur_name or '?' }} am {{ a.signatur_datum.strftime('%d.%m.%Y') if a.signatur_datum else '' }}">
+                                <i class="bi bi-patch-check-fill"></i> signiert
+                            </span>
+                            {% if hat_berechtigung(current_user, 'milchvieh', 'edit') %}
+                            <form method="POST" action="{{ url_for('milchvieh.tamg_signatur_loeschen', anwendung_id=a.id) }}" class="d-inline ms-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1" title="Signatur löschen" onclick="return confirm('Signatur wirklich löschen?')">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        {% elif hat_berechtigung(current_user, 'milchvieh', 'edit') %}
+                            <button class="btn btn-outline-primary btn-sm py-0 px-2 sig-mv-btn"
+                                    data-id="{{ a.id }}"
+                                    data-label="{{ a.arzneimittel_name }} ({{ a.rind.ohrmarke }}, {{ a.beginn.strftime('%d.%m.%Y') }})">
+                                <i class="bi bi-pen"></i> signieren
+                            </button>
+                        {% else %}
+                            <span class="text-muted small">–</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -105,4 +162,65 @@
         <i class="bi bi-arrow-left"></i> Zurück
     </a>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const modal = new bootstrap.Modal(document.getElementById('signaturModal'));
+    const canvas = document.getElementById('sig_mv_canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let aktuelleId = null;
+
+    function pos(e) {
+        const r = canvas.getBoundingClientRect();
+        const src = e.touches ? e.touches[0] : e;
+        return {
+            x: (src.clientX - r.left) * (canvas.width / r.width),
+            y: (src.clientY - r.top) * (canvas.height / r.height)
+        };
+    }
+    canvas.addEventListener('mousedown', e => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+    canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+    canvas.addEventListener('mouseup', () => drawing = false);
+    canvas.addEventListener('mouseleave', () => drawing = false);
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, {passive: false});
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, {passive: false});
+    canvas.addEventListener('touchend', () => drawing = false);
+
+    document.getElementById('sig_mv_clear').addEventListener('click', () => ctx.clearRect(0, 0, canvas.width, canvas.height));
+
+    document.querySelectorAll('.sig-mv-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            aktuelleId = this.dataset.id;
+            document.getElementById('sig_mv_label').textContent = this.dataset.label;
+            document.getElementById('sig_mv_name').value = '';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            modal.show();
+        });
+    });
+
+    document.getElementById('sig_mv_speichern').addEventListener('click', async function() {
+        if (!aktuelleId) return;
+        const sigData = canvas.toDataURL('image/png');
+        const sigName = document.getElementById('sig_mv_name').value.trim();
+        const resp = await fetch(`/milchvieh/arzneimittel/${aktuelleId}/signatur`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || ''},
+            body: JSON.stringify({signatur_data: sigData, signatur_name: sigName})
+        });
+        const json = await resp.json();
+        if (json.ok) {
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Fehler: ' + (json.fehler || 'Unbekannt'));
+        }
+    });
+})();
+</script>
 {% endblock %}

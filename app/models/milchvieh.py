@@ -402,6 +402,11 @@ class RindArzneimittelAnwendung(db.Model):
     beleg_nr = db.Column(db.String(50))
     bemerkung = db.Column(db.Text)
 
+    # Tierarzt-Signatur
+    signatur_data = db.Column(db.Text)         # Base64-PNG
+    signatur_datum = db.Column(db.DateTime)
+    signatur_name = db.Column(db.String(200))
+
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
     aktualisiert_am = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -78,17 +78,30 @@ def _lade_tierarzt_stats():
         stats['wartezeiten_aktiv'] = MedikamentBehandlung.query.filter(
             MedikamentBehandlung.wartezeit_ende >= heute
         ).count()
-        # Offene Signaturen (Besuche ohne Unterschrift)
-        stats['offene_signaturen'] = TierarztBesuch.query.filter(
+        # Offene Signaturen Legehennen
+        offene_lh = TierarztBesuch.query.filter(
             TierarztBesuch.signatur_data == None
         ).count()
     except Exception:
         db.session.rollback()
+        offene_lh = 0
     try:
-        from app.models.milchvieh import Rind
-        stats['rinder_gesamt'] = Rind.query.filter_by(aktiv=True).count()
+        from app.models.milchvieh import Rind, RindArzneimittelAnwendung
+        stats['rinder_aktiv'] = Rind.query.filter_by(status='aktiv').count()
+        # Offene Signaturen TAMG Milchvieh
+        offene_mv = RindArzneimittelAnwendung.query.filter(
+            RindArzneimittelAnwendung.signatur_data == None
+        ).count()
+        # Aktive Wartezeiten Milchvieh
+        wz_mv = RindArzneimittelAnwendung.query.filter(
+            (RindArzneimittelAnwendung.wartezeit_milch_ende >= heute) |
+            (RindArzneimittelAnwendung.wartezeit_fleisch_ende >= heute)
+        ).count()
+        stats['wartezeiten_aktiv'] = stats.get('wartezeiten_aktiv', 0) + wz_mv
     except Exception:
         db.session.rollback()
+        offene_mv = 0
+    stats['offene_signaturen'] = offene_lh + offene_mv
     return stats
 
 
@@ -108,10 +121,21 @@ def index():
             herden_aktiv = Herde.query.filter_by(ist_aktiv=True).order_by(Herde.name).all()
         except Exception:
             db.session.rollback()
+        tamg_eintraege = []
+        try:
+            from app.models.milchvieh import RindArzneimittelAnwendung, Rind
+            tamg_eintraege = (RindArzneimittelAnwendung.query
+                              .join(Rind)
+                              .filter(Rind.status == 'aktiv')
+                              .order_by(RindArzneimittelAnwendung.beginn.desc())
+                              .limit(20).all())
+        except Exception:
+            db.session.rollback()
         return render_template('dashboard/tierarzt.html',
                                betrieb=betrieb, rolle=rolle,
                                stats=_lade_tierarzt_stats(),
-                               herden_aktiv=herden_aktiv)
+                               herden_aktiv=herden_aktiv,
+                               tamg_eintraege=tamg_eintraege)
 
     context = {
         'betrieb': betrieb,

@@ -239,9 +239,10 @@ const Voice = {
     },
 
     _stoppen() {
-        this._aktiv = false;
-        try { this._rec?.stop(); } catch {}
+        this._aktiv = false;  // zuerst Flag setzen damit onend keinen Neustart auslöst
+        const rec = this._rec;
         this._rec = null;
+        try { rec?.stop(); } catch {}
         this._btnAktiv(false);
         feldHervorheben(null);
         this._aktivFeld = null;
@@ -276,18 +277,25 @@ const Voice = {
                 this._status('Mikrofonzugriff verweigert!', 'danger');
                 this._stoppen();
             }
-            // no-speech / aborted: onend läuft danach automatisch → neu starten
+            // aborted/no-speech: onend folgt automatisch
         };
 
         rec.onend = () => {
+            console.log('[AgroVoice] onend, aktiv=', this._aktiv);
+            this._rec = null;
             if (this._aktiv) {
-                // Kurze Pause dann nochmal aufnehmen
-                setTimeout(() => this._aufnehmen(), 150);
+                setTimeout(() => this._aufnehmen(), 300);
             }
         };
 
-        try { rec.start(); }
-        catch { setTimeout(() => this._aufnehmen(), 300); }
+        try {
+            console.log('[AgroVoice] rec.start()');
+            rec.start();
+        } catch(e) {
+            console.log('[AgroVoice] start fehler:', e.message);
+            this._rec = null;
+            setTimeout(() => this._aufnehmen(), 500);
+        }
     },
 
     _verarbeite(text) {

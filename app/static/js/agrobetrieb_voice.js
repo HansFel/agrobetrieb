@@ -265,16 +265,18 @@ const Voice = {
                 const t = e.results[i][0].transcript;
                 e.results[i].isFinal ? (final += t) : (interim += t);
             }
+            console.log('[AgroVoice] onresult interim=', interim, 'final=', final);
             if (interim) this._statusInterim(interim);
             if (final)   this._verarbeite(final.trim());
         };
 
         rec.onerror = e => {
+            console.log('[AgroVoice] onerror:', e.error);
             if (e.error === 'not-allowed') {
                 this._status('Mikrofonzugriff verweigert!', 'danger');
                 this._stoppen();
             }
-            // no-speech: einfach neu starten
+            // no-speech / aborted: onend läuft danach automatisch → neu starten
         };
 
         rec.onend = () => {

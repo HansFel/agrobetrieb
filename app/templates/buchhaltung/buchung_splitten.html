@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% block title %}Splitbuchung – {{ buchung.buchungsnummer }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-xl-10">
+
+        <!-- Info-Karte: Ursprungsbuchung -->
+        <div class="card border-warning shadow-sm mb-4">
+            <div class="card-header bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
+                <h1 class="h5 mb-0">
+                    <i class="bi bi-scissors"></i> Splitbuchung
+                    <span class="text-muted fw-normal fs-6 ms-2">{{ buchung.buchungsnummer }}</span>
+                </h1>
+                <a href="{{ url_for('buchhaltung.journal') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Zurück
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-3 py-2 small">
+                    <i class="bi bi-info-circle"></i>
+                    Die Ursprungsbuchung wird storniert und durch die unten eingegebenen Teilbuchungen ersetzt.
+                    Die Summe der Teilbeträge muss dem Originalbetrag entsprechen.
+                </div>
+                <div class="row g-2 text-sm">
+                    <div class="col-md-2">
+                        <span class="text-muted small">Datum</span><br>
+                        <strong>{{ buchung.datum.strftime('%d.%m.%Y') }}</strong>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">Soll-Konto</span><br>
+                        <strong>{{ buchung.soll_konto.kontonummer if buchung.soll_konto else '?' }}
+                        – {{ buchung.soll_konto.bezeichnung if buchung.soll_konto else '' }}</strong>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted small">Haben-Konto</span><br>
+                        <strong>{{ buchung.haben_konto.kontonummer if buchung.haben_konto else '?' }}
+                        – {{ buchung.haben_konto.bezeichnung if buchung.haben_konto else '' }}</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="text-muted small">Betrag</span><br>
+                        <strong class="fs-5 text-primary">{{ '%.2f'|format(buchung.betrag or 0) }}</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="text-muted small">Beleg</span><br>
+                        {{ buchung.beleg_nummer or '–' }}
+                    </div>
+                    <div class="col-12 mt-1">
+                        <span class="text-muted small">Text</span>:
+                        {{ buchung.buchungstext }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formular -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Teilbuchungen</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="split-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Gegenkonto (bleibt fix)</label>
+                            <select class="form-select" name="gegenkonto_id" id="gegenkonto_id">
+                                {% for konto in konten %}
+                                <option value="{{ konto.id }}"
+                                    {% if konto.id == gegenkonto_id %}selected{% endif %}>
+                                    {{ konto.kontonummer }} – {{ konto.bezeichnung }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                Das ist das Konto, von dem die Beträge kommen/gehen (z.B. Forderungskonto, Bankkonto).
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Richtung</label>
+                            <select class="form-select" name="richtung" id="richtung">
+                                <option value="ausgabe" {% if richtung == 'ausgabe' %}selected{% endif %}>
+                                    Ausgabe (Zeilen-Konten im Soll)
+                                </option>
+                                <option value="einnahme" {% if richtung == 'einnahme' %}selected{% endif %}>
+                                    Einnahme (Zeilen-Konten im Haben)
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="w-100 border rounded p-2 bg-light text-center">
+                                <div class="text-muted small">Verbleibend</div>
+                                <div class="fw-bold fs-5" id="restbetrag">
+                                    {{ '%.2f'|format(buchung.betrag or 0) }}
+                                </div>
+                                <div class="text-muted small">von {{ '%.2f'|format(buchung.betrag or 0) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle" id="split-tabelle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:40%">Konto (Kostenstelle)</th>
+                                    <th style="width:15%">Betrag</th>
+                                    <th>Buchungstext</th>
+                                    <th style="width:5%"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="split-tbody"></tbody>
+                            <tfoot>
+                                <tr class="table-light fw-semibold">
+                                    <td>Summe</td>
+                                    <td id="summe-zelle">0,00</td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-secondary" type="button" id="zeile-add">
+                            <i class="bi bi-plus-circle"></i> Zeile hinzufügen
+                        </button>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span id="summe-warnung" class="text-danger small d-none">
+                                <i class="bi bi-exclamation-triangle"></i> Summe stimmt nicht überein!
+                            </span>
+                            <button class="btn btn-warning fw-bold px-4" type="submit" id="submit-btn">
+                                <i class="bi bi-scissors"></i> Splitbuchung erstellen & Original stornieren
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const ORIGINAL = {{ buchung.betrag | float }};
+    const ORIGINAL_TEXT = {{ buchung.buchungstext | tojson }};
+    const konten = [{% for k in konten %}{id: {{ k.id }}, text: '{{ k.kontonummer }} \u2013 {{ k.bezeichnung|replace("'", "\\'") }}'},{% endfor %}];
+
+    const tbody = document.getElementById('split-tbody');
+    let idx = 0;
+
+    function optionsHtml(selected) {
+        return konten.map(k =>
+            `<option value="${k.id}" ${k.id === selected ? 'selected' : ''}>${k.text}</option>`
+        ).join('');
+    }
+
+    function addRow(konto_id, betrag, text) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><select class="form-select form-select-sm" name="konto_${idx}" required>${optionsHtml(konto_id || null)}</select></td>
+            <td><input class="form-control form-control-sm betrag-input" name="betrag_${idx}"
+                       value="${betrag !== undefined ? betrag.toFixed(2).replace('.', ',') : ''}"
+                       placeholder="0,00" required inputmode="decimal"></td>
+            <td><input class="form-control form-control-sm" name="text_${idx}"
+                       value="${text !== undefined ? text : ORIGINAL_TEXT}" placeholder="Buchungstext"></td>
+            <td><button class="btn btn-sm btn-outline-danger" type="button">
+                <i class="bi bi-trash"></i></button></td>`;
+        tr.querySelector('button').addEventListener('click', () => { tr.remove(); updateSumme(); });
+        tr.querySelector('.betrag-input').addEventListener('input', updateSumme);
+        tbody.appendChild(tr);
+        idx++;
+        updateSumme();
+    }
+
+    function updateSumme() {
+        let summe = 0;
+        document.querySelectorAll('.betrag-input').forEach(inp => {
+            const v = parseFloat(inp.value.replace(',', '.'));
+            if (!isNaN(v)) summe += v;
+        });
+        document.getElementById('summe-zelle').textContent = summe.toFixed(2).replace('.', ',');
+        const rest = ORIGINAL - summe;
+        const restEl = document.getElementById('restbetrag');
+        restEl.textContent = rest.toFixed(2).replace('.', ',');
+        restEl.className = 'fw-bold fs-5 ' + (Math.abs(rest) < 0.02 ? 'text-success' : 'text-danger');
+
+        const ok = Math.abs(rest) < 0.02;
+        document.getElementById('summe-warnung').classList.toggle('d-none', ok);
+        document.getElementById('submit-btn').disabled = !ok;
+    }
+
+    document.getElementById('zeile-add').addEventListener('click', () => addRow());
+    addRow(null, ORIGINAL, ORIGINAL_TEXT);
+
+    // Restbetrag-Button: verteilt Rest auf letzte Zeile
+    document.getElementById('split-form').addEventListener('keydown', e => {
+        if (e.key === 'r' && e.ctrlKey) {
+            e.preventDefault();
+            const inputs = document.querySelectorAll('.betrag-input');
+            if (inputs.length > 0) {
+                let summe = 0;
+                inputs.forEach((inp, i) => {
+                    if (i < inputs.length - 1) {
+                        const v = parseFloat(inp.value.replace(',', '.'));
+                        if (!isNaN(v)) summe += v;
+                    }
+                });
+                const letztes = inputs[inputs.length - 1];
+                letztes.value = (ORIGINAL - summe).toFixed(2).replace('.', ',');
+                updateSumme();
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

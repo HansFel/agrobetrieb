@@ -53,12 +53,15 @@
                     <td>
                         {% if buchung.storniert %}<span class="badge text-bg-danger">storniert</span>{% else %}<span class="badge text-bg-success">aktiv</span>{% endif %}
                     </td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
                         <div class="btn-group btn-group-sm">
                             <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchung_umbuchen', buchung_id=buchung.id) }}">Umbuchen</a>
                             <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.buchung_gegenkonto_aendern', buchung_id=buchung.id) }}">Gegenkonto</a>
                             {% if not buchung.storniert %}
-                            <form method="post" action="{{ url_for('buchhaltung.buchung_stornieren', buchung_id=buchung.id) }}">
+                            <a class="btn btn-outline-warning" href="{{ url_for('buchhaltung.buchung_splitten', buchung_id=buchung.id) }}" title="Betrag auf mehrere Kostenstellen aufteilen">
+                                <i class="bi bi-scissors"></i> Split
+                            </a>
+                            <form method="post" action="{{ url_for('buchhaltung.buchung_stornieren', buchung_id=buchung.id) }}" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button class="btn btn-outline-danger" type="submit">Storno</button>
                             </form>

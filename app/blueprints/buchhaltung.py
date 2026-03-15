@@ -340,6 +340,101 @@ def buchung_umbuchen(buchung_id):
     return render_template('buchhaltung/buchung_umbuchen.html', gem=gem, buchung=buchung, konten=konten, schluessel=schluessel)
 
 
+@buchhaltung_bp.route('/buchung/<int:buchung_id>/splitten', methods=['GET', 'POST'])
+@login_required
+def buchung_splitten(buchung_id):
+    """Splitbuchung: Eine Buchung auf mehrere Kostenstellen verteilen.
+
+    Die Ursprungsbuchung wird storniert, stattdessen entstehen mehrere
+    Teilbuchungen gegen dasselbe Gegenkonto (z.B. Forderungskonto).
+    Summe der Teilbeträge muss dem Original-Betrag entsprechen.
+    """
+    gem = _gem_context()
+    buchung = Buchung.query.get_or_404(buchung_id)
+    konten = Konto.query.filter_by(aktiv=True).order_by(Konto.kontonummer).all()
+
+    if buchung.storniert:
+        flash('Stornierte Buchungen können nicht gesplittet werden.', 'danger')
+        return redirect(url_for('buchhaltung.journal'))
+
+    # Gegenkonto = das Konto das "festgehalten" wird (z.B. Verbindlichkeit/Forderung)
+    # Heuristik: Importkonto oder Klasse 2/3 = Bank/Forderung → bleibt Gegenkonto
+    soll_konto = db.session.get(Konto, buchung.soll_konto_id)
+    haben_konto = db.session.get(Konto, buchung.haben_konto_id)
+    soll_ist_sammel = soll_konto and (soll_konto.ist_importkonto or soll_konto.kontenklasse in (2, 3))
+    haben_ist_sammel = haben_konto and (haben_konto.ist_importkonto or haben_konto.kontenklasse in (2, 3))
+
+    if soll_ist_sammel and not haben_ist_sammel:
+        gegenkonto_id = buchung.soll_konto_id
+        richtung = 'ausgabe'  # Zeilen-Konten ins Haben
+    elif haben_ist_sammel and not soll_ist_sammel:
+        gegenkonto_id = buchung.haben_konto_id
+        richtung = 'einnahme'  # Zeilen-Konten ins Soll
+    else:
+        # Fallback: User wählt selbst
+        gegenkonto_id = buchung.haben_konto_id
+        richtung = 'ausgabe'
+
+    if request.method == 'POST':
+        try:
+            override_gegenkonto = request.form.get('gegenkonto_id', type=int)
+            if override_gegenkonto:
+                gegenkonto_id = override_gegenkonto
+            richtung = request.form.get('richtung', richtung)
+
+            zeilen = []
+            index = 0
+            while True:
+                if f'konto_{index}' not in request.form:
+                    break
+                konto_id = request.form.get(f'konto_{index}', type=int)
+                betrag_raw = request.form.get(f'betrag_{index}', '').strip().replace(',', '.')
+                text = request.form.get(f'text_{index}', '').strip()
+                if konto_id and betrag_raw:
+                    zeilen.append({'konto_id': konto_id, 'betrag': Decimal(betrag_raw), 'text': text})
+                index += 1
+
+            if not zeilen:
+                raise ValueError('Mindestens eine Split-Zeile erforderlich.')
+
+            summe = sum(z['betrag'] for z in zeilen)
+            if abs(summe - buchung.betrag) > Decimal('0.01'):
+                raise ValueError(
+                    f'Summe der Teilbeträge ({summe:.2f}) stimmt nicht mit '
+                    f'Originalbetrag ({buchung.betrag:.2f}) überein.'
+                )
+
+            # Original stornieren
+            buchung_stornieren_service(buchung.id, current_user.id, 'Splitbuchung')
+
+            # Teilbuchungen erstellen
+            neue = sammelbuchung_erstellen(
+                geschaeftsjahr=buchung.geschaeftsjahr,
+                datum=buchung.datum,
+                gegenkonto_id=gegenkonto_id,
+                zeilen=zeilen,
+                beleg_nummer=buchung.beleg_nummer,
+                erstellt_von=current_user.id,
+                richtung=richtung,
+                beleg_datum=buchung.beleg_datum,
+            )
+            flash(f'Buchung {buchung.buchungsnummer} in {len(neue)} Teilbuchungen gesplittet.', 'success')
+            return redirect(url_for('buchhaltung.journal'))
+        except Exception as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+
+    return render_template(
+        'buchhaltung/buchung_splitten.html',
+        gem=gem,
+        buchung=buchung,
+        konten=konten,
+        gegenkonto_id=gegenkonto_id,
+        richtung=richtung,
+        gemeinschaften=_gemeinschaften(),
+    )
+
+
 @buchhaltung_bp.route('/buchung/<int:buchung_id>/gegenkonto-aendern', methods=['GET', 'POST'])
 @login_required
 def buchung_gegenkonto_aendern(buchung_id):

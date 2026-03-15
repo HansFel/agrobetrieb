@@ -236,7 +236,13 @@ const FormularWalker = {
 
     /** Alle ausfüllbaren Felder des Formulars erfassen. */
     _felderErmitteln() {
-        const form = document.querySelector('form');
+        // Bestes Formular wählen: das mit den meisten nicht-hidden Feldern
+        const forms = Array.from(document.querySelectorAll('form'));
+        const form = forms.reduce((best, f) => {
+            const n = f.querySelectorAll('input:not([type=hidden]),select,textarea').length;
+            const b = best ? best.querySelectorAll('input:not([type=hidden]),select,textarea').length : 0;
+            return n > b ? f : best;
+        }, null);
         const container = form || document.body;
 
         const alle = container.querySelectorAll(
@@ -268,19 +274,7 @@ const FormularWalker = {
         this._felder = this._felderErmitteln();
         console.log('[AgroVoice] starten(): Felder=', this._felder.length, 'panel=', VoiceUI._panel, 'init=', !!VoiceUI._panel);
         if (!this._felder.length) {
-            const alle = document.querySelectorAll('input,select,textarea');
-            const info = Array.from(alle).map((e,i) =>
-                `${i}: ${e.tagName}[type=${e.type||'-'}][name=${e.name}] disabled=${e.disabled} readOnly=${e.readOnly}`
-            ).join('\n');
-            const div = document.createElement('div');
-            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:2px solid red;padding:20px;z-index:99999;max-height:80vh;overflow:auto;min-width:400px;font-family:monospace;font-size:12px;white-space:pre';
-            div.textContent = `[AgroVoice DEBUG] Form=${!!document.querySelector('form')} Inputs=${alle.length}\n\n${info}`;
-            const btn = document.createElement('button');
-            btn.textContent = '✕ Schließen';
-            btn.style.cssText = 'display:block;margin-top:10px;cursor:pointer';
-            btn.onclick = () => div.remove();
-            div.appendChild(btn);
-            document.body.appendChild(div);
+            VoiceUI.zeige('Keine Eingabefelder auf dieser Seite gefunden.', 'warning', 3000);
             VoiceSprech.sag('Keine Eingabefelder gefunden.');
             return;
         }

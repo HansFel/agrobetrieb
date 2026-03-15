@@ -227,14 +227,21 @@ const Voice = {
         }
     },
 
-    _starten() {
+    async _starten() {
         if (!this.isSupported()) {
             this._status('Spracheingabe wird von diesem Browser nicht unterstützt.', 'danger');
             return;
         }
+        // Zuerst Mikrofon-Erlaubnis explizit anfragen
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+            stream.getTracks().forEach(t => t.stop()); // sofort freigeben
+        } catch(e) {
+            this._status('Mikrofonzugriff verweigert! Bitte in der Adressleiste erlauben.', 'danger');
+            return;
+        }
         this._aktiv = true;
         this._btnAktiv(true);
-        this._status('🎤 Mikrofon aktiv – Feldname oder "Feldname Wert" sprechen', 'info');
         this._aufnehmen();
     },
 
@@ -273,30 +280,27 @@ const Voice = {
         };
 
         rec.onerror = e => {
-            console.log('[AgroVoice] onerror:', e.error);
             if (e.error === 'not-allowed') {
                 this._status('Mikrofonzugriff verweigert!', 'danger');
                 this._stoppen();
-                return;
             }
-            // Bei anderen Fehlern: neu starten
-            this._rec = null;
-            if (this._aktiv) setTimeout(() => this._aufnehmen(), 500);
+            // aborted/no-speech: ignorieren, continuous=true läuft weiter
         };
 
         rec.onend = () => {
-            console.log('[AgroVoice] onend, aktiv=', this._aktiv);
+            // Nur neu starten wenn ungewollt beendet (z.B. Browser-Timeout nach ~60s)
             this._rec = null;
-            if (this._aktiv) setTimeout(() => this._aufnehmen(), 300);
+            if (this._aktiv) {
+                this._status('🎤 Mikrofon neu verbinden…', 'info');
+                setTimeout(() => this._aufnehmen(), 1000);
+            }
         };
 
         try {
-            console.log('[AgroVoice] rec.start() continuous=true');
             rec.start();
+            this._status('🎤 Mikrofon aktiv – sprechen Sie', 'info');
         } catch(e) {
-            console.log('[AgroVoice] start fehler:', e.message);
-            this._rec = null;
-            setTimeout(() => this._aufnehmen(), 500);
+            this._status('Mikrofon-Fehler: ' + e.message, 'danger');
         }
     },
 

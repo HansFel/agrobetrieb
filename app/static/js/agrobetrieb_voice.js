@@ -210,7 +210,7 @@ const VoiceEngine = {
 
 const VoiceSprech = {
     _synth: window.speechSynthesis || null,
-    _aktiv: true,   // kann deaktiviert werden
+    _aktiv: false,   // Standard: AUS – TTS blockiert Mikrofon
 
     sag(text) {
         if (!this._aktiv || !this._synth) return;
@@ -712,8 +712,8 @@ const VoiceUI = {
                     <div id="voice-msg" class="small"></div>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" id="voice-ton-btn" title="Ansage ein/aus">
-                        <i class="bi bi-volume-up"></i>
+                    <button class="btn btn-sm btn-outline-secondary" id="voice-ton-btn" title="Sprachansage ein/aus">
+                        <i class="bi bi-volume-mute"></i>
                     </button>
                     <button class="btn btn-sm btn-danger" id="voice-stop-btn">
                         <i class="bi bi-x-lg"></i> Stop
@@ -732,7 +732,7 @@ const VoiceUI = {
             FreieSprache.stoppen();
         });
 
-        let tonAn = true;
+        let tonAn = false;
         document.getElementById('voice-ton-btn').addEventListener('click', () => {
             tonAn = !tonAn;
             VoiceSprech._aktiv = tonAn;

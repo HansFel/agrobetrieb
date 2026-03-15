@@ -287,8 +287,12 @@ const FormularWalker = {
         this._felderHervorheben(el);
 
         // Ansage
-        const ansage = `${label}`;
         VoiceUI.zeigeFeldInfo(label, this._index + 1, this._felder.length);
+        let ansage = label;
+        if (el.tagName.toLowerCase() === 'select') {
+            const opts = Array.from(el.options).filter(o => o.value !== '').slice(0, 5);
+            if (opts.length) ansage += `. Optionen: ${opts.map(o => o.text).join(', ')}`;
+        }
         await VoiceSprech.sagUndWarte(ansage);
 
         if (this._abbrechen) { this._beenden(); return; }
@@ -358,14 +362,43 @@ const FormularWalker = {
             if (z !== null) { el.value = z; el.dispatchEvent(new Event('input', { bubbles: true })); return; }
         }
         if (el.tagName.toLowerCase() === 'select') {
-            const lower = text.toLowerCase();
-            for (const opt of el.options) {
-                if (opt.text.toLowerCase().includes(lower) || lower.includes(opt.text.toLowerCase().slice(0,4))) {
-                    el.value = opt.value;
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                    return;
-                }
+            const lower = text.toLowerCase().trim();
+            const opts = Array.from(el.options).filter(o => o.value !== '');
+
+            // 1. Exakter Treffer
+            let treffer = opts.find(o => o.text.toLowerCase() === lower);
+            // 2. Gesprochen ist Teilstring der Option
+            if (!treffer) treffer = opts.find(o => o.text.toLowerCase().includes(lower));
+            // 3. Option ist Teilstring des Gesagten
+            if (!treffer) treffer = opts.find(o => lower.includes(o.text.toLowerCase()));
+            // 4. Erste 4 Zeichen der Option im Gesagten
+            if (!treffer) treffer = opts.find(o => {
+                const anfang = o.text.toLowerCase().slice(0, 4);
+                return anfang.length >= 3 && lower.includes(anfang);
+            });
+            // 5. Levenshtein-ähnlich: >=60% der Zeichen stimmen überein
+            if (!treffer) {
+                treffer = opts.find(o => {
+                    const a = o.text.toLowerCase().replace(/\s+/g,'');
+                    const b = lower.replace(/\s+/g,'');
+                    if (!a || !b) return false;
+                    let match = 0;
+                    for (const c of b) if (a.includes(c)) match++;
+                    return match / Math.max(a.length, b.length) >= 0.6;
+                });
             }
+
+            if (treffer) {
+                el.value = treffer.value;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                VoiceUI.zeige(`✅ Ausgewählt: "${treffer.text}"`, 'success', 2000);
+                return;
+            }
+            // Nicht gefunden → Optionen vorlesen
+            const liste = opts.slice(0, 6).map(o => o.text).join(', ');
+            VoiceSprech.sag(`Nicht gefunden. Mögliche Optionen: ${liste}`);
+            VoiceUI.zeige(`⚠️ "${text}" nicht in Liste. Optionen: ${liste}`, 'warning', 4000);
+            return;
         }
         if (typ === 'checkbox') {
             const ja = /ja|ja|wahr|true|ein|an|positiv/i.test(text);
@@ -681,7 +714,7 @@ const VoiceUI = {
         if (!form) return;
 
         form.querySelectorAll(
-            'input[type=text], input[type=number], input[type=date], textarea'
+            'input[type=text], input[type=number], input[type=date], textarea, select'
         ).forEach(el => {
             if (el.dataset.voiceMic) return;
             el.dataset.voiceMic = '1';

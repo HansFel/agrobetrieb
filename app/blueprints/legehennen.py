@@ -660,6 +660,73 @@ def api_sortierung(herde_id):
     })
 
 
+# ── Tägliche Arbeit ──────────────────────────────────────────────
+
+@legehennen_bp.route('/taeglich', methods=['GET', 'POST'])
+@login_required
+@requires_permission('legehennen', 'create')
+def taeglich():
+    """Schnelleingabe tägliche Eierleistung für alle aktiven Herden."""
+    herden = Herde.query.filter_by(ist_aktiv=True).order_by(Herde.name).all()
+    heute = date.today()
+
+    if request.method == 'POST':
+        gespeichert = 0
+        for herde in herden:
+            eier_key = f'eier_{herde.id}'
+            verluste_key = f'verluste_{herde.id}'
+            bemerkung_key = f'bemerkung_{herde.id}'
+
+            eier = _parse_int(request.form.get(eier_key))
+            if eier is None:
+                continue  # Herde übersprungen
+
+            verluste = _parse_int(request.form.get(verluste_key), 0)
+            bemerkung = request.form.get(bemerkung_key, '').strip() or None
+            datum = _parse_date(request.form.get('datum')) or heute
+
+            # Bestehenden Eintrag für heute prüfen (kein Duplikat)
+            bestehend = Tagesleistung.query.filter_by(
+                herde_id=herde.id, datum=datum
+            ).first()
+
+            if bestehend:
+                bestehend.eier_gesamt = eier
+                bestehend.verluste = verluste
+                bestehend.bemerkung = bemerkung
+            else:
+                tl = Tagesleistung(
+                    herde_id=herde.id,
+                    datum=datum,
+                    eier_gesamt=eier,
+                    eier_verkaufsfaehig=eier,
+                    verluste=verluste,
+                    tierbestand=herde.aktueller_bestand,
+                    bemerkung=bemerkung,
+                )
+                db.session.add(tl)
+
+            if verluste > 0 and herde.aktueller_bestand:
+                herde.aktueller_bestand = max(0, herde.aktueller_bestand - verluste)
+
+            gespeichert += 1
+
+        db.session.commit()
+        flash(f'Tagesleistung für {gespeichert} Herde(n) gespeichert.', 'success')
+        return redirect(url_for('legehennen.taeglich'))
+
+    # Heutige Einträge vorladen
+    heute_eintraege = {
+        tl.herde_id: tl
+        for tl in Tagesleistung.query.filter_by(datum=heute).all()
+    }
+
+    return render_template('legehennen/taeglich.html',
+                           herden=herden,
+                           heute=heute,
+                           heute_eintraege=heute_eintraege)
+
+
 # ── Packstelle-Einstieg (für Rolle packstelle) ──────────────────
 
 @legehennen_bp.route('/packstelle')

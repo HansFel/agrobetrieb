@@ -121,6 +121,9 @@
                             </a></li>
                             {% endif %}
                             {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+                            <li><a class="dropdown-item fw-bold text-warning" href="{{ url_for('legehennen.taeglich') }}">
+                                <i class="bi bi-egg-fill me-1"></i>Tägliche Arbeit
+                            </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('legehennen.herde_neu') }}">
                                 <i class="bi bi-plus-circle me-1"></i>Neue Herde
                             </a></li>

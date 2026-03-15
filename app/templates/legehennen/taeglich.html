@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Tägliche Arbeit – Legehennen{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-egg-fill text-warning"></i> Tägliche Arbeit</h2>
+    <a href="{{ url_for('legehennen.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Zurück
+    </a>
+</div>
+
+{% if not herden %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Keine aktiven Herden vorhanden.
+</div>
+{% else %}
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="card mb-3 border-primary">
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <label class="form-label mb-0 fw-bold">Datum</label>
+                </div>
+                <div class="col-auto">
+                    <input type="date" class="form-control" name="datum"
+                           value="{{ heute.strftime('%Y-%m-%d') }}">
+                </div>
+                <div class="col">
+                    <span class="text-muted small">Standardmäßig heute – kann geändert werden für Nacherfassung</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% for herde in herden %}
+    {% set bestehend = heute_eintraege.get(herde.id) %}
+    <div class="card mb-3 {% if bestehend %}border-success{% endif %}">
+        <div class="card-header d-flex justify-content-between align-items-center
+                    {% if bestehend %}bg-success bg-opacity-10{% else %}bg-light{% endif %}">
+            <div>
+                <h5 class="mb-0">
+                    <i class="bi bi-egg"></i> {{ herde.name }}
+                    {% if herde.stall_nr %}
+                    <small class="text-muted ms-2">Stall {{ herde.stall_nr }}</small>
+                    {% endif %}
+                </h5>
+                <small class="text-muted">
+                    Bestand: <strong>{{ herde.aktueller_bestand or 0 }}</strong> Tiere
+                    {% if herde.rasse %} · {{ herde.rasse }}{% endif %}
+                </small>
+            </div>
+            {% if bestehend %}
+            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Heute bereits erfasst</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4 col-6">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-egg-fill text-warning"></i> Eier gesamt *
+                    </label>
+                    <input type="number" class="form-control form-control-lg"
+                           name="eier_{{ herde.id }}"
+                           value="{{ bestehend.eier_gesamt if bestehend else '' }}"
+                           placeholder="z.B. 950" min="0"
+                           style="font-size:1.4em; font-weight:bold;">
+                </div>
+                <div class="col-md-3 col-6">
+                    <label class="form-label">
+                        <i class="bi bi-heartbreak text-danger"></i> Verluste
+                    </label>
+                    <input type="number" class="form-control form-control-lg"
+                           name="verluste_{{ herde.id }}"
+                           value="{{ bestehend.verluste if bestehend else 0 }}"
+                           min="0">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">
+                        <i class="bi bi-chat-text"></i> Bemerkung
+                    </label>
+                    <input type="text" class="form-control"
+                           name="bemerkung_{{ herde.id }}"
+                           value="{{ bestehend.bemerkung if bestehend else '' }}"
+                           placeholder="Optional…">
+                </div>
+            </div>
+            {% if bestehend %}
+            <div class="mt-2 text-muted small">
+                <i class="bi bi-clock"></i> Zuletzt: {{ bestehend.eier_gesamt }} Eier,
+                {{ bestehend.verluste or 0 }} Verluste
+                {% if bestehend.legerate_prozent %}
+                · Legeleistung: <strong>{{ "%.1f"|format(bestehend.legerate_prozent) }}%</strong>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="d-grid gap-2 mt-4">
+        <button type="submit" class="btn btn-success btn-lg py-3"
+                style="font-size:1.3em;">
+            <i class="bi bi-check-circle-fill"></i>
+            Tagesleistung speichern
+        </button>
+    </div>
+</form>
+{% endif %}
+{% endblock %}

@@ -8,6 +8,8 @@ Rollen:
 - gelegentlich: Gelegentlicher Mitarbeiter (nur Arbeitsdaten eingeben)
 - praktikand: Praktikand (Lesezugriff + Arbeitsdaten)
 - packstelle: Packstelle (externer Zugang, nur Sortierergebnisse)
+- tierarzt: Tierarzt (Legehennen + Milchvieh view/create/edit, kein Finanzzugriff)
+- amtstierarzt: Amtstierarzt (Tierhaltung + Betriebsdaten nur view, kann signieren)
 """
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -30,7 +32,7 @@ class User(UserMixin, db.Model):
     telefon = db.Column(db.String(20))
     
     # Status & Rolle
-    # Mögliche Rollen: betriebsadmin, mitglied, buchhaltung, gelegentlich, praktikand, packstelle
+    # Mögliche Rollen: betriebsadmin, mitglied, buchhaltung, gelegentlich, praktikand, packstelle, tierarzt, amtstierarzt
     rolle = db.Column(db.String(30), default='praktikand')
     aktiv = db.Column(db.Boolean, default=True)
     ist_superadmin = db.Column(db.Boolean, default=False)  # Nur MGRSoftware-Entwickler

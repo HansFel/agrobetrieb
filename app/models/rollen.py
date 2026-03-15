@@ -8,6 +8,8 @@ Rollen und deren Berechtigungen:
 - gelegentlich: Nur Arbeitsdaten (Einsätze, Maschinen-Belegung)
 - praktikand: Lesezugriff + Arbeitsdaten eingeben
 - packstelle: Externer Zugang: Nur Sortierergebnisse eintragen
+- tierarzt: Zugriff auf Tierhaltungsdaten (Legehennen, Milchvieh) – kein Finanzzugriff
+- amtstierarzt: Behördlicher Zugriff: Lesezugriff Tierhaltung + Betriebsdaten
 """
 
 # Rollenübersicht
@@ -41,6 +43,16 @@ ROLLEN = {
         'name': 'Packstelle',
         'beschreibung': 'Externer Zugang: Nur Sortierergebnisse eintragen',
         'prioritaet': 75,
+    },
+    'tierarzt': {
+        'name': 'Tierarzt',
+        'beschreibung': 'Zugriff auf Tierhaltungsdaten (Legehennen, Milchvieh) – kein Finanzzugriff',
+        'prioritaet': 80,
+    },
+    'amtstierarzt': {
+        'name': 'Amtstierarzt',
+        'beschreibung': 'Behördlicher Zugriff: Lesezugriff Tierhaltung + Betriebsdaten',
+        'prioritaet': 90,
     },
 }
 
@@ -113,6 +125,32 @@ BERECHTIGUNGEN = {
         'lager': [],
         'legehennen': ['view'],
         'sortierergebnis': ['view', 'create', 'edit'],
+    },
+    'tierarzt': {
+        'dashboard': ['view'],
+        'betrieb': ['view'],
+        'benutzer': [],
+        'maschinen': [],
+        'einsaetze': [],
+        'buchhaltung': [],
+        'fakturierung': [],
+        'lager': [],
+        'legehennen': ['view', 'create', 'edit'],
+        'sortierergebnis': [],
+        'milchvieh': ['view', 'create', 'edit'],
+    },
+    'amtstierarzt': {
+        'dashboard': ['view'],
+        'betrieb': ['view'],
+        'benutzer': [],
+        'maschinen': [],
+        'einsaetze': [],
+        'buchhaltung': [],
+        'fakturierung': [],
+        'lager': [],
+        'legehennen': ['view'],
+        'sortierergebnis': [],
+        'milchvieh': ['view'],
     },
 }
 

@@ -65,6 +65,33 @@ def _lade_statistiken(rolle):
     return stats
 
 
+def _lade_tierarzt_stats():
+    """Statistiken für Tierarzt-Dashboard."""
+    stats = {}
+    heute = date.today()
+    try:
+        from app.models.legehennen import Herde, TierarztBesuch, MedikamentBehandlung
+        stats['herden_aktiv'] = Herde.query.filter_by(ist_aktiv=True).count()
+        stats['tierarzt_besuche_30d'] = TierarztBesuch.query.filter(
+            TierarztBesuch.datum >= heute.replace(day=1)
+        ).count()
+        stats['wartezeiten_aktiv'] = MedikamentBehandlung.query.filter(
+            MedikamentBehandlung.wartezeit_ende >= heute
+        ).count()
+        # Offene Signaturen (Besuche ohne Unterschrift)
+        stats['offene_signaturen'] = TierarztBesuch.query.filter(
+            TierarztBesuch.signatur_data == None
+        ).count()
+    except Exception:
+        db.session.rollback()
+    try:
+        from app.models.milchvieh import Rind
+        stats['rinder_gesamt'] = Rind.query.filter_by(aktiv=True).count()
+    except Exception:
+        db.session.rollback()
+    return stats
+
+
 @dashboard_bp.route('/')
 @login_required
 def index():
@@ -72,6 +99,19 @@ def index():
     betrieb = Betrieb.query.first()
     rolle = current_user.rolle
     stats = _lade_statistiken(rolle)
+
+    # Tierarzt/Amtstierarzt → eigenes Dashboard
+    if rolle in ('tierarzt', 'amtstierarzt'):
+        herden_aktiv = []
+        try:
+            from app.models.legehennen import Herde
+            herden_aktiv = Herde.query.filter_by(ist_aktiv=True).order_by(Herde.name).all()
+        except Exception:
+            db.session.rollback()
+        return render_template('dashboard/tierarzt.html',
+                               betrieb=betrieb, rolle=rolle,
+                               stats=_lade_tierarzt_stats(),
+                               herden_aktiv=herden_aktiv)
 
     context = {
         'betrieb': betrieb,

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Tierarzt-Dashboard – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2>
+            <i class="bi bi-hospital text-success"></i>
+            {% if rolle == 'amtstierarzt' %}Amtstierarzt{% else %}Tierarzt{% endif %}-Portal
+        </h2>
+        <p class="text-muted mb-0">
+            Willkommen, {{ current_user.vorname or current_user.username }}
+            {% if betrieb %} – {{ betrieb.name }}{% endif %}
+        </p>
+    </div>
+    <div class="col-auto">
+        <span class="badge bg-{% if rolle == 'amtstierarzt' %}danger{% else %}success{% endif %} fs-6 px-3 py-2">
+            <i class="bi bi-person-badge"></i>
+            {% if rolle == 'amtstierarzt' %}Amtstierarzt{% else %}Tierarzt{% endif %}
+        </span>
+    </div>
+</div>
+
+<!-- KPI-Karten -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-success h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-egg fs-2 text-success"></i>
+                <div class="fw-bold fs-3 text-success mt-1">{{ stats.get('herden_aktiv', 0) }}</div>
+                <div class="text-muted small">Aktive Herden</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-primary h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-cow fs-2 text-primary"></i>
+                <div class="fw-bold fs-3 text-primary mt-1">{{ stats.get('rinder_gesamt', 0) }}</div>
+                <div class="text-muted small">Rinder aktiv</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle fs-2 text-warning"></i>
+                <div class="fw-bold fs-3 text-warning mt-1">{{ stats.get('wartezeiten_aktiv', 0) }}</div>
+                <div class="text-muted small">Aktive Wartezeiten</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card {% if stats.get('offene_signaturen', 0) > 0 %}border-danger{% else %}border-success{% endif %} h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-pen fs-2 {% if stats.get('offene_signaturen', 0) > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                <div class="fw-bold fs-3 {% if stats.get('offene_signaturen', 0) > 0 %}text-danger{% else %}text-success{% endif %} mt-1">
+                    {{ stats.get('offene_signaturen', 0) }}
+                </div>
+                <div class="text-muted small">Offene Signaturen</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Schnellzugriff -->
+<div class="row g-3 mb-4">
+    <!-- Legehennen -->
+    {% if hat_modul_zugriff(current_user, 'legehennen') %}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="m-0"><i class="bi bi-egg-fill text-warning"></i> Legehennen</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('legehennen.index') }}" class="btn btn-outline-warning">
+                        <i class="bi bi-list-ul"></i> Herden-Übersicht
+                    </a>
+                    {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
+                    <a href="{{ url_for('legehennen.taeglich') }}" class="btn btn-warning fw-bold">
+                        <i class="bi bi-egg-fill"></i> Tägliche Arbeit
+                    </a>
+                    {% endif %}
+                </div>
+                {% if stats.get('wartezeiten_aktiv', 0) > 0 %}
+                <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>{{ stats.wartezeiten_aktiv }}</strong> aktive Medikamenten-Wartezeit(en)!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Milchvieh -->
+    {% if hat_modul_zugriff(current_user, 'milchvieh') %}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary bg-opacity-10">
+                <h5 class="m-0"><i class="bi bi-cow text-primary"></i> Milchvieh</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('milchvieh.bestand') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-list-ul"></i> Bestandsregister
+                    </a>
+                    <a href="{{ url_for('milchvieh.tamg_journal') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-journal-medical"></i> TAMG-Journal
+                    </a>
+                    <a href="{{ url_for('milchvieh.mlp_auswertung') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-graph-up"></i> MLP-Auswertung
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Letzte Tierarztbesuche (offene Signaturen zuerst) -->
+{% if hat_berechtigung(current_user, 'legehennen', 'view') %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="m-0"><i class="bi bi-hospital"></i> Letzte Tierarztbesuche</h5>
+        {% if stats.get('offene_signaturen', 0) > 0 %}
+        <span class="badge bg-danger">{{ stats.offene_signaturen }} ohne Signatur</span>
+        {% endif %}
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover m-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Datum</th>
+                    <th>Herde</th>
+                    <th>Tierarzt</th>
+                    <th>Grund</th>
+                    <th>Diagnose</th>
+                    <th>Signatur</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set besuche = [] %}
+                {% for herde in herden_aktiv %}
+                    {% for ta in herde.tierarzt_besuche.order_by_desc() %}
+                        {% if loop.index <= 3 %}
+                        <tr {% if not ta.signatur_data %}class="table-warning"{% endif %}>
+                            <td class="text-nowrap">{{ ta.datum.strftime('%d.%m.%Y') }}</td>
+                            <td>{{ herde.name }}</td>
+                            <td>{{ ta.tierarzt_name or '–' }}</td>
+                            <td>{{ ta.grund or '–' }}</td>
+                            <td>{{ ta.diagnose[:50] + '…' if ta.diagnose and ta.diagnose|length > 50 else (ta.diagnose or '–') }}</td>
+                            <td>
+                                {% if ta.signatur_data %}
+                                <span class="text-success"><i class="bi bi-pen-fill"></i> {{ ta.signatur_name or '' }}</span>
+                                {% else %}
+                                <button class="btn btn-sm btn-warning" onclick="oeffneSignaturDialog({{ ta.id }}, '{{ current_user.vorname or current_user.username }}')">
+                                    <i class="bi bi-pen"></i> Unterschreiben
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Signatur Modal (gleich wie in herde_detail.html) -->
+<div class="modal fade" id="signaturModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pen"></i> Tierarzt-Unterschrift</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Name des Unterzeichners</label>
+                    <input type="text" class="form-control" id="sig-name" placeholder="Dr. Max Mustermann">
+                </div>
+                <div class="border rounded bg-light mb-2" style="cursor:crosshair">
+                    <canvas id="sig-canvas" width="700" height="200"
+                            style="display:block;touch-action:none;width:100%;height:200px"></canvas>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" id="sig-clear">
+                    <i class="bi bi-eraser"></i> Löschen
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button class="btn btn-success" id="sig-speichern">
+                    <i class="bi bi-check-lg"></i> Unterschrift speichern
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let malen = false, aktivId = null;
+
+    function resize() {
+        const w = canvas.parentElement.getBoundingClientRect().width;
+        canvas.width = w; canvas.height = 200;
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    }
+    function pos(e) {
+        const r = canvas.getBoundingClientRect();
+        const s = e.touches ? e.touches[0] : e;
+        return { x: (s.clientX-r.left)*(canvas.width/r.width), y: (s.clientY-r.top)*(canvas.height/r.height) };
+    }
+    canvas.addEventListener('mousedown',  e => { malen=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+    canvas.addEventListener('mousemove',  e => { if(!malen) return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
+    canvas.addEventListener('mouseup',    () => malen=false);
+    canvas.addEventListener('mouseleave', () => malen=false);
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); malen=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }, {passive:false});
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if(!malen) return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }, {passive:false});
+    canvas.addEventListener('touchend',   () => malen=false);
+    document.getElementById('sig-clear').addEventListener('click', () => ctx.clearRect(0,0,canvas.width,canvas.height));
+    document.getElementById('signaturModal').addEventListener('shown.bs.modal', resize);
+
+    document.getElementById('sig-speichern').addEventListener('click', async () => {
+        if (!aktivId) return;
+        const d = ctx.getImageData(0,0,canvas.width,canvas.height);
+        if (!d.data.some((v,i) => i%4===3 && v>0)) { alert('Bitte zuerst unterschreiben!'); return; }
+        const btn = document.getElementById('sig-speichern');
+        btn.disabled = true;
+        try {
+            const r = await fetch(`/legehennen/tierarzt/${aktivId}/signatur`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ signatur: canvas.toDataURL('image/png'), name: document.getElementById('sig-name').value })
+            });
+            const data = await r.json();
+            if (data.ok) { bootstrap.Modal.getInstance(document.getElementById('signaturModal')).hide(); location.reload(); }
+        } catch(e) { alert('Fehler'); }
+        btn.disabled = false;
+    });
+
+    window.oeffneSignaturDialog = function(id, name) {
+        aktivId = id;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        document.getElementById('sig-name').value = name || '';
+        new bootstrap.Modal(document.getElementById('signaturModal')).show();
+    };
+})();
+</script>
+{% endblock %}

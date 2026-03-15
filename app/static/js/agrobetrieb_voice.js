@@ -255,20 +255,21 @@ const Voice = {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         const rec = new SR();
         rec.lang = 'de-AT';
-        rec.continuous = false;
+        rec.continuous = true;      // Mikrofon bleibt dauerhaft offen
         rec.interimResults = true;
         rec.maxAlternatives = 1;
         this._rec = rec;
 
         rec.onresult = e => {
-            let interim = '', final = '';
             for (let i = e.resultIndex; i < e.results.length; i++) {
-                const t = e.results[i][0].transcript;
-                e.results[i].isFinal ? (final += t) : (interim += t);
+                if (e.results[i].isFinal) {
+                    const text = e.results[i][0].transcript.trim();
+                    console.log('[AgroVoice] final:', text);
+                    if (text) this._verarbeite(text);
+                } else {
+                    this._statusInterim(e.results[i][0].transcript);
+                }
             }
-            console.log('[AgroVoice] onresult interim=', interim, 'final=', final);
-            if (interim) this._statusInterim(interim);
-            if (final)   this._verarbeite(final.trim());
         };
 
         rec.onerror = e => {
@@ -276,20 +277,21 @@ const Voice = {
             if (e.error === 'not-allowed') {
                 this._status('Mikrofonzugriff verweigert!', 'danger');
                 this._stoppen();
+                return;
             }
-            // aborted/no-speech: onend folgt automatisch
+            // Bei anderen Fehlern: neu starten
+            this._rec = null;
+            if (this._aktiv) setTimeout(() => this._aufnehmen(), 500);
         };
 
         rec.onend = () => {
             console.log('[AgroVoice] onend, aktiv=', this._aktiv);
             this._rec = null;
-            if (this._aktiv) {
-                setTimeout(() => this._aufnehmen(), 300);
-            }
+            if (this._aktiv) setTimeout(() => this._aufnehmen(), 300);
         };
 
         try {
-            console.log('[AgroVoice] rec.start()');
+            console.log('[AgroVoice] rec.start() continuous=true');
             rec.start();
         } catch(e) {
             console.log('[AgroVoice] start fehler:', e.message);

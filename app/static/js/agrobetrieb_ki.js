@@ -625,23 +625,84 @@ const _betrieb = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _initKIStatusBadge() {
-    const supported = await _ai.isSupported();
-    // Badge in der Navbar einfügen (nach User-Menü)
     const navbar = document.querySelector('.navbar-nav.ms-auto');
     if (!navbar) return;
 
     const li = document.createElement('li');
     li.className = 'nav-item d-flex align-items-center px-2';
-    if (supported) {
-        li.innerHTML = `<span class="badge bg-success" title="Chrome Gemini Nano (lokal, kein API-Key)" style="font-size:0.7em">
-            <i class="bi bi-robot"></i> KI aktiv
-        </span>`;
-    } else {
-        li.innerHTML = `<span class="badge bg-secondary" title="Browser-KI nicht verfügbar (nur Chrome 127+ mit Gemini Nano)" style="font-size:0.7em;opacity:0.6">
-            <i class="bi bi-robot"></i> KI inaktiv
-        </span>`;
-    }
+
+    // Platzhalter sofort einsetzen (bevor async isSupported fertig ist)
+    li.innerHTML = `<span id="agro-ki-badge" class="badge bg-success"
+        style="font-size:0.7em;cursor:pointer"
+        title="KI-Features aktiv – klicken für Details">
+        <i class="bi bi-robot"></i> KI aktiv
+    </span>`;
     navbar.insertBefore(li, navbar.firstChild);
+
+    // Gemini Nano asynchron prüfen – Badge aktualisieren
+    const geminiVerfuegbar = await _ai.isSupported();
+    const badge = document.getElementById('agro-ki-badge');
+    if (!badge) return;
+
+    if (geminiVerfuegbar) {
+        badge.className = 'badge bg-success';
+        badge.title = 'KI aktiv: Gemini Nano (lokal) + Ampeln + Sprache';
+        badge.innerHTML = '<i class="bi bi-robot"></i> KI aktiv';
+    } else {
+        // Regelbasierte Features laufen immer – nur Gemini Nano fehlt
+        badge.className = 'badge bg-primary';
+        badge.title = 'KI aktiv: Ampeln, Validatoren, Spracheingabe.\n' +
+            'Optional: Gemini Nano (Chrome-Einstellungen → chrome://flags/#optimization-guide-on-device-model)';
+        badge.innerHTML = '<i class="bi bi-robot"></i> KI aktiv';
+    }
+
+    // Klick → Info-Popover
+    badge.addEventListener('click', () => {
+        const vorh = document.getElementById('ki-info-popover');
+        if (vorh) { vorh.remove(); return; }
+
+        const pop = document.createElement('div');
+        pop.id = 'ki-info-popover';
+        pop.className = 'card shadow position-absolute end-0 mt-1';
+        pop.style.cssText = 'z-index:9999;min-width:300px;top:100%;font-size:0.82em';
+        pop.innerHTML = `
+            <div class="card-header py-1 bg-primary text-white d-flex justify-content-between">
+                <strong><i class="bi bi-robot"></i> KI-Features</strong>
+                <button class="btn-close btn-close-white btn-sm" onclick="this.closest('#ki-info-popover').remove()"></button>
+            </div>
+            <div class="card-body p-2">
+                <p class="mb-2 text-success fw-bold">✅ Immer aktiv (kein Setup nötig):</p>
+                <ul class="mb-2 ps-3">
+                    <li>Spracheingabe (Mikrofon-Taste / Alt+M)</li>
+                    <li>Harnstoff- &amp; Zellzahl-Ampel</li>
+                    <li>Legeleistungs-Ampel, Stallklima-Warnung</li>
+                    <li>ECM live, AfA-Berechnung</li>
+                    <li>UID- &amp; Erzeugercode-Validator</li>
+                    <li>Zahlungsziel-Ampel, Mindestbestand</li>
+                    <li>Brunst-Prognose, Kalbetermin-Vorschau</li>
+                </ul>
+                ${geminiVerfuegbar
+                    ? '<p class="mb-0 text-success fw-bold">✅ Gemini Nano aktiv (lokal, kein API-Key)</p>'
+                    : `<p class="mb-1 text-muted fw-bold">⚪ Gemini Nano (optional):</p>
+                       <ul class="mb-2 ps-3 text-muted">
+                           <li>TAMG-Arzneimittel-Vorschlag</li>
+                           <li>MLP-Erklärung in Klartext</li>
+                           <li>Buchungskonto-Vorschlag</li>
+                           <li>Freitext-Spracheingabe</li>
+                       </ul>
+                       <a href="https://developer.chrome.com/docs/ai/built-in" target="_blank"
+                          class="btn btn-sm btn-outline-secondary w-100">
+                          Gemini Nano aktivieren →
+                       </a>`
+                }
+            </div>`;
+        badge.parentElement.style.position = 'relative';
+        badge.parentElement.appendChild(pop);
+        // Außerhalb klicken schließt Popover
+        setTimeout(() => document.addEventListener('click', function h(e) {
+            if (!pop.contains(e.target) && e.target !== badge) { pop.remove(); document.removeEventListener('click', h); }
+        }), 100);
+    });
 }
 
 

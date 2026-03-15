@@ -147,12 +147,21 @@ const VoiceEngine = {
         this._rec.onend = () => this._emit('end');
     },
 
-    /** Startet EINE Aufnahme. Gibt Promise<string> zurück (finaler Text).
-     *  Erstellt jedes Mal ein neues SpeechRecognition-Objekt – Browser erlauben
-     *  kein Restart des gleichen Objekts nach onend. */
-    einmalAufnehmen() {
-        return new Promise((resolve, reject) => {
-            if (!this.isSupported()) { reject('nicht unterstützt'); return; }
+    /** Wartet solange bis etwas gesprochen wird (wiederholt bei no-speech). */
+    async einmalAufnehmen() {
+        while (this._aktiv !== false) {
+            const text = await this._eineSitzung();
+            if (text) return text;
+            // Nichts gehört → nochmal (Mikrofon blinkt weiter)
+            await new Promise(r => setTimeout(r, 100));
+        }
+        return '';
+    },
+
+    /** Eine einzelne SpeechRecognition-Sitzung. */
+    _eineSitzung() {
+        return new Promise(resolve => {
+            if (!this.isSupported()) { resolve(''); return; }
 
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SR();
@@ -173,9 +182,11 @@ const VoiceEngine = {
                 if (final)   { finalText = final.trim(); this._emit('final', finalText); }
             };
             rec.onerror = e => {
-                if (e.error === 'not-allowed')
+                if (e.error === 'not-allowed') {
                     this._emit('error', 'Mikrofonzugriff verweigert');
-                resolve(finalText); // bei Fehler leeren Text zurückgeben
+                    this._aktiv = false;
+                }
+                resolve(finalText);
             };
             rec.onend = () => {
                 this._emit('end');
@@ -183,14 +194,16 @@ const VoiceEngine = {
             };
 
             this._rec = rec;
-            try { rec.start(); this._aktiv = true; }
-            catch(e) { resolve(''); }
+            this._aktiv = true;
+            try { rec.start(); }
+            catch { resolve(''); }
         });
     },
 
     stop() {
         this._aktiv = false;
         try { this._rec?.stop(); } catch {}
+        this._rec = null;
     },
 
     on(ev, fn) {

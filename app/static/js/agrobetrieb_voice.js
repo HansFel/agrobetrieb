@@ -579,6 +579,7 @@ const VoiceUI = {
     init() {
         if (!VoiceEngine.isSupported()) return;
         this._erstellePanel();
+        this._erstelleNavbarMikrofon();
         this._erstelleFormularButton();
         this._erstelleFeldMikrofone();
         this._hotkey();
@@ -690,21 +691,42 @@ const VoiceUI = {
             btn.title = 'Dieses Feld per Sprache ausfüllen';
             btn.style.cssText = `
                 position:absolute; right:6px; top:50%; transform:translateY(-50%);
-                background:none; border:none; color:#adb5bd; cursor:pointer;
-                font-size:0.9em; padding:2px 4px; opacity:0; transition:opacity .15s;
+                background:none; border:none; color:#6c9bd2; cursor:pointer;
+                font-size:1em; padding:2px 4px; transition:color .15s;
                 z-index:5;`;
             btn.innerHTML = '<i class="bi bi-mic"></i>';
             btn.addEventListener('click', e => { e.preventDefault(); FeldDiktat.starten(el); });
+            btn.addEventListener('mouseenter', () => btn.style.color = '#0d6efd');
+            btn.addEventListener('mouseleave', () => btn.style.color = '#6c9bd2');
 
-            el.addEventListener('mouseenter', () => btn.style.opacity = '1');
-            el.addEventListener('mouseleave', () => { if (document.activeElement !== el) btn.style.opacity = '0'; });
-            el.addEventListener('focusin',    () => btn.style.opacity = '1');
-            el.addEventListener('focusout',   () => setTimeout(() => btn.style.opacity = '0', 200));
+            // Padding rechts damit Text nicht unter Icon läuft
+            el.style.paddingRight = '2rem';
 
             const par = el.parentNode;
             const cs = getComputedStyle(par);
             if (cs.position === 'static') par.style.position = 'relative';
             par.appendChild(btn);
+        });
+    },
+
+    _erstelleNavbarMikrofon() {
+        const navRight = document.querySelector('.navbar-nav.ms-auto');
+        if (!navRight) return;
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        li.innerHTML = `
+            <button id="voice-navbar-btn" class="btn btn-link nav-link px-2"
+                    title="Spracheingabe starten (Alt+G)"
+                    style="color:rgba(255,255,255,.85)">
+                <i class="bi bi-mic-fill" style="font-size:1.1em"></i>
+            </button>`;
+        navRight.insertBefore(li, navRight.firstChild);
+        document.getElementById('voice-navbar-btn').addEventListener('click', () => {
+            if (document.querySelector('form')) {
+                FormularWalker.starten();
+            } else {
+                VoiceUI.zeige('Kein Formular auf dieser Seite vorhanden.', 'warning', 2000);
+            }
         });
     },
 

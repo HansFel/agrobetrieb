@@ -87,10 +87,12 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="anschaffungswert" class="form-label">Anschaffungswert (€)</label>
-                            <input type="number" class="form-control" id="anschaffungswert" name="anschaffungswert" 
+                            <input type="number" class="form-control" id="anschaffungswert" name="anschaffungswert"
                                    value="{{ maschine.anschaffungswert if maschine else '' }}" step="0.01">
+                            <div id="maschine_afa_feedback"></div>
                         </div>
                     </div>
+                    <div id="maschine_ki_feedback"></div>
                     
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
@@ -103,4 +105,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AgroKI.maschinen.initAbschreibung('anschaffungswert', 'baujahr', 'maschine_afa_feedback');
+AgroKI.maschinen.initWartungshinweis('name', 'maschine_ki_feedback');
+</script>
 {% endblock %}

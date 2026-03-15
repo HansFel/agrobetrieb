@@ -42,7 +42,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-2">
         <div class="card">
             <div class="card-body">
                 <h6 class="text-muted">Ø Stunden/Tag</h6>
@@ -52,6 +52,16 @@
                         {% if avg_h %}{{ (avg_h | sum / avg_h | length) | round(1) }}h{% else %}–{% endif %}
                     {% else %}–{% endif %}
                 </h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">GVE-Bestand</h6>
+                <div id="gve_widget_weide">
+                    <div class="text-muted small">…</div>
+                </div>
             </div>
         </div>
     </div>
@@ -124,4 +134,10 @@
         <i class="bi bi-arrow-left"></i> Dashboard
     </a>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/milchvieh_ki.js') }}"></script>
+<script>
+    window.MilchviehKI.ladeGveWidget('gve_widget_weide', '/milchvieh/api/gve');
+</script>
 {% endblock %}

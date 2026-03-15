@@ -1,11 +1,11 @@
 """
-Milchvieh-Modul – Blueprint (Phase 1 + 2).
+Milchvieh-Modul – Blueprint (Phase 1 + 2 + 3).
 
 Bestandsregister, Tierbewegungen, TAMG-Arzneimitteldokumentation,
 Impfungen, Laktationserfassung, Reproduktion, MLP, Eutergesundheit,
-Klauenpflege, Weidebuch, Tankmilch und KPI-Dashboard.
+Klauenpflege, Weidebuch, Tankmilch, KPI-Dashboard und Browser-KI-APIs.
 """
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.auth_decorators import requires_permission
@@ -18,7 +18,7 @@ from app.models.milchvieh import (
     BESAMUNG_ART, SCHALMTEST_ERGEBNISSE, MASTITIS_TYPEN, MASTITIS_ERREGER,
     EUTERVIERTEL, KLAUEN_BEFUNDE, LAMENESS_GRAD,
 )
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 milchvieh_bp = Blueprint('milchvieh', __name__, url_prefix='/milchvieh')
 
@@ -735,6 +735,50 @@ def dashboard():
         ).all()
     )
 
+    # Aufgaben-Widget (Phase 3): fällige Kalbetermine + Trockenstell-Empfehlungen
+    aufgaben = []
+    for r in rinder_aktiv:
+        if r.geschlecht != 'W':
+            continue
+        lakt = r.laktationen.filter_by(ist_aktiv=True).first()
+        if not lakt:
+            continue
+        # Trächtige Besamung → Kalbetermin
+        tragende = lakt.tragende_besamung
+        if tragende:
+            kt = tragende.berechne_kalbetermin(r.rasse)
+            if kt:
+                tage_bis = (kt - heute).days
+                if -7 <= tage_bis <= 60:
+                    aufgaben.append({
+                        'typ': 'kalbetermin',
+                        'rind_id': r.id,
+                        'ohrmarke': r.ohrmarke,
+                        'name': r.name,
+                        'datum': kt.strftime('%d.%m.%Y'),
+                        'tage': tage_bis,
+                        'icon': 'bi-calendar-event',
+                        'klasse': 'danger' if tage_bis <= 7 else ('warning' if tage_bis <= 21 else 'info'),
+                    })
+        # Trockenstell-Empfehlung: 60 Tage vor erwartetem Kalbetermin
+        if tragende:
+            kt = tragende.berechne_kalbetermin(r.rasse)
+            if kt:
+                ts_datum = kt - timedelta(days=60)
+                tage_bis_ts = (ts_datum - heute).days
+                if 0 <= tage_bis_ts <= 14:
+                    aufgaben.append({
+                        'typ': 'trockenstellen',
+                        'rind_id': r.id,
+                        'ohrmarke': r.ohrmarke,
+                        'name': r.name,
+                        'datum': ts_datum.strftime('%d.%m.%Y'),
+                        'tage': tage_bis_ts,
+                        'icon': 'bi-moon-stars',
+                        'klasse': 'warning',
+                    })
+    aufgaben.sort(key=lambda x: x['tage'])
+
     return render_template('milchvieh/dashboard.html',
                            heute=heute,
                            n_aktiv=n,
@@ -750,4 +794,96 @@ def dashboard():
                            avg_guestzeit=avg_guestzeit,
                            letzte_tankmilch=letzte_tankmilch,
                            ama_faellig=ama_faellig,
-                           weidetage_jahr=weidetage_jahr)
+                           weidetage_jahr=weidetage_jahr,
+                           aufgaben=aufgaben)
+
+
+# ── Phase 3: Browser-KI-APIs ──────────────────────────────────────
+
+
+@milchvieh_bp.route('/api/tiere')
+@login_required
+@requires_permission('milchvieh', 'view')
+def api_tiere():
+    """JSON-Index aller aktiven Rinder für clientseitiges Autocomplete."""
+    rinder = Rind.query.filter_by(status='aktiv').order_by(Rind.ohrmarke).all()
+    return jsonify([{
+        'id': r.id,
+        'ohrmarke': r.ohrmarke,
+        'name': r.name or '',
+        'rasse': r.rasse or '',
+        'geschlecht': r.geschlecht,
+        'alter_monate': r.alter_monate,
+    } for r in rinder])
+
+
+@milchvieh_bp.route('/api/arzneimittel_history')
+@login_required
+@requires_permission('milchvieh', 'view')
+def api_arzneimittel_history():
+    """Distinct Arzneimittel aus der eigenen TAMG-Geschichte für Autocomplete + AI-Kontext."""
+    rows = db.session.query(
+        RindArzneimittelAnwendung.arzneimittel_name,
+        RindArzneimittelAnwendung.wirkstoff,
+        RindArzneimittelAnwendung.wartezeit_milch_tage,
+        RindArzneimittelAnwendung.wartezeit_fleisch_tage,
+        RindArzneimittelAnwendung.ist_antibiotikum,
+        RindArzneimittelAnwendung.verabreichungsart,
+        RindArzneimittelAnwendung.diagnose,
+    ).filter(
+        RindArzneimittelAnwendung.arzneimittel_name.isnot(None)
+    ).order_by(
+        RindArzneimittelAnwendung.beginn.desc()
+    ).limit(500).all()
+
+    # Deduplizieren nach Name (letzter Eintrag gewinnt)
+    seen = {}
+    for row in rows:
+        n = row.arzneimittel_name.strip()
+        if n not in seen:
+            seen[n] = {
+                'name': n,
+                'wirkstoff': row.wirkstoff or '',
+                'wz_milch': row.wartezeit_milch_tage or 0,
+                'wz_fleisch': row.wartezeit_fleisch_tage or 0,
+                'antibiotikum': bool(row.ist_antibiotikum),
+                'verabreichungsart': row.verabreichungsart or '',
+                'diagnose': row.diagnose or '',
+            }
+    return jsonify(list(seen.values()))
+
+
+@milchvieh_bp.route('/api/gve')
+@login_required
+@requires_permission('milchvieh', 'view')
+def api_gve():
+    """GVE-Berechnung (INVEKOS AT) für alle aktiven Tiere."""
+    heute = date.today()
+    rinder = Rind.query.filter_by(status='aktiv').all()
+
+    # GVE-Koeffizienten AT (INVEKOS)
+    def gve_koeff(r):
+        if not r.geburtsdatum:
+            return 0.6
+        alter_m = r.alter_monate or 0
+        if r.geschlecht == 'W' and alter_m >= 24:
+            lakt = r.laktationen.filter_by(ist_aktiv=True).first()
+            if lakt:
+                return 1.0  # Milchkuh
+            return 0.6
+        if alter_m < 6:
+            return 0.4
+        if alter_m < 24:
+            return 0.6
+        return 0.6
+
+    gve_total = sum(gve_koeff(r) for r in rinder)
+    return jsonify({
+        'n_tiere': len(rinder),
+        'gve_total': round(gve_total, 2),
+        'tiere': [{
+            'ohrmarke': r.ohrmarke,
+            'name': r.name or '',
+            'koeff': gve_koeff(r),
+        } for r in rinder],
+    })

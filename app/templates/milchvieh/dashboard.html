@@ -176,6 +176,60 @@
     </div>
 </div>
 
+<!-- Aufgaben-Widget (Phase 3) -->
+{% if aufgaben %}
+<div class="card mb-4 border-warning">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-list-check"></i> Anstehende Aufgaben</strong>
+        <span class="badge bg-dark">{{ aufgaben|length }}</span>
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for a in aufgaben %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi {{ a.icon }} text-{{ a.klasse }}"></i>
+                <strong>
+                    {% if a.typ == 'kalbetermin' %}Kalbetermin
+                    {% elif a.typ == 'trockenstellen' %}Trockenstellen empfohlen
+                    {% endif %}
+                </strong>
+                –
+                <a href="{{ url_for('milchvieh.rind_detail', rind_id=a.rind_id) }}" class="text-decoration-none">
+                    <code>{{ a.ohrmarke }}</code>{% if a.name %} ({{ a.name }}){% endif %}
+                </a>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-{{ a.klasse }}">{{ a.datum }}</span>
+                <div class="text-muted small">
+                    {% if a.tage == 0 %}heute
+                    {% elif a.tage > 0 %}in {{ a.tage }} Tagen
+                    {% else %}vor {{ -a.tage }} Tagen
+                    {% endif %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- GVE-Widget (ÖPUL) -->
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <strong><i class="bi bi-calculator"></i> GVE-Bestand (INVEKOS AT)</strong>
+            </div>
+            <div class="card-body text-center">
+                <div id="gve_widget">
+                    <div class="text-muted small"><i class="bi bi-hourglass-split"></i> Berechne...</div>
+                </div>
+                <div class="text-muted small mt-2">Milchkuh 1,0 | Rind 6–24 M 0,6 | Kalb &lt;6 M 0,4</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Schnellnavigation -->
 <div class="row g-2">
     <div class="col-auto">
@@ -204,4 +258,10 @@
         </a>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/milchvieh_ki.js') }}"></script>
+<script>
+    window.MilchviehKI.ladeGveWidget('gve_widget', '/milchvieh/api/gve');
+</script>
 {% endblock %}

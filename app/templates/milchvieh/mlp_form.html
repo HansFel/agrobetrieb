@@ -83,6 +83,7 @@
                                    min="0"
                                    value="{{ pruefung.zellzahl_tsd if pruefung and pruefung.zellzahl_tsd else '' }}"
                                    placeholder="&lt; 100 = gesund; &gt; 200 = Alarm">
+                            <div id="zellzahl_feedback"></div>
                         </div>
                         <div class="col-md-4">
                             <label for="pruefer" class="form-label">LKV-Prüfer</label>
@@ -94,10 +95,14 @@
                     <div class="card bg-light border mb-3">
                         <div class="card-body small">
                             <i class="bi bi-calculator"></i>
-                            <strong>ECM und F:E-Quotient</strong> werden automatisch berechnet und gespeichert.
-                            ECM-Formel (Sjaunja): ECM = kg × (0,383 × F% + 0,242 × E% + 0,783) / 3,114
+                            <strong>ECM live:</strong>
+                            <span id="ecm_live" class="fw-bold text-primary">–</span>
+                            <span id="ecm_live_fe"></span>
+                            <div class="text-muted mt-1">Formel (Sjaunja): ECM = kg × (0,383 × F% + 0,242 × E% + 0,783) / 3,114</div>
                         </div>
                     </div>
+                    <div id="harnstoff_feedback"></div>
+                    <div id="mlp_ki_feedback"></div>
 
                     <div class="mb-3">
                         <label for="bemerkung" class="form-label">Bemerkung</label>
@@ -115,15 +120,47 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/milchvieh_ki.js') }}"></script>
 <script>
     if (!document.getElementById('datum').value)
         document.getElementById('datum').value = new Date().toISOString().split('T')[0];
+
     // Tagesgemelk auto-berechnen
     ['probenahme_morgen_kg', 'probenahme_abend_kg'].forEach(id => {
         document.getElementById(id).addEventListener('input', () => {
             const m = parseFloat(document.getElementById('probenahme_morgen_kg').value) || 0;
             const a = parseFloat(document.getElementById('probenahme_abend_kg').value) || 0;
             if (m + a > 0) document.getElementById('milchmenge_kg').value = (m + a).toFixed(1);
+        });
+    });
+
+    // KI-Features initialisieren
+    const { initHarnstoffAmpel, initZellzahlAmpel, initEcmLive, erklaereMLPWerte } = window.MilchviehKI;
+
+    initHarnstoffAmpel('harnstoff_mg_dl', 'harnstoff_feedback');
+    initZellzahlAmpel('zellzahl_tsd', 'zellzahl_feedback');
+    initEcmLive('milchmenge_kg', 'fett_prozent', 'eiweiss_prozent', 'ecm_live');
+
+    // KI-Erklärung nach Eingabe aller Werte (debounced)
+    let kiTimer;
+    const felder = ['milchmenge_kg', 'fett_prozent', 'eiweiss_prozent', 'zellzahl_tsd', 'harnstoff_mg_dl'];
+    felder.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+            clearTimeout(kiTimer);
+            kiTimer = setTimeout(() => {
+                const werte = {
+                    milchmenge: parseFloat(document.getElementById('milchmenge_kg')?.value) || null,
+                    fett: parseFloat(document.getElementById('fett_prozent')?.value) || null,
+                    eiweiss: parseFloat(document.getElementById('eiweiss_prozent')?.value) || null,
+                    zellzahl: parseFloat(document.getElementById('zellzahl_tsd')?.value) || null,
+                    harnstoff: parseFloat(document.getElementById('harnstoff_mg_dl')?.value) || null,
+                    laktNr: {{ laktation.laktationsnummer if laktation else 'null' }},
+                };
+                // Nur auswerten wenn mindestens 3 Werte vorhanden
+                const gefuellt = Object.values(werte).filter(v => v !== null).length;
+                if (gefuellt >= 3) erklaereMLPWerte(werte, 'mlp_ki_feedback');
+            }, 2000);
         });
     });
 </script>

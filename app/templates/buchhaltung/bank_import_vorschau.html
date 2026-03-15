@@ -33,6 +33,11 @@
                 title="Texte dieser Datei analysieren und fehlende Schlüssel vorschlagen">
             <i class="bi bi-lightbulb"></i> Texte analysieren
         </button>
+        <button type="button" class="btn btn-outline-success btn-sm" id="btn-ki-zuweisung"
+                title="Chrome Browser-KI (Gemini Nano) weist Buchungstexte automatisch zu">
+            <i class="bi bi-robot"></i> KI zuweisen
+        </button>
+        <div id="bank_ki_feedback" class="w-100 mt-1"></div>
     </div>
     {% if schluessel %}
     <div class="d-flex flex-wrap gap-1">
@@ -621,5 +626,72 @@ document.getElementById('konto-modal-save').addEventListener('click', function()
         errorDiv.classList.remove('d-none');
     });
 });
+
+// ─── Browser-KI Zuweisung ────────────────────────────────────────────────────
+(function() {
+    var kiBtn = document.getElementById('btn-ki-zuweisung');
+    if (!kiBtn) return;
+
+    // Schlüsselliste aus DOM
+    var schluesselListe = [];
+    {% if schluessel %}
+    schluesselListe = [
+        {% for bs in schluessel %}
+        { kuerzel: {{ bs.kuerzel|tojson }}, bezeichnung: {{ bs.bezeichnung|tojson }},
+          buchungstext: {{ bs.buchungstext|tojson if bs.buchungstext else 'null' }} },
+        {% endfor %}
+    ];
+    {% endif %}
+
+    // Zeilen aus DOM extrahieren
+    function getZeilen() {
+        return Array.from(document.querySelectorAll('tr[data-text]')).map(function(tr, idx) {
+            var sel = tr.querySelector('.gk-select');
+            return {
+                idx: idx,
+                text: tr.dataset.text || '',
+                betrag: 0,
+                zugewiesen: sel && sel.value ? true : !tr.classList.contains('gk-unassigned'),
+                fehler: tr.classList.contains('table-danger-subtle'),
+                ausserhalb_gj: tr.classList.contains('table-warning'),
+                el: tr,
+                sel: sel,
+            };
+        });
+    }
+
+    // KI-Zuweisung auslösen
+    AgroKI.buch.initBankImportKI(
+        'btn-ki-zuweisung',
+        'bank_ki_feedback',
+        schluesselListe,
+        getZeilen(),
+        function(zeilenIdx, kuerzel) {
+            // Buchungsschlüssel global anwenden (Soll/Haben wie bei Schnellzuweisung)
+            var zeilen = getZeilen();
+            var zeile = zeilen[zeilenIdx];
+            if (!zeile || !zeile.sel) return;
+            var btn = document.querySelector('.schluessel-global-btn[data-soll][data-haben]');
+            // Einfachste Variante: Ersten passenden Schlüssel-Button finden und Konto setzen
+            var globalBtns = document.querySelectorAll('.schluessel-global-btn');
+            globalBtns.forEach(function(b) {
+                if ((b.textContent || '').includes(kuerzel)) {
+                    var soll = b.dataset.soll;
+                    var haben = b.dataset.haben;
+                    // Betrag positiv → Haben-Konto relevant, sonst Soll
+                    var kontoId = zeile.text.includes('-') ? soll : haben;
+                    if (kontoId) {
+                        var opt = zeile.sel.querySelector('option[value="' + kontoId + '"]');
+                        if (opt) {
+                            zeile.sel.value = kontoId;
+                            zeile.sel.classList.remove('gk-unassigned');
+                            zeile.el.classList.remove('table-primary', 'bg-opacity-10');
+                        }
+                    }
+                }
+            });
+        }
+    );
+})();
 </script>
 {% endblock %}

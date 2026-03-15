@@ -36,6 +36,7 @@
 
                     <!-- Eierproduktion -->
                     <h6 class="text-muted mt-4 mb-3">Eierproduktion</h6>
+                    <div id="ll_ampel_feedback"></div>
                     <div class="row mb-3">
                         <div class="col-md-2">
                             <label for="eier_gesamt" class="form-label">Eier gesamt *</label>
@@ -83,6 +84,7 @@
 
                     <!-- Verluste -->
                     <h6 class="text-muted mt-4 mb-3">Verluste</h6>
+                    <div id="verlust_feedback"></div>
                     <div class="row mb-3">
                         <div class="col-md-2">
                             <label for="verluste" class="form-label">Verluste (Tiere)</label>
@@ -113,6 +115,7 @@
 
                     <!-- Klima -->
                     <h6 class="text-muted mt-4 mb-3">Stallklima</h6>
+                    <div id="klima_feedback"></div>
                     <div class="row mb-3">
                         <div class="col-md-3">
                             <label for="temperatur_stall" class="form-label">Temperatur (°C)</label>
@@ -150,4 +153,11 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AgroKI.legehennen.initLegeleistungAmpel('eier_gesamt', 'tierbestand', 'll_ampel_feedback');
+AgroKI.legehennen.initVerlustWarnung('verluste', 'tierbestand', 'verlust_ursache', 'verlust_feedback');
+AgroKI.legehennen.initKlimaWarnung('temperatur_stall', 'luftfeuchtigkeit', 'klima_feedback');
+</script>
 {% endblock %}

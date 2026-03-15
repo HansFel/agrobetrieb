@@ -29,6 +29,7 @@
                             </div>
                         </div>
 
+                        <div id="lager_ki_feedback"></div>
                         <div class="mb-3">
                             <label for="beschreibung" class="form-label">Beschreibung (optional)</label>
                             <textarea class="form-control" id="beschreibung" name="beschreibung" rows="3"></textarea>
@@ -100,4 +101,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AgroKI.lager.initMindestbestandHilfe('bezeichnung', 'einheit', 'mindestbestand', 'lager_ki_feedback');
+</script>
 {% endblock %}

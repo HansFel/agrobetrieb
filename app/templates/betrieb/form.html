@@ -80,8 +80,9 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="uid_nummer" class="form-label">UID-Nummer</label>
-                            <input type="text" class="form-control" id="uid_nummer" name="uid_nummer" 
+                            <input type="text" class="form-control" id="uid_nummer" name="uid_nummer"
                                    value="{{ betrieb.uid_nummer if betrieb else '' }}">
+                            <div id="uid_feedback"></div>
                         </div>
                         <div class="col-md-6">
                             <label for="steuernummer" class="form-label">Steuernummer</label>
@@ -187,5 +188,7 @@
             document.getElementById('uid_nummer').placeholder = info.uid_placeholder;
         }
     });
+
+    AgroKI.betrieb.initUidValidator('uid_nummer', 'uid_feedback');
 </script>
 {% endblock %}

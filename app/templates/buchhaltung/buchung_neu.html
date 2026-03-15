@@ -30,8 +30,9 @@
                         <div class="col-md-6"><label class="form-label">Sollkonto</label><select class="form-select" name="soll_konto_id" required><option value="">Bitte wählen</option>{% for konto in konten %}<option value="{{ konto.id }}">{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div>
                         <div class="col-md-6"><label class="form-label">Habenkonto</label><select class="form-select" name="haben_konto_id" required><option value="">Bitte wählen</option>{% for konto in konten %}<option value="{{ konto.id }}">{{ konto.kontonummer }} - {{ konto.bezeichnung }}</option>{% endfor %}</select></div>
                         <div class="col-md-3"><label class="form-label">Betrag</label><input class="form-control" name="betrag" placeholder="0,00" required></div>
-                        <div class="col-md-9"><label class="form-label">Buchungstext</label><input class="form-control" name="buchungstext" required></div>
+                        <div class="col-md-9"><label class="form-label">Buchungstext</label><input class="form-control" name="buchungstext" id="buchungstext" required></div>
                     </div>
+                    <div id="buch_ki_feedback"></div>
                     <div class="d-flex justify-content-between mt-4">
                         <a class="btn btn-outline-secondary" href="{{ url_for('buchhaltung.journal') }}">Abbrechen</a>
                         <button class="btn btn-primary" type="submit">Buchung speichern</button>
@@ -61,4 +62,15 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function() {
+    // Select-IDs setzen (fehlen im Template)
+    const selects = document.querySelectorAll('select[name="soll_konto_id"], select[name="haben_konto_id"]');
+    if (selects[0]) selects[0].id = 'soll_konto_id';
+    if (selects[1]) selects[1].id = 'haben_konto_id';
+    AgroKI.buch.initBuchungsvorschlag('buchungstext', 'soll_konto_id', 'haben_konto_id', 'buch_ki_feedback');
+})();
+</script>
 {% endblock %}

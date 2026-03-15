@@ -87,6 +87,7 @@
                             <input type="text" class="form-control" id="erzeuger_code" name="erzeuger_code"
                                    value="{{ herde.erzeuger_code if herde else '' }}" placeholder="z.B. 2-AT-1234567">
                             <small class="text-muted">Haltung-Land-Betriebsnr</small>
+                            <div id="erzeuger_feedback"></div>
                         </div>
                     </div>
 
@@ -163,4 +164,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AgroKI.legehennen.initErzeugerCodeValidator('erzeuger_code', 'erzeuger_feedback');
+</script>
 {% endblock %}

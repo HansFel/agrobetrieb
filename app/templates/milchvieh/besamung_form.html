@@ -64,6 +64,18 @@
                         <label for="bemerkung" class="form-label">Bemerkung</label>
                         <textarea class="form-control" id="bemerkung" name="bemerkung" rows="2">{{ besamung.bemerkung if besamung and besamung.bemerkung else '' }}</textarea>
                     </div>
+
+                    <!-- Brunst-Prognose -->
+                    <div id="brunst_prognose"></div>
+
+                    <!-- Kalbetermin-Vorschau -->
+                    <div id="kalbetermin_vorschau" class="alert alert-light border small mt-2" style="display:none">
+                        <i class="bi bi-calendar-event"></i>
+                        <strong>Erwarteter Kalbetermin:</strong>
+                        <span id="kalbetermin_datum" class="fw-bold text-primary"></span>
+                        (285 Tage Trächtigkeit)
+                    </div>
+
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">Besamung eintragen</button>
                         <a href="{{ url_for('milchvieh.rind_detail', rind_id=rind.id) }}" class="btn btn-secondary">Abbrechen</a>
@@ -75,9 +87,36 @@
 </div>
 {% endblock %}
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/milchvieh_ki.js') }}"></script>
 <script>
     const today = new Date().toISOString().split('T')[0];
     if (!document.getElementById('datum').value)
         document.getElementById('datum').value = today;
+
+    const { zeigeBrunstPrognose } = window.MilchviehKI;
+
+    // Brunst-Prognose + Kalbetermin-Vorschau live bei Datumseingabe
+    document.getElementById('datum').addEventListener('change', function() {
+        const val = this.value;
+        if (!val) return;
+
+        const besamDatum = new Date(val);
+
+        // Brunst-Prognose (nächste Zyklen)
+        zeigeBrunstPrognose(besamDatum, 'brunst_prognose');
+
+        // Kalbetermin (285 Tage)
+        const rasse = '{{ rind.rasse or "" }}';
+        const traechtigkeit = rasse.toLowerCase().includes('holstein') ? 283 : 285;
+        const kalbeDatum = new Date(besamDatum);
+        kalbeDatum.setDate(kalbeDatum.getDate() + traechtigkeit);
+        document.getElementById('kalbetermin_datum').textContent =
+            kalbeDatum.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        document.getElementById('kalbetermin_vorschau').style.display = '';
+    });
+
+    // Sofort auslösen wenn Datum schon gesetzt
+    const datumEl = document.getElementById('datum');
+    if (datumEl.value) datumEl.dispatchEvent(new Event('change'));
 </script>
 {% endblock %}

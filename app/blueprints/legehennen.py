@@ -4,6 +4,8 @@ Legehennen Pro-Modul – Blueprint.
 Herdenmanagement, Stallbuch, Sortierergebnisse, Tierarzt,
 Impfungen, Medikamente, Salmonellen, Futter, Legekurve.
 """
+import csv
+import io
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
@@ -725,6 +727,199 @@ def taeglich():
                            herden=herden,
                            heute=heute,
                            heute_eintraege=heute_eintraege)
+
+
+@legehennen_bp.route('/herde/<int:herde_id>/tagesleistungen')
+@login_required
+@requires_permission('legehennen', 'view')
+def tagesleistung_liste(herde_id):
+    """Vollständige Tagesleistungs-Liste mit Statistiken."""
+    herde = Herde.query.get_or_404(herde_id)
+
+    # Filter
+    jahr = request.args.get('jahr', type=int)
+    monat = request.args.get('monat', type=int)
+
+    q = herde.tagesleistungen.order_by(Tagesleistung.datum.desc())
+
+    if jahr:
+        q = q.filter(db.extract('year', Tagesleistung.datum) == jahr)
+    if monat:
+        q = q.filter(db.extract('month', Tagesleistung.datum) == monat)
+
+    tagesleistungen = q.all()
+
+    # Statistiken
+    gesamt_eier = sum(tl.eier_gesamt or 0 for tl in tagesleistungen)
+    gesamt_verluste = sum(tl.verluste or 0 for tl in tagesleistungen)
+    avg_legerate = round(sum(tl.legerate_prozent for tl in tagesleistungen) / len(tagesleistungen), 2) if tagesleistungen else 0
+
+    # Verfügbare Jahre für Filter
+    alle_jahre = db.session.query(
+        db.extract('year', Tagesleistung.datum).label('jahr')
+    ).filter_by(herde_id=herde_id).distinct().order_by(db.text('jahr desc')).all()
+    jahre = [int(j.jahr) for j in alle_jahre]
+
+    return render_template('legehennen/tagesleistung_liste.html',
+                           herde=herde,
+                           tagesleistungen=tagesleistungen,
+                           gesamt_eier=gesamt_eier,
+                           gesamt_verluste=gesamt_verluste,
+                           avg_legerate=avg_legerate,
+                           jahre=jahre,
+                           akt_jahr=jahr,
+                           akt_monat=monat)
+
+
+@legehennen_bp.route('/herde/<int:herde_id>/csv-import', methods=['GET', 'POST'])
+@login_required
+@requires_permission('legehennen', 'create')
+def csv_import_form(herde_id):
+    """CSV-Import für Tagesleistungen aus Excel-Export."""
+    herde = Herde.query.get_or_404(herde_id)
+
+    if request.method == 'POST':
+        f = request.files.get('csv_datei')
+        if not f or not f.filename:
+            flash('Bitte eine CSV-Datei auswählen.', 'danger')
+            return redirect(request.url)
+
+        trennzeichen = request.form.get('trennzeichen', ';')
+        datum_format = request.form.get('datum_format', '%d.%m.%Y')
+        ueberschreiben = request.form.get('ueberschreiben') == '1'
+
+        try:
+            inhalt = f.read().decode('utf-8-sig')  # BOM-sicher
+        except UnicodeDecodeError:
+            try:
+                f.seek(0)
+                inhalt = f.read().decode('latin-1')
+            except Exception:
+                flash('Datei konnte nicht gelesen werden (Encoding-Fehler).', 'danger')
+                return redirect(request.url)
+
+        reader = csv.DictReader(io.StringIO(inhalt), delimiter=trennzeichen)
+
+        # Spalten-Mapping (flexibel – erkennt verschiedene Bezeichnungen)
+        SPALTEN_MAP = {
+            'datum':              ['datum', 'date', 'tag', 'day'],
+            'eier_gesamt':        ['eier_gesamt', 'eier', 'eggs', 'gesamt', 'total'],
+            'eier_verkaufsfaehig':['eier_verkaufsfaehig', 'verkaufsfähig', 'verkauf'],
+            'eier_knick':         ['eier_knick', 'knick', 'knickeier'],
+            'eier_bruch':         ['eier_bruch', 'bruch', 'brucheier'],
+            'eier_schmutzig':     ['eier_schmutzig', 'schmutzig', 'schmutz'],
+            'eier_boden':         ['eier_boden', 'boden', 'bodeneier'],
+            'tierbestand':        ['tierbestand', 'bestand', 'tiere', 'lebende_tiere', 'lebende tiere'],
+            'verluste':           ['verluste', 'verlust', 'abgänge', 'losses'],
+            'verlust_ursache':    ['verlust_ursache', 'ursache'],
+            'futterverbrauch_kg': ['futterverbrauch_kg', 'futter', 'futter_kg', 'futterkg'],
+            'wasserverbrauch_l':  ['wasserverbrauch_l', 'wasser', 'wasser_l'],
+            'temperatur_stall':   ['temperatur_stall', 'temperatur', 'temp'],
+            'luftfeuchtigkeit':   ['luftfeuchtigkeit', 'feuchte', 'lf'],
+            'bemerkung':          ['bemerkung', 'notiz', 'anmerkung', 'note'],
+        }
+
+        def find_col(headers, kandidaten):
+            """Findet Spaltenname case-insensitiv."""
+            hl = {h.lower().strip(): h for h in headers}
+            for k in kandidaten:
+                if k.lower() in hl:
+                    return hl[k.lower()]
+            return None
+
+        importiert = 0
+        aktualisiert = 0
+        fehler = []
+
+        try:
+            headers = reader.fieldnames or []
+            col = {feld: find_col(headers, kands) for feld, kands in SPALTEN_MAP.items()}
+
+            for zeile_nr, row in enumerate(reader, start=2):
+                datum_raw = row.get(col['datum'], '').strip() if col['datum'] else ''
+                if not datum_raw:
+                    continue
+
+                # Datum parsen
+                datum = None
+                for fmt in [datum_format, '%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y', '%d-%m-%Y']:
+                    try:
+                        datum = datetime.strptime(datum_raw, fmt).date()
+                        break
+                    except ValueError:
+                        continue
+
+                if not datum:
+                    fehler.append(f'Zeile {zeile_nr}: Datum "{datum_raw}" nicht erkannt')
+                    continue
+
+                def get_int(feld):
+                    v = row.get(col[feld], '').strip() if col[feld] else ''
+                    v = v.replace('.', '').replace(',', '')
+                    try: return int(v)
+                    except: return None
+
+                def get_float(feld):
+                    v = row.get(col[feld], '').strip() if col[feld] else ''
+                    v = v.replace(',', '.')
+                    try: return float(v)
+                    except: return None
+
+                def get_str(feld):
+                    return row.get(col[feld], '').strip() if col[feld] else None
+
+                # Duplikat prüfen
+                bestehend = Tagesleistung.query.filter_by(herde_id=herde.id, datum=datum).first()
+
+                if bestehend and not ueberschreiben:
+                    continue
+
+                eier = get_int('eier_gesamt')
+                if eier is None:
+                    fehler.append(f'Zeile {zeile_nr}: Eier-Wert fehlt')
+                    continue
+
+                if bestehend:
+                    tl = bestehend
+                    aktualisiert += 1
+                else:
+                    tl = Tagesleistung(herde_id=herde.id, datum=datum)
+                    db.session.add(tl)
+                    importiert += 1
+
+                tl.eier_gesamt         = eier
+                tl.eier_verkaufsfaehig = get_int('eier_verkaufsfaehig') or eier
+                tl.eier_knick          = get_int('eier_knick') or 0
+                tl.eier_bruch          = get_int('eier_bruch') or 0
+                tl.eier_schmutzig      = get_int('eier_schmutzig') or 0
+                tl.eier_boden          = get_int('eier_boden') or 0
+                tl.tierbestand         = get_int('tierbestand') or herde.aktueller_bestand
+                tl.verluste            = get_int('verluste') or 0
+                tl.verlust_ursache     = get_str('verlust_ursache')
+                tl.futterverbrauch_kg  = get_float('futterverbrauch_kg')
+                tl.wasserverbrauch_l   = get_float('wasserverbrauch_l')
+                tl.temperatur_stall    = get_float('temperatur_stall')
+                tl.luftfeuchtigkeit    = get_float('luftfeuchtigkeit')
+                tl.bemerkung           = get_str('bemerkung')
+
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Import fehlgeschlagen: {e}', 'danger')
+            return redirect(request.url)
+
+        msg = f'Import abgeschlossen: {importiert} neu, {aktualisiert} aktualisiert.'
+        if fehler:
+            msg += f' {len(fehler)} Fehler.'
+        flash(msg, 'success' if not fehler else 'warning')
+
+        for f_msg in fehler[:10]:
+            flash(f_msg, 'warning')
+
+        return redirect(url_for('legehennen.tagesleistung_liste', herde_id=herde.id))
+
+    return render_template('legehennen/csv_import.html', herde=herde)
 
 
 # ── Packstelle-Einstieg (für Rolle packstelle) ──────────────────

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}CSV Import – {{ herde.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-arrow-up text-success"></i> CSV Import – {{ herde.name }}</h2>
+    <a href="{{ url_for('legehennen.tagesleistung_liste', herde_id=herde.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Zurück
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="m-0"><i class="bi bi-upload"></i> CSV-Datei hochladen</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">CSV-Datei *</label>
+                <input type="file" class="form-control" name="csv_datei" accept=".csv,.txt" required>
+                <div class="form-text">Aus Excel als CSV exportieren: Datei → Speichern unter → CSV (Semikolon-getrennt)</div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Trennzeichen</label>
+                    <select class="form-select" name="trennzeichen">
+                        <option value=";">Semikolon (;) – Standard Excel AT/DE</option>
+                        <option value=",">Komma (,)</option>
+                        <option value="&#9;">Tab</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Datumsformat</label>
+                    <select class="form-select" name="datum_format">
+                        <option value="%d.%m.%Y">31.12.2024 (AT/DE)</option>
+                        <option value="%Y-%m-%d">2024-12-31 (ISO)</option>
+                        <option value="%d/%m/%Y">31/12/2024</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Bei Duplikaten</label>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="ueberschreiben" id="ueberschreiben" value="1">
+                        <label class="form-check-label" for="ueberschreiben">
+                            Bestehende Einträge überschreiben
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg">
+                <i class="bi bi-file-earmark-arrow-up"></i> Importieren
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card border-info">
+    <div class="card-header bg-info bg-opacity-10">
+        <h6 class="m-0"><i class="bi bi-info-circle"></i> Erlaubte Spaltenbezeichnungen</h6>
+    </div>
+    <div class="card-body">
+        <p class="small text-muted mb-2">Die erste Zeile muss Spaltenüberschriften enthalten. Groß-/Kleinschreibung egal.</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered small">
+                <thead class="table-light">
+                    <tr><th>Feld</th><th>Erlaubte Spaltenbezeichnungen</th><th>Pflicht</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Datum</td><td><code>Datum, Date, Tag, Day</code></td><td>✓</td></tr>
+                    <tr><td>Eier gesamt</td><td><code>Eier_gesamt, Eier, Eggs, Gesamt, Total</code></td><td>✓</td></tr>
+                    <tr><td>Tierbestand</td><td><code>Tierbestand, Bestand, Tiere, Lebende_Tiere, Lebende Tiere</code></td><td></td></tr>
+                    <tr><td>Verluste</td><td><code>Verluste, Verlust, Abgänge, Losses</code></td><td></td></tr>
+                    <tr><td>Futter kg</td><td><code>Futterverbrauch_kg, Futter, Futter_kg</code></td><td></td></tr>
+                    <tr><td>Temperatur</td><td><code>Temperatur_Stall, Temperatur, Temp</code></td><td></td></tr>
+                    <tr><td>Bemerkung</td><td><code>Bemerkung, Notiz, Anmerkung</code></td><td></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="alert alert-light border mt-2 mb-0">
+            <strong>Beispiel CSV:</strong><br>
+            <code>Datum;Eier;Tiere;Verluste;Bemerkung<br>
+            01.01.2024;950;1000;0;<br>
+            02.01.2024;923;1000;2;Hitzestress</code>
+        </div>
+    </div>
+</div>
+
+</div>
+</div>
+{% endblock %}

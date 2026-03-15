@@ -200,6 +200,9 @@
 <!-- ═══════════════════ STALLBUCH ═══════════════════ -->
 <div class="row mb-3">
     <div class="col text-end">
+        <a href="{{ url_for('legehennen.tagesleistung_liste', herde_id=herde.id) }}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-table"></i> Vollständige Liste
+        </a>
         {% if hat_berechtigung(current_user, 'legehennen', 'create') %}
         <a href="{{ url_for('legehennen.tagesleistung_neu', herde_id=herde.id) }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Tagesleistung erfassen

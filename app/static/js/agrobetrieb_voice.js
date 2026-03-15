@@ -147,31 +147,44 @@ const VoiceEngine = {
         this._rec.onend = () => this._emit('end');
     },
 
-    /** Startet EINE Aufnahme. Gibt Promise<string> zurück (finaler Text). */
+    /** Startet EINE Aufnahme. Gibt Promise<string> zurück (finaler Text).
+     *  Erstellt jedes Mal ein neues SpeechRecognition-Objekt – Browser erlauben
+     *  kein Restart des gleichen Objekts nach onend. */
     einmalAufnehmen() {
         return new Promise((resolve, reject) => {
             if (!this.isSupported()) { reject('nicht unterstützt'); return; }
-            if (!this._rec) this._init();
+
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const rec = new SR();
+            rec.lang = 'de-AT';
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.maxAlternatives = 1;
 
             let finalText = '';
-            const onFinal  = t => { finalText = t; };
-            const onEnd    = () => {
-                this.off('final', onFinal);
-                this.off('end', onEnd);
+
+            rec.onresult = e => {
+                let interim = '', final = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    const t = e.results[i][0].transcript;
+                    e.results[i].isFinal ? (final += t) : (interim += t);
+                }
+                if (interim) this._emit('interim', interim.trim());
+                if (final)   { finalText = final.trim(); this._emit('final', finalText); }
+            };
+            rec.onerror = e => {
+                if (e.error === 'not-allowed')
+                    this._emit('error', 'Mikrofonzugriff verweigert');
+                resolve(finalText); // bei Fehler leeren Text zurückgeben
+            };
+            rec.onend = () => {
+                this._emit('end');
                 resolve(finalText);
             };
-            const onError  = msg => {
-                this.off('final', onFinal);
-                this.off('end', onEnd);
-                reject(msg);
-            };
 
-            this.on('final', onFinal);
-            this.on('end', onEnd);
-            this.on('error', onError);
-
-            try { this._rec.start(); this._aktiv = true; }
-            catch { resolve(''); }
+            this._rec = rec;
+            try { rec.start(); this._aktiv = true; }
+            catch(e) { resolve(''); }
         });
     },
 
@@ -211,7 +224,7 @@ const VoiceSprech = {
 
     async sagUndWarte(text) {
         if (!this._aktiv || !this._synth) return;
-        return new Promise(resolve => {
+        await new Promise(resolve => {
             this._synth.cancel();
             const utt = new SpeechSynthesisUtterance(text);
             utt.lang = 'de-AT';
@@ -220,6 +233,8 @@ const VoiceSprech = {
             utt.onerror = resolve;
             this._synth.speak(utt);
         });
+        // Kurze Pause nach TTS damit Mikrofon nicht die Stimme aufnimmt
+        await new Promise(r => setTimeout(r, 300));
     },
 
     stop() { this._synth?.cancel(); },
@@ -540,6 +555,28 @@ const FreieSprache = {
         this.stoppen();
     },
 
+    /** Findet ein Feld anhand eines Schlüsselworts (name, id, label). */
+    _feldFinden(schluessel) {
+        const s = schluessel.toLowerCase().replace(/\s+/g,'');
+        // 1. per id
+        const byId = document.getElementById(schluessel) || document.getElementById(s);
+        if (byId) return byId;
+        // 2. per name
+        const byName = document.querySelector(`[name="${schluessel}"]`) || document.querySelector(`[name="${s}"]`);
+        if (byName) return byName;
+        // 3. per Label-Text (enthält Schlüssel)
+        for (const lbl of document.querySelectorAll('label')) {
+            if (lbl.textContent.toLowerCase().includes(schluessel.toLowerCase())) {
+                const forEl = lbl.htmlFor ? document.getElementById(lbl.htmlFor) : null;
+                if (forEl) return forEl;
+                // Label direkt neben Input
+                const next = lbl.nextElementSibling;
+                if (next && (next.tagName === 'INPUT' || next.tagName === 'SELECT' || next.tagName === 'TEXTAREA')) return next;
+            }
+        }
+        return null;
+    },
+
     /** Parst Text und füllt Felder. */
     _verarbeite(text) {
         // Segmente durch Komma / "und" trennen
@@ -550,36 +587,53 @@ const FreieSprache = {
             const s = seg.trim();
             if (!s) continue;
 
+            let gefunden = false;
+
+            // 1. FELD_MAP prüfen
             for (const { re, ids } of this.FELD_MAP) {
                 if (!re.test(s)) continue;
-
-                // Wert = alles nach dem Schlüsselwort
                 const wert = s.replace(re, '').trim();
                 if (!wert) continue;
 
                 for (const id of ids) {
                     const el = document.getElementById(id);
                     if (!el) continue;
-
                     FormularWalker._werteintragen(el, el.type || el.tagName.toLowerCase(), wert);
-
-                    // Visuelles Highlight
-                    el.style.outline = '3px solid #198754';
-                    el.style.boxShadow = '0 0 0 3px rgba(25,135,84,0.3)';
-                    setTimeout(() => { el.style.outline=''; el.style.boxShadow=''; }, 1500);
-                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    this._highlight(el);
                     gefuellt++;
+                    gefunden = true;
                     break;
                 }
-                break;
+                if (gefunden) break;
+            }
+
+            // 2. Generisch: erstes Wort = Feldname, Rest = Wert
+            if (!gefunden) {
+                const teile = s.match(/^(\S+(?:\s+\S+)?)\s+(.+)$/);
+                if (teile) {
+                    const el = this._feldFinden(teile[1]);
+                    if (el) {
+                        FormularWalker._werteintragen(el, el.type || el.tagName.toLowerCase(), teile[2].trim());
+                        this._highlight(el);
+                        gefuellt++;
+                        gefunden = true;
+                    }
+                }
             }
         }
 
         if (gefuellt > 0) {
             VoiceUI.zeige(`✅ ${gefuellt} Feld${gefuellt>1?'er':''} ausgefüllt: "${text}"`, 'success', 2500);
         } else {
-            VoiceUI.zeige(`⚠️ Nicht erkannt: "${text}"`, 'warning', 2500);
+            VoiceUI.zeige(`⚠️ Nicht erkannt: "${text}" – sagen Sie z.B. "Kontonummer 4001"`, 'warning', 3000);
         }
+    },
+
+    _highlight(el) {
+        el.style.outline = '3px solid #198754';
+        el.style.boxShadow = '0 0 0 3px rgba(25,135,84,0.3)';
+        setTimeout(() => { el.style.outline=''; el.style.boxShadow=''; }, 1500);
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
 
     stoppen() {

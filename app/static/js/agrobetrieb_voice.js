@@ -245,7 +245,13 @@ const FormularWalker = {
         );
 
         return Array.from(elemente)
-            .filter(el => !el.disabled && !el.readOnly && el.offsetParent !== null)
+            .filter(el => {
+                if (el.disabled || el.readOnly) return false;
+                const r = el.getBoundingClientRect();
+                // sichtbar wenn Breite > 0 (auch außerhalb Viewport zulassen)
+                return r.width > 0 || el.type === 'hidden';
+            })
+            .filter(el => el.type !== 'hidden')
             .map(el => {
                 // Label-Text ermitteln
                 let label = '';

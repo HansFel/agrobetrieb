@@ -271,7 +271,9 @@ const FormularWalker = {
     /** Startet den geführten Durchlauf. */
     async starten() {
         this._felder = this._felderErmitteln();
+        console.log('[AgroVoice] starten(): Felder=', this._felder.length, 'panel=', VoiceUI._panel, 'init=', !!VoiceUI._panel);
         if (!this._felder.length) {
+            alert('[AgroVoice DEBUG] Keine Felder gefunden!\nForm: ' + !!document.querySelector('form') + '\nAlle inputs: ' + document.querySelectorAll('input,select,textarea').length);
             VoiceUI.zeige('Keine Eingabefelder auf dieser Seite gefunden.', 'warning', 3000);
             VoiceSprech.sag('Keine Eingabefelder gefunden.');
             return;

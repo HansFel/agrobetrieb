@@ -309,6 +309,11 @@ class TierarztBesuch(db.Model):
 
     bemerkung = db.Column(db.Text)
 
+    # Digitale Signatur (Base64-PNG vom Canvas)
+    signatur_data = db.Column(db.Text)          # data:image/png;base64,...
+    signatur_datum = db.Column(db.DateTime)     # Zeitpunkt der Unterschrift
+    signatur_name = db.Column(db.String(200))   # Name des Unterzeichners
+
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)
     aktualisiert_am = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

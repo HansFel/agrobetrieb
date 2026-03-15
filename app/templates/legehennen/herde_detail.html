@@ -569,7 +569,7 @@
     <div class="table-responsive">
         <table class="table table-sm m-0">
             <thead class="table-light">
-                <tr><th>Datum</th><th>Tierarzt</th><th>Grund</th><th>Diagnose</th><th>Maßnahmen</th><th>Kosten</th><th></th></tr>
+                <tr><th>Datum</th><th>Tierarzt</th><th>Grund</th><th>Diagnose</th><th>Maßnahmen</th><th>Kosten</th><th>Signatur</th><th></th></tr>
             </thead>
             <tbody>
                 {% for ta in tierarzt_besuche %}
@@ -580,6 +580,20 @@
                     <td>{{ ta.diagnose or '–' }}</td>
                     <td>{{ ta.massnahmen or '–' }}</td>
                     <td>{% if ta.kosten %}{{ waehrung }} {{ "%.2f"|format(ta.kosten) }}{% else %}–{% endif %}</td>
+                    <td>
+                        {% if ta.signatur_data %}
+                            <span class="text-success" title="Unterschrieben von {{ ta.signatur_name }} am {{ ta.signatur_datum.strftime('%d.%m.%Y %H:%M') if ta.signatur_datum else '' }}">
+                                <i class="bi bi-pen-fill"></i>
+                                <small class="d-block text-muted" style="font-size:.7em">{{ ta.signatur_name or ta.tierarzt_name or '' }}</small>
+                            </span>
+                        {% else %}
+                            <button class="btn btn-xs btn-outline-secondary" style="font-size:.75rem;padding:1px 6px"
+                                    onclick="oeffneSignaturDialog({{ ta.id }}, '{{ ta.tierarzt_name or '' }}')"
+                                    title="Signatur anfordern">
+                                <i class="bi bi-pen"></i> Unterschrift
+                            </button>
+                        {% endif %}
+                    </td>
                     <td class="text-end">
                         {% if hat_berechtigung(current_user, 'legehennen', 'delete') %}
                         <form method="POST" action="{{ url_for('legehennen.tierarzt_delete', id=ta.id) }}" class="d-inline" onsubmit="return confirm('Tierarztbesuch löschen?')">
@@ -945,4 +959,126 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+<!-- Signatur Modal -->
+<div class="modal fade" id="signaturModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pen"></i> Tierarzt-Unterschrift</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Name des Unterzeichners</label>
+                    <input type="text" class="form-control" id="sig-name" placeholder="Dr. Max Mustermann">
+                </div>
+                <div class="border rounded bg-light mb-2" style="cursor:crosshair">
+                    <canvas id="sig-canvas" width="700" height="200"
+                            style="display:block;touch-action:none;width:100%;height:200px"></canvas>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="sig-clear">
+                        <i class="bi bi-eraser"></i> Löschen
+                    </button>
+                    <span class="text-muted small ms-2 mt-1">Bitte mit Maus oder Finger unterschreiben</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button class="btn btn-success" id="sig-speichern">
+                    <i class="bi bi-check-lg"></i> Unterschrift speichern
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const canvas = document.getElementById('sig-canvas');
+    const ctx = canvas.getContext('2d');
+    let malen = false;
+    let aktiveTierArztId = null;
+
+    function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = 200;
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+    }
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const src = e.touches ? e.touches[0] : e;
+        return {
+            x: (src.clientX - rect.left) * scaleX,
+            y: (src.clientY - rect.top) * scaleY
+        };
+    }
+
+    canvas.addEventListener('mousedown',  e => { malen = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+    canvas.addEventListener('mousemove',  e => { if (!malen) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+    canvas.addEventListener('mouseup',    () => { malen = false; });
+    canvas.addEventListener('mouseleave', () => { malen = false; });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); malen = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, {passive:false});
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!malen) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, {passive:false});
+    canvas.addEventListener('touchend',   () => { malen = false; });
+
+    document.getElementById('sig-clear').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    document.getElementById('sig-speichern').addEventListener('click', async () => {
+        if (!aktiveTierArztId) return;
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const hasContent = imageData.data.some((v, i) => i % 4 === 3 && v > 0);
+        if (!hasContent) {
+            alert('Bitte zuerst unterschreiben!');
+            return;
+        }
+        const btn = document.getElementById('sig-speichern');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        try {
+            const resp = await fetch(`/legehennen/tierarzt/${aktiveTierArztId}/signatur`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || ''},
+                body: JSON.stringify({
+                    signatur: canvas.toDataURL('image/png'),
+                    name: document.getElementById('sig-name').value
+                })
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('signaturModal')).hide();
+                location.reload();
+            } else {
+                alert('Fehler beim Speichern');
+            }
+        } catch(e) {
+            alert('Netzwerkfehler');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Unterschrift speichern';
+        }
+    });
+
+    document.getElementById('signaturModal').addEventListener('shown.bs.modal', () => {
+        resizeCanvas();
+    });
+
+    window.oeffneSignaturDialog = function(id, name) {
+        aktiveTierArztId = id;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('sig-name').value = name || '';
+        new bootstrap.Modal(document.getElementById('signaturModal')).show();
+    };
+})();
+</script>
 {% endblock %}

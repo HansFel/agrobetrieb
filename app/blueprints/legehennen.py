@@ -413,6 +413,36 @@ def tierarzt_delete(id):
     return redirect(url_for('legehennen.herde_detail', id=herde_id, tab='tierarzt'))
 
 
+@legehennen_bp.route('/tierarzt/<int:id>/signatur', methods=['POST'])
+@login_required
+def tierarzt_signatur(id):
+    """Digitale Signatur des Tierarztes speichern."""
+    ta = TierarztBesuch.query.get_or_404(id)
+    data = request.get_json()
+    if not data or not data.get('signatur'):
+        return jsonify({'error': 'Keine Signaturdaten'}), 400
+
+    ta.signatur_data = data['signatur']
+    ta.signatur_datum = datetime.utcnow()
+    ta.signatur_name = data.get('name', '').strip() or ta.tierarzt_name
+    db.session.commit()
+    return jsonify({'ok': True, 'datum': ta.signatur_datum.strftime('%d.%m.%Y %H:%M')})
+
+
+@legehennen_bp.route('/tierarzt/<int:id>/signatur/loeschen', methods=['POST'])
+@login_required
+@requires_permission('legehennen', 'edit')
+def tierarzt_signatur_loeschen(id):
+    """Signatur löschen."""
+    ta = TierarztBesuch.query.get_or_404(id)
+    ta.signatur_data = None
+    ta.signatur_datum = None
+    ta.signatur_name = None
+    db.session.commit()
+    flash('Signatur gelöscht.', 'success')
+    return redirect(url_for('legehennen.herde_detail', id=ta.herde_id, tab='tierarzt'))
+
+
 # ── Impfung ──────────────────────────────────────────────────────
 
 @legehennen_bp.route('/herde/<int:herde_id>/impfung/neu', methods=['POST'])

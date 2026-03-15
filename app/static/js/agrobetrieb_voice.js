@@ -268,8 +268,19 @@ const FormularWalker = {
         this._felder = this._felderErmitteln();
         console.log('[AgroVoice] starten(): Felder=', this._felder.length, 'panel=', VoiceUI._panel, 'init=', !!VoiceUI._panel);
         if (!this._felder.length) {
-            alert('[AgroVoice DEBUG] Keine Felder gefunden!\nForm: ' + !!document.querySelector('form') + '\nAlle inputs: ' + document.querySelectorAll('input,select,textarea').length);
-            VoiceUI.zeige('Keine Eingabefelder auf dieser Seite gefunden.', 'warning', 3000);
+            const alle = document.querySelectorAll('input,select,textarea');
+            const info = Array.from(alle).map((e,i) =>
+                `${i}: ${e.tagName}[type=${e.type||'-'}][name=${e.name}] disabled=${e.disabled} readOnly=${e.readOnly}`
+            ).join('\n');
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:2px solid red;padding:20px;z-index:99999;max-height:80vh;overflow:auto;min-width:400px;font-family:monospace;font-size:12px;white-space:pre';
+            div.textContent = `[AgroVoice DEBUG] Form=${!!document.querySelector('form')} Inputs=${alle.length}\n\n${info}`;
+            const btn = document.createElement('button');
+            btn.textContent = '✕ Schließen';
+            btn.style.cssText = 'display:block;margin-top:10px;cursor:pointer';
+            btn.onclick = () => div.remove();
+            div.appendChild(btn);
+            document.body.appendChild(div);
             VoiceSprech.sag('Keine Eingabefelder gefunden.');
             return;
         }

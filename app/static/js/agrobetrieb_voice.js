@@ -244,16 +244,17 @@ const FormularWalker = {
             'input[type=checkbox], input[type=radio], textarea, select'
         );
 
-        console.log('[AgroVoice] Gefundene Rohelemente:', alle.length, Array.from(alle).map(e => e.tagName + '#' + e.id + '[' + e.type + ']'));
-
-        return Array.from(alle)
-            .filter(el => {
+        const gefiltert = Array.from(alle).filter(el => {
                 if (el.disabled || el.readOnly) return false;
-                // Sichtbarkeit: nicht display:none oder visibility:hidden
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none' || style.visibility === 'hidden') return false;
                 return true;
-            })
+            });
+
+        console.log('[AgroVoice] Rohelemente:', alle.length, '→ nach Filter:', gefiltert.length,
+            gefiltert.map(e => (e.tagName + (e.id?'#'+e.id:'') + '[' + (e.type||e.tagName) + '][name=' + e.name + ']')));
+
+        return gefiltert
             .map(el => {
                 // Label-Text ermitteln
                 let label = '';
@@ -828,6 +829,10 @@ document.head.appendChild(style);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => VoiceUI.init());
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => VoiceUI.init());
+} else {
+    VoiceUI.init();
+}
 
 window.AgroVoice = { FormularWalker, FreieSprache, FeldDiktat, VoiceSprech, VoiceNorm, VoiceUI };

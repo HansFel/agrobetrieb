@@ -290,6 +290,9 @@ const Voice = {
 
     _verarbeite(text) {
         if (!text) return;
+        console.log('[AgroVoice] gehört:', JSON.stringify(text));
+        console.log('[AgroVoice] alleFelder:', FeldSuche.alleFelder().map(e => e.name));
+        console.log('[AgroVoice] aktivFeld:', this._aktivFeld?.name);
         const t = text.toLowerCase().trim();
 
         // Globale Befehle

@@ -237,9 +237,9 @@ const FormularWalker = {
     /** Alle ausfüllbaren Felder des Formulars erfassen. */
     _felderErmitteln() {
         const form = document.querySelector('form');
-        if (!form) return [];
+        const container = form || document.body;
 
-        const elemente = form.querySelectorAll(
+        const elemente = container.querySelectorAll(
             'input:not([type=hidden]):not([type=submit]):not([type=button]):not([name=csrf_token]),' +
             'textarea, select'
         );
@@ -263,7 +263,8 @@ const FormularWalker = {
     async starten() {
         this._felder = this._felderErmitteln();
         if (!this._felder.length) {
-            VoiceUI.zeige('Kein Formular gefunden.', 'warning');
+            VoiceUI.zeige('Keine Eingabefelder auf dieser Seite gefunden.', 'warning', 3000);
+            VoiceSprech.sag('Keine Eingabefelder gefunden.');
             return;
         }
         this._index = 0;
@@ -755,11 +756,7 @@ const VoiceUI = {
             </button>`;
         navRight.insertBefore(li, navRight.firstChild);
         document.getElementById('voice-navbar-btn').addEventListener('click', () => {
-            if (document.querySelector('form')) {
-                FormularWalker.starten();
-            } else {
-                VoiceUI.zeige('Kein Formular auf dieser Seite vorhanden.', 'warning', 2000);
-            }
+            FormularWalker.starten();
         });
     },
 

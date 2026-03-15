@@ -244,12 +244,7 @@ const FormularWalker = {
             'input[type=checkbox], input[type=radio], textarea, select'
         );
 
-        const gefiltert = Array.from(alle).filter(el => {
-                if (el.disabled || el.readOnly) return false;
-                const style = window.getComputedStyle(el);
-                if (style.display === 'none' || style.visibility === 'hidden') return false;
-                return true;
-            });
+        const gefiltert = Array.from(alle).filter(el => !el.disabled && !el.readOnly);
 
         console.log('[AgroVoice] Rohelemente:', alle.length, '→ nach Filter:', gefiltert.length,
             gefiltert.map(e => (e.tagName + (e.id?'#'+e.id:'') + '[' + (e.type||e.tagName) + '][name=' + e.name + ']')));

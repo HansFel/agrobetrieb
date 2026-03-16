@@ -22,7 +22,8 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Anzahl Tiere *</label>
                             <input type="number" step="0.01" name="anzahl" class="form-control" required
-                                   placeholder="Jahresdurchschnitt" id="anzahlInput">
+                                   placeholder="Jahresdurchschnitt" id="anzahlInput"
+                                   value="{{ vorausgefuellt_anzahl }}">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -30,7 +31,7 @@
                         <select name="tier_kategorie" class="form-select" required id="tierkategorieSelect">
                             <option value="">– bitte wählen –</option>
                             {% for kat in tierkategorien %}
-                            <option value="{{ kat }}">{{ kat }}</option>
+                            <option value="{{ kat }}" {% if kat == vorausgefuellt_kategorie %}selected{% endif %}>{{ kat }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -77,14 +78,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const nJeTier = {
-    {% for kat, n in tierkategorien.items() %}"{{ kat }}": {{ n }},
-    {% endfor %}
-};
-// We need the dict from Python, pass it via template
-// Note: tierkategorien above is a list in template; need JS version
-</script>
 <script>
 // Override with proper dict - build from select options
 // N-Werte aus Python dict (hardcoded mirror for JS)

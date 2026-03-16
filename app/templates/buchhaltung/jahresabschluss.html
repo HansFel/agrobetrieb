@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Jahresabschluss / Saldenübertrag – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-arrow-left-right"></i> Jahresabschluss – Saldenübertrag</h2>
+    <span class="badge bg-secondary">Admin</span>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>Was passiert hier?</strong> Die Schlusssalden der <strong>Bilanzkonten (Klasse 0–5)</strong>
+    aus dem Quelljahr werden als Anfangssalden ins Zieljahr übertragen.
+    GuV-Konten (Klasse 6, 7, 9) beginnen jedes Jahr bei 0 – kein Übertrag.
+    Der Vorgang ist <strong>idempotent</strong> – mehrfaches Ausführen überschreibt den Anfangssaldo.
+</div>
+
+<!-- Jahr-Auswahl -->
+<div class="card mb-4">
+    <div class="card-header"><strong><i class="bi bi-gear"></i> Jahre wählen</strong></div>
+    <div class="card-body">
+        <form method="POST" class="row g-3 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-3">
+                <label class="form-label">Quelljahr (Abschluss von)</label>
+                <select name="von_jahr" class="form-select" id="vonJahr">
+                    {% for j in range(now_year + 1, now_year - 6, -1) %}
+                    <option value="{{ j }}" {% if j == von_jahr %}selected{% endif %}>{{ j }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1 text-center pb-2">
+                <i class="bi bi-arrow-right display-6 text-muted"></i>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Zieljahr (Anfangssalden für)</label>
+                <select name="nach_jahr" class="form-select" id="nachJahr">
+                    {% for j in range(now_year + 2, now_year - 5, -1) %}
+                    <option value="{{ j }}" {% if j == nach_jahr %}selected{% endif %}>{{ j }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="{{ url_for('buchhaltung.jahresabschluss', von=von_jahr, nach=nach_jahr) }}"
+                   class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-eye"></i> Vorschau
+                </a>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-warning w-100"
+                        onclick="return confirm('Saldenübertrag von {{ von_jahr }} → {{ nach_jahr }} durchführen?\n\nBestehende Anfangssalden werden überschrieben.')">
+                    <i class="bi bi-arrow-left-right"></i> Übertrag durchführen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Vorschau-Tabelle -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-table"></i> Vorschau: {{ von_jahr }} → {{ nach_jahr }}</strong>
+        {% set mit_aenderung = vorschau | selectattr('aenderung') | list %}
+        <span class="badge bg-{{ 'warning' if mit_aenderung else 'success' }}">
+            {{ mit_aenderung | length }} Konten mit Änderung
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Konto</th>
+                    <th>Bezeichnung</th>
+                    <th class="text-end">Endsaldo {{ von_jahr }}</th>
+                    <th class="text-end">Anfangssaldo {{ nach_jahr }} (aktuell)</th>
+                    <th class="text-center">Änderung</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for pos in vorschau %}
+            {% if pos.endsaldo_vorjahr != 0 or pos.aktueller_beginn_folgejahr != 0 %}
+            <tr {% if pos.aenderung %}class="table-warning"{% endif %}>
+                <td><code>{{ pos.konto.kontonummer }}</code></td>
+                <td>{{ pos.konto.bezeichnung }}</td>
+                <td class="text-end fw-bold">{{ '%.2f'|format(pos.endsaldo_vorjahr) }} {{ waehrung }}</td>
+                <td class="text-end text-muted">{{ '%.2f'|format(pos.aktueller_beginn_folgejahr) }} {{ waehrung }}</td>
+                <td class="text-center">
+                    {% if pos.aenderung %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-arrow-repeat"></i> wird geändert</span>
+                    {% else %}
+                    <span class="badge bg-success"><i class="bi bi-check"></i> bereits korrekt</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endif %}
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-3">Keine Bilanzkonten mit Buchungen im Jahr {{ von_jahr }}.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">
+        Nur Konten mit Saldo ≠ 0 werden angezeigt. Kontenklassen 0–5 (Bilanzkonten).
+        GuV-Konten (6, 7, 9) werden nicht übertragen.
+    </div>
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('buchhaltung.saldenliste') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-list-columns-reverse"></i> Zur Saldenliste
+    </a>
+    <a href="{{ url_for('buchhaltung.bilanz') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-bar-chart-line"></i> Zur Bilanz
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Zieljahr automatisch = Quelljahr + 1
+document.getElementById('vonJahr').addEventListener('change', function() {
+    const von = parseInt(this.value);
+    const nachSelect = document.getElementById('nachJahr');
+    for (let opt of nachSelect.options) {
+        if (parseInt(opt.value) === von + 1) {
+            opt.selected = true;
+            break;
+        }
+    }
+});
+</script>
+{% endblock %}

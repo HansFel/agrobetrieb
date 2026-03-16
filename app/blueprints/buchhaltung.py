@@ -18,6 +18,8 @@ from app.services.buchung_service import (
     gegenkonto_aendern,
     bilanz_berechnen,
     guv_berechnen,
+    jahresabschluss_durchfuehren,
+    jahresabschluss_vorschau,
 )
 from app.services.kontenplan_service import KLASSEN_NAMEN, standard_kontenplan_erstellen
 
@@ -553,6 +555,41 @@ def guv():
     geschaeftsjahr = request.args.get('jahr', type=int) or _aktives_gj()
     daten = guv_berechnen(geschaeftsjahr)
     return render_template('buchhaltung/guv.html', gem=gem, geschaeftsjahr=geschaeftsjahr, **daten)
+
+
+@buchhaltung_bp.route('/jahresabschluss', methods=['GET', 'POST'])
+@login_required
+def jahresabschluss():
+    """Saldenübertrag Bilanzkonten ins Folgejahr."""
+    from app.models.rollen import ist_betriebsadmin
+    if not ist_betriebsadmin(current_user):
+        abort(403)
+
+    now_year = _aktives_gj()
+    von_jahr = request.args.get('von', type=int) or (now_year - 1)
+    nach_jahr = request.args.get('nach', type=int) or now_year
+
+    if request.method == 'POST':
+        von_jahr = int(request.form['von_jahr'])
+        nach_jahr = int(request.form['nach_jahr'])
+        if von_jahr >= nach_jahr:
+            flash('Zieljahr muss größer als Quelljahr sein.', 'danger')
+        else:
+            ergebnis = jahresabschluss_durchfuehren(von_jahr, nach_jahr)
+            flash(
+                f'Saldenübertrag abgeschlossen: {ergebnis["uebertragen"]} Konten übertragen, '
+                f'{ergebnis["uebersprungen"]} ohne Vorjahresbuchungen übersprungen.',
+                'success'
+            )
+            return redirect(url_for('buchhaltung.jahresabschluss',
+                                    von=von_jahr, nach=nach_jahr))
+
+    vorschau = jahresabschluss_vorschau(von_jahr, nach_jahr)
+    return render_template('buchhaltung/jahresabschluss.html',
+                           von_jahr=von_jahr,
+                           nach_jahr=nach_jahr,
+                           vorschau=vorschau,
+                           now_year=now_year)
 
 
 @buchhaltung_bp.route('/buchungsschluessel')

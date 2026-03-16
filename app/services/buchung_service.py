@@ -276,6 +276,110 @@ def buchung_stornieren(buchung_id, storniert_von, grund=''):
 
 
 # ============================================================
+# Jahresabschluss / Saldenübertrag
+# ============================================================
+
+def jahresabschluss_durchfuehren(von_jahr, nach_jahr):
+    """
+    Überträgt Schlusssalden der Bilanzkonten (Klasse 0–5) als
+    Anfangssalden ins Folgejahr.
+
+    GuV-Konten (Klasse 6, 7, 9) werden NICHT übertragen –
+    sie beginnen jedes Jahr bei 0.
+
+    Bestehende saldo_beginn-Einträge im Zieljahr werden überschrieben
+    (idempotent – mehrfaches Ausführen sicher).
+
+    Returns:
+        dict mit 'uebertragen' (Anzahl Konten), 'uebersprungen' (Anzahl)
+    """
+    # Nur Bilanzkonten übertragen
+    bilanzkonten = Konto.query.filter(
+        Konto.kontenklasse.in_([0, 1, 2, 3, 4, 5]),
+        Konto.aktiv == True,
+    ).all()
+
+    uebertragen = 0
+    uebersprungen = 0
+
+    for konto in bilanzkonten:
+        # Endsaldo des Vorjahres holen
+        vorjahr_saldo = KontoSaldo.query.filter_by(
+            konto_id=konto.id, geschaeftsjahr=von_jahr
+        ).first()
+
+        if vorjahr_saldo is None:
+            uebersprungen += 1
+            continue
+
+        endsaldo = Decimal(str(vorjahr_saldo.saldo_aktuell or 0))
+
+        # KontoSaldo für Folgejahr holen oder anlegen
+        folge_saldo = KontoSaldo.query.filter_by(
+            konto_id=konto.id, geschaeftsjahr=nach_jahr
+        ).first()
+
+        if not folge_saldo:
+            folge_saldo = KontoSaldo(
+                konto_id=konto.id,
+                geschaeftsjahr=nach_jahr,
+                saldo_beginn=Decimal('0'),
+                summe_soll=Decimal('0'),
+                summe_haben=Decimal('0'),
+                saldo_aktuell=Decimal('0'),
+            )
+            db.session.add(folge_saldo)
+
+        folge_saldo.saldo_beginn = endsaldo
+        folge_saldo.aktualisiert_am = datetime.utcnow()
+
+        # Saldo_aktuell neu berechnen (saldo_beginn + Bewegungen des Folgejahres)
+        summe_soll = Decimal(str(folge_saldo.summe_soll or 0))
+        summe_haben = Decimal(str(folge_saldo.summe_haben or 0))
+        if konto.kontotyp in ('aktiv', 'aufwand'):
+            folge_saldo.saldo_aktuell = endsaldo + summe_soll - summe_haben
+        else:
+            folge_saldo.saldo_aktuell = endsaldo + summe_haben - summe_soll
+
+        uebertragen += 1
+
+    db.session.commit()
+    return {'uebertragen': uebertragen, 'uebersprungen': uebersprungen}
+
+
+def jahresabschluss_vorschau(von_jahr, nach_jahr):
+    """
+    Gibt eine Vorschau der zu übertragenden Salden zurück,
+    ohne etwas zu speichern.
+    """
+    bilanzkonten = Konto.query.filter(
+        Konto.kontenklasse.in_([0, 1, 2, 3, 4, 5]),
+        Konto.aktiv == True,
+    ).order_by(Konto.kontonummer).all()
+
+    positionen = []
+    for konto in bilanzkonten:
+        vorjahr_saldo = KontoSaldo.query.filter_by(
+            konto_id=konto.id, geschaeftsjahr=von_jahr
+        ).first()
+        endsaldo = Decimal(str(vorjahr_saldo.saldo_aktuell or 0)) if vorjahr_saldo else Decimal('0')
+
+        folge_saldo = KontoSaldo.query.filter_by(
+            konto_id=konto.id, geschaeftsjahr=nach_jahr
+        ).first()
+        aktueller_beginn = Decimal(str(folge_saldo.saldo_beginn or 0)) if folge_saldo else Decimal('0')
+
+        positionen.append({
+            'konto': konto,
+            'endsaldo_vorjahr': endsaldo,
+            'aktueller_beginn_folgejahr': aktueller_beginn,
+            'aenderung': endsaldo != aktueller_beginn,
+        })
+
+    return positionen
+
+
+# ============================================================
 # Bilanz & GuV
 # ============================================================
 

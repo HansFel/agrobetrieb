@@ -19,7 +19,8 @@
             <div class="card-body">
                 <div class="alert alert-info mb-3 py-2 small">
                     <i class="bi bi-info-circle"></i>
-                    Die Ursprungsbuchung wird storniert und durch die unten eingegebenen Teilbuchungen ersetzt.
+                    Die Ursprungsbuchung bleibt unverändert. Es werden neue Weiterbuchungen vom
+                    Forderungs-/Verbindlichkeitskonto auf die Kostenstellen erstellt.
                     Die Summe der Teilbeträge muss dem Originalbetrag entsprechen.
                 </div>
                 <div class="row g-2 text-sm">
@@ -39,7 +40,7 @@
                     </div>
                     <div class="col-md-2">
                         <span class="text-muted small">Betrag</span><br>
-                        <strong class="fs-5 text-primary">{{ '%.2f'|format(buchung.betrag or 0) }}</strong>
+                        <strong class="fs-5 text-primary">{{ '%.2f'|format(buchung.betrag or 0) }} €</strong>
                     </div>
                     <div class="col-md-2">
                         <span class="text-muted small">Beleg</span><br>
@@ -63,10 +64,25 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Gegenkonto (bleibt fix)</label>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Gegenkonto (fix)</label>
+                            {% if gegenkonto_fix %}
+                            {# Bank-/Importkonto ist unveränderlich #}
+                            <input type="hidden" name="gegenkonto_id" value="{{ gegenkonto_id }}">
+                            <div class="form-control bg-light text-muted">
+                                <i class="bi bi-lock-fill me-1"></i>
+                                {% if fix_konto %}
+                                    {{ fix_konto.kontonummer }} – {{ fix_konto.bezeichnung }}
+                                {% else %}
+                                    Konto {{ gegenkonto_id }}
+                                {% endif %}
+                            </div>
+                            <div class="form-text">
+                                Das Forderungs-/Verbindlichkeitskonto bleibt fix. Die Zeilen verteilen den Betrag auf Kostenstellen.
+                            </div>
+                            {% else %}
                             <select class="form-select" name="gegenkonto_id" id="gegenkonto_id">
-                                {% for konto in konten %}
+                                {% for konto in alle_konten %}
                                 <option value="{{ konto.id }}"
                                     {% if konto.id == gegenkonto_id %}selected{% endif %}>
                                     {{ konto.kontonummer }} – {{ konto.bezeichnung }}
@@ -74,11 +90,19 @@
                                 {% endfor %}
                             </select>
                             <div class="form-text">
-                                Das ist das Konto, von dem die Beträge kommen/gehen (z.B. Forderungskonto, Bankkonto).
+                                Das Konto von dem die Beträge kommen/gehen (z.B. Forderungskonto).
                             </div>
+                            {% endif %}
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Richtung</label>
+                            {% if gegenkonto_fix %}
+                            <input type="hidden" name="richtung" value="{{ richtung }}">
+                            <div class="form-control bg-light text-muted">
+                                <i class="bi bi-lock-fill me-1"></i>
+                                {% if richtung == 'ausgabe' %}Ausgabe – Kostenstellen im Haben{% else %}Einnahme – Kostenstellen im Soll{% endif %}
+                            </div>
+                            {% else %}
                             <select class="form-select" name="richtung" id="richtung">
                                 <option value="ausgabe" {% if richtung == 'ausgabe' %}selected{% endif %}>
                                     Ausgabe (Zeilen-Konten im Soll)
@@ -87,6 +111,7 @@
                                     Einnahme (Zeilen-Konten im Haben)
                                 </option>
                             </select>
+                            {% endif %}
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
                             <div class="w-100 border rounded p-2 bg-light text-center">
@@ -94,7 +119,7 @@
                                 <div class="fw-bold fs-5" id="restbetrag">
                                     {{ '%.2f'|format(buchung.betrag or 0) }}
                                 </div>
-                                <div class="text-muted small">von {{ '%.2f'|format(buchung.betrag or 0) }}</div>
+                                <div class="text-muted small">von {{ '%.2f'|format(buchung.betrag or 0) }} €</div>
                             </div>
                         </div>
                     </div>
@@ -103,7 +128,7 @@
                         <table class="table align-middle" id="split-tabelle">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:40%">Konto (Kostenstelle)</th>
+                                    <th style="width:40%">Kostenstellen-Konto</th>
                                     <th style="width:15%">Betrag</th>
                                     <th>Buchungstext</th>
                                     <th style="width:5%"></th>
@@ -114,8 +139,7 @@
                                 <tr class="table-light fw-semibold">
                                     <td>Summe</td>
                                     <td id="summe-zelle">0,00</td>
-                                    <td></td>
-                                    <td></td>
+                                    <td colspan="2"></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -130,7 +154,7 @@
                                 <i class="bi bi-exclamation-triangle"></i> Summe stimmt nicht überein!
                             </span>
                             <button class="btn btn-warning fw-bold px-4" type="submit" id="submit-btn">
-                                <i class="bi bi-scissors"></i> Splitbuchung erstellen & Original stornieren
+                                <i class="bi bi-diagram-3"></i> Auf Kostenstellen verteilen
                             </button>
                         </div>
                     </div>
@@ -196,7 +220,7 @@
     document.getElementById('zeile-add').addEventListener('click', () => addRow());
     addRow(null, ORIGINAL, ORIGINAL_TEXT);
 
-    // Restbetrag-Button: verteilt Rest auf letzte Zeile
+    // Ctrl+R: Rest auf letzte Zeile verteilen
     document.getElementById('split-form').addEventListener('keydown', e => {
         if (e.key === 'r' && e.ctrlKey) {
             e.preventDefault();
@@ -209,8 +233,7 @@
                         if (!isNaN(v)) summe += v;
                     }
                 });
-                const letztes = inputs[inputs.length - 1];
-                letztes.value = (ORIGINAL - summe).toFixed(2).replace('.', ',');
+                inputs[inputs.length - 1].value = (ORIGINAL - summe).toFixed(2).replace('.', ',');
                 updateSumme();
             }
         }

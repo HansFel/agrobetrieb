@@ -1,0 +1,657 @@
+{% extends 'base.html' %}
+{% block title %}Hilfe & Bedienungsanleitung – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-question-circle"></i> Hilfe & Bedienungsanleitung</h2>
+            {% if current_user.rolle == 'betriebsadmin' %}
+            <a href="{{ url_for('hilfe.inbetriebnahme') }}" class="btn btn-outline-success">
+                <i class="bi bi-rocket-takeoff"></i> Inbetriebnahme-Anleitung
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="accordion" id="hilfeAccordion">
+
+            {# ────────────────────────────────────────── #}
+            {# ALLGEMEINE BEDIENUNG                       #}
+            {# ────────────────────────────────────────── #}
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-allgemein">
+                        <i class="bi bi-compass me-2 text-primary"></i> Allgemeine Bedienung
+                    </button>
+                </h2>
+                <div id="hilfe-allgemein" class="accordion-collapse collapse show" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6><i class="bi bi-layout-text-sidebar me-1"></i> Navigation</h6>
+                        <ul>
+                            <li>Die <strong>Navigationsleiste</strong> oben enthält alle Hauptbereiche (Buchhaltung, Maschinen, Lager, Module).</li>
+                            <li>Bereiche mit einem <strong>Pfeil</strong> öffnen ein Untermenü – klicken Sie darauf um alle Unterpunkte zu sehen.</li>
+                            <li>Das <strong>Fragezeichen-Icon <i class="bi bi-question-circle"></i></strong> oben rechts öffnet immer diese Hilfe.</li>
+                            <li>Das <strong>Personen-Icon <i class="bi bi-person-circle"></i></strong> oben rechts enthält Profil, Passwort ändern und Abmelden.</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-speedometer2 me-1"></i> Dashboard</h6>
+                        <p>Das Dashboard ist Ihre Startseite nach dem Login. Es zeigt eine rollenabhängige Übersicht:</p>
+                        <ul>
+                            <li><strong>Betriebsadmin / Mitglied:</strong> Kennzahlen Buchhaltung, offene Aufgaben, Schnellzugriff auf alle Module</li>
+                            <li><strong>Tierarzt:</strong> Offene TAMG-Einträge (Legehennen + Milchvieh), Herden mit ablaufenden Wartezeiten, Signaturen-Übersicht</li>
+                            <li><strong>Buchhaltung:</strong> Buchungsstatistiken, Journal-Schnellzugriff</li>
+                            <li><strong>Gelegentlich / Praktikant:</strong> Einsätze und Maschinen</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-calendar me-1"></i> Geschäftsjahr</h6>
+                        <p>In der Buchhaltung können Sie oben rechts das <strong>Geschäftsjahr</strong> wählen. Buchungen, Journal und Auswertungen beziehen sich immer auf das gewählte Jahr.</p>
+
+                        <h6 class="mt-3"><i class="bi bi-funnel me-1"></i> Filter & Suche</h6>
+                        <p>Tabellen mit vielen Einträgen (Journal, Kontoblatt, Maschinen) haben Filterzeilen oben. Geben Sie einen Teiltext ein und klicken Sie <strong>Filtern</strong>. Mit dem <strong>X-Button</strong> werden alle Filter zurückgesetzt.</p>
+
+                        <h6 class="mt-3"><i class="bi bi-printer me-1"></i> PDF / Drucken</h6>
+                        <p>Viele Listen und Berichte haben einen <strong>PDF-Button</strong> oben rechts. Das PDF öffnet sich in einem neuen Tab und kann dort gedruckt oder gespeichert werden.</p>
+
+                        <h6 class="mt-3"><i class="bi bi-exclamation-triangle me-1 text-warning"></i> Fehlermeldungen</h6>
+                        <ul>
+                            <li><strong>Rote Meldung:</strong> Fehler – Aktion wurde nicht durchgeführt, Hinweis lesen und korrigieren</li>
+                            <li><strong>Grüne Meldung:</strong> Erfolg – Aktion wurde gespeichert</li>
+                            <li><strong>Gelbe Meldung:</strong> Warnung – Aktion wurde durchgeführt, aber prüfen Sie den Hinweis</li>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+
+            {# ────────────────────────────────────────── #}
+            {# BENUTZER & ROLLEN (nur Admin)              #}
+            {# ────────────────────────────────────────── #}
+            {% if current_user.rolle == 'betriebsadmin' %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-benutzer">
+                        <i class="bi bi-people me-2 text-primary"></i> Benutzer & Rollen
+                        <span class="badge bg-secondary ms-2">Admin</span>
+                    </button>
+                </h2>
+                <div id="hilfe-benutzer" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <p>Unter <strong>Benutzer → Benutzerverwaltung</strong> verwalten Sie alle Personen die Zugang zu AgroBetrieb haben.</p>
+
+                        <h6>Neuen Benutzer anlegen</h6>
+                        <ol>
+                            <li>Klicken Sie auf <strong>Neuer Benutzer</strong></li>
+                            <li>Benutzername, Vorname, Nachname, E-Mail eingeben</li>
+                            <li>Rolle auswählen (siehe Tabelle unten)</li>
+                            <li>Temporäres Passwort setzen – der Benutzer muss es beim ersten Login ändern</li>
+                        </ol>
+
+                        <h6 class="mt-3">Verfügbare Rollen</h6>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr><th>Rolle</th><th>Zugriff</th><th>Typisch für</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><span class="badge bg-danger">betriebsadmin</span></td><td>Vollzugriff inkl. Benutzerverwaltung, Betriebsdaten, Module freischalten</td><td>Betriebsleiter, Stellvertreter</td></tr>
+                                <tr><td><span class="badge bg-primary">mitglied</span></td><td>Vollzugriff auf alle freigeschalteten Module außer Benutzerverwaltung</td><td>Familienmitglieder, Angestellte</td></tr>
+                                <tr><td><span class="badge bg-info text-dark">buchhaltung</span></td><td>Nur Buchhaltung und Fakturierung – kein Zugriff auf Einsätze, Lager, Tierhaltung</td><td>Externe Buchhalterin</td></tr>
+                                <tr><td><span class="badge bg-secondary">gelegentlich</span></td><td>Nur Einsätze erfassen und Maschinenbelegung – kein Finanzzugriff</td><td>Saisonarbeitskräfte</td></tr>
+                                <tr><td><span class="badge bg-secondary">praktikand</span></td><td>Lesezugriff überall, Einsätze eingeben</td><td>Praktikanten, Schüler</td></tr>
+                                <tr><td><span class="badge bg-warning text-dark">packstelle</span></td><td>Nur Sortierergebnisse im Legehennen-Modul eintragen</td><td>Packstellen-Personal</td></tr>
+                                <tr><td><span class="badge bg-success">tierarzt</span></td><td>Tierhaltung (Legehennen + Milchvieh), TAMG-Journal, Signaturen – kein Finanzzugriff</td><td>Bestandstierarzt</td></tr>
+                                <tr><td><span class="badge bg-success">amtstierarzt</span></td><td>Lesezugriff Tierhaltung + Betriebsdaten – keine Änderungen</td><td>Amtstierarzt, Kontrollorgane</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h6 class="mt-3">Passwort zurücksetzen</h6>
+                        <p>In der Benutzerliste → Bearbeiten können Sie ein neues temporäres Passwort setzen und das Flag <em>Passwort muss geändert werden</em> aktivieren. Der Benutzer muss dann beim nächsten Login ein neues Passwort wählen.</p>
+
+                        <h6 class="mt-3">Benutzer deaktivieren</h6>
+                        <p>Statt Benutzer zu löschen, empfiehlt es sich Benutzer zu <strong>deaktivieren</strong> (Haken bei <em>Aktiv</em> entfernen). Der Benutzer kann sich dann nicht mehr anmelden, seine Buchungen und Daten bleiben aber erhalten.</p>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# BETRIEBSDATEN (nur Admin)                  #}
+            {# ────────────────────────────────────────── #}
+            {% if current_user.rolle == 'betriebsadmin' %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-betrieb">
+                        <i class="bi bi-building me-2 text-primary"></i> Betriebsdaten & Module
+                        <span class="badge bg-secondary ms-2">Admin</span>
+                    </button>
+                </h2>
+                <div id="hilfe-betrieb" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <p>Unter <strong>Betrieb → Betriebsdaten</strong> pflegen Sie die Stammdaten und schalten Module frei.</p>
+
+                        <h6>Stammdaten</h6>
+                        <ul>
+                            <li><strong>Name, Adresse, PLZ, Ort</strong> – erscheinen auf Rechnungen und Berichten</li>
+                            <li><strong>Land</strong> – bestimmt MwSt-Satz (AT=20%, DE=19%, CH=8.1%) und Währung</li>
+                            <li><strong>UID-Nummer</strong> – Umsatzsteuer-Identifikationsnummer, Pflicht für Rechnungen</li>
+                            <li><strong>Telefon / E-Mail / Website</strong> – optional, im Briefkopf</li>
+                            <li><strong>IBAN / BIC</strong> – erscheint auf Rechnungen als Zahlungsinformation</li>
+                        </ul>
+
+                        <h6 class="mt-3">Module freischalten</h6>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light"><tr><th>Modul</th><th>Feld</th><th>Beschreibung</th></tr></thead>
+                            <tbody>
+                                <tr><td><span class="badge bg-warning text-dark">Legehennen</span></td><td><code>modul_legehennen</code></td><td>Herden, Legeleistung, TAMG-Journal, Sortierergebnisse</td></tr>
+                                <tr><td><span class="badge bg-success">Milchvieh</span></td><td><code>modul_milchvieh</code></td><td>Rinder, Milchleistung, TAMG-Journal, Tierarztbesuche</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Der <strong>Testbetrieb-Modus</strong> schaltet alle Module ohne Lizenz frei – nützlich für Entwicklung und Tests.
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# MASCHINEN & EINSÄTZE                       #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_berechtigung(current_user, 'maschinen', 'view') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-maschinen">
+                        <i class="bi bi-gear me-2 text-primary"></i> Maschinen & Einsätze
+                    </button>
+                </h2>
+                <div id="hilfe-maschinen" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6>Maschinen anlegen</h6>
+                        <p>Unter <strong>Maschinen</strong> werden alle Betriebsmittel erfasst (Traktoren, Anhänger, Geräte, Fahrzeuge).</p>
+                        <ul>
+                            <li><strong>Name / Bezeichnung</strong> – z.B. "Traktor John Deere 6R"</li>
+                            <li><strong>Kennzeichen / Seriennummer</strong> – optional zur Identifikation</li>
+                            <li><strong>Stundensatz / Hektarsatz</strong> – für die Kostenabrechnung</li>
+                            <li><strong>Verrechnungsart</strong> – nach Stunden, Hektar oder pauschal</li>
+                        </ul>
+
+                        {% if hat_berechtigung(current_user, 'einsaetze', 'create') %}
+                        <h6 class="mt-3">Einsätze erfassen</h6>
+                        <ul>
+                            <li>Datum, Maschine, Mitarbeiter und geleistete Stunden/Fläche eingeben</li>
+                            <li>Beschreibung der Tätigkeit (z.B. "Pflügen Feld 3")</li>
+                            <li>Einsätze werden für die Kostenabrechnung und Auswertungen verwendet</li>
+                        </ul>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# BUCHHALTUNG – JOURNAL                      #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_berechtigung(current_user, 'buchhaltung', 'view') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-journal">
+                        <i class="bi bi-journal-bookmark me-2 text-primary"></i> Buchhaltung – Journal
+                    </button>
+                </h2>
+                <div id="hilfe-journal" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <p>Das Journal ist die zentrale Liste aller Buchungen. Es ist filterbar nach Jahr, Konto, Buchungsart, Datum, Betrag und Buchungstext.</p>
+
+                        <h6>Buchungsarten</h6>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light"><tr><th>Art</th><th>Bedeutung</th></tr></thead>
+                            <tbody>
+                                <tr><td><span class="badge bg-primary">manuell</span></td><td>Manuell erfasste Buchung (Neue Buchung)</td></tr>
+                                <tr><td><span class="badge" style="background:#6f42c1">sammel</span></td><td>Teil einer Sammelbuchung (ein Gegenkonto, mehrere Kostenstellen)</td></tr>
+                                <tr><td><span class="badge bg-secondary">import</span></td><td>Per Bank-Import eingelesen</td></tr>
+                                <tr><td><span class="badge bg-dark">abschluss</span></td><td>Jahresabschlussbuchung</td></tr>
+                                <tr><td><span class="badge bg-info text-dark">eröffnung</span></td><td>Jahreseröffnungsbuchung</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h6 class="mt-3">Aktionen im Journal</h6>
+                        <ul>
+                            <li><i class="bi bi-arrow-left-right text-warning"></i> <strong>Umbuchen</strong> – ändert Soll/Haben-Konto; Original wird storniert, neue Buchung entsteht</li>
+                            <li><i class="bi bi-scissors text-secondary"></i> <strong>Auf Kostenstellen verteilen</strong> – bucht vom Forderungs-/Verbindlichkeitskonto weiter auf mehrere Kostenstellen; Ursprungsbuchung bleibt unverändert (nur bei manuell/sammel/import)</li>
+                            <li><i class="bi bi-pencil-square text-primary"></i> <strong>Gegenkonto ändern</strong> – ändert nur das Gegenkonto einer Import-Buchung direkt (ohne Stornierung)</li>
+                            <li><i class="bi bi-x-circle text-danger"></i> <strong>Stornieren</strong> – erzeugt eine Gegenbuchung; Original bleibt als durchgestrichene Zeile sichtbar</li>
+                        </ul>
+
+                        <h6 class="mt-3">Kostenstellen verteilen – Workflow</h6>
+                        <p>Typischer Fall: Lieferant schickt eine Rechnung über mehrere Positionen (Diesel, Reparatur, Saatgut). Die Bank-Import-Buchung lautet z.B. <em>Bank / Forderung Lieferant X</em>.</p>
+                        <ol>
+                            <li>Im Journal auf <i class="bi bi-scissors"></i> klicken</li>
+                            <li>Das Forderungskonto (Lieferant X) ist automatisch als fixes Gegenkonto gesetzt</li>
+                            <li>Zeilen für jede Kostenstelle eintragen (Konto + Betrag + Text)</li>
+                            <li><kbd>Strg</kbd>+<kbd>R</kbd> füllt den Restbetrag automatisch in die letzte Zeile</li>
+                            <li>Summe muss exakt dem Originalbetrag entsprechen (grüne Anzeige)</li>
+                            <li>Klick auf <strong>Auf Kostenstellen verteilen</strong> – neue Sammelbuchungen werden erstellt</li>
+                        </ol>
+
+                    </div>
+                </div>
+            </div>
+
+            {# ────────────────────────────────────────── #}
+            {# BUCHHALTUNG – KONTENPLAN                   #}
+            {# ────────────────────────────────────────── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-konten">
+                        <i class="bi bi-list-columns me-2 text-primary"></i> Buchhaltung – Kontenplan
+                    </button>
+                </h2>
+                <div id="hilfe-konten" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <p>Der Kontenplan ist die Grundlage aller Buchungen. Er gliedert sich in Kontenklassen:</p>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light"><tr><th>Klasse</th><th>Inhalt</th><th>Beispiele</th></tr></thead>
+                            <tbody>
+                                <tr><td>0</td><td>Anlagevermögen</td><td>Maschinen, Gebäude, Fahrzeuge</td></tr>
+                                <tr><td>1</td><td>Umlaufvermögen</td><td>Vorräte, Kasse</td></tr>
+                                <tr><td>2</td><td>Forderungen &amp; Verbindlichkeiten</td><td>Lieferantenkonten, Kundenforderungen</td></tr>
+                                <tr><td>3</td><td>Bank &amp; Kasse (Importkonten)</td><td>Girokonto, Sparkonto</td></tr>
+                                <tr><td>4–8</td><td>Kosten- &amp; Erlöskonten</td><td>Diesel, Saatgut, Reparatur, Erlöse Milch</td></tr>
+                                <tr><td>9</td><td>Eigenkapital &amp; Abschluss</td><td>Eigenkapital, GuV-Konto</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h6 class="mt-3">Wichtige Konto-Eigenschaften</h6>
+                        <ul>
+                            <li><strong>Importkonto</strong> – markiert das Bankkonto für den CSV-Import; bestimmt die automatische Gegenkonto-Erkennung beim Splitten</li>
+                            <li><strong>Sammelkonto</strong> – wird als Gegenkonto bei Sammelbuchungen verwendet</li>
+                            <li><strong>Jahresübertrag</strong> – Saldo wird beim Jahreswechsel in das neue Jahr übernommen</li>
+                        </ul>
+
+                        {% if hat_berechtigung(current_user, 'buchhaltung', 'create') %}
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Über den Button <strong>Standard-Konten anlegen</strong> im Kontenplan wird automatisch ein vollständiger Basiskontenplan (Österreich) angelegt.
+                            Eigene Kostenstellen (Klasse 4–8) können jederzeit ergänzt werden.
+                        </div>
+                        {% endif %}
+
+                        <h6 class="mt-3">Saldenliste</h6>
+                        <p>Die <strong>Saldenliste</strong> zeigt für jedes Konto den Anfangssaldo, Soll-Summe, Haben-Summe und aktuellen Saldo. Wichtig für die Abstimmung und den Jahresabschluss.</p>
+
+                        <h6 class="mt-3">Kontoblatt</h6>
+                        <p>Im Journal können Sie auf eine Kontonummer klicken um das <strong>Kontoblatt</strong> zu öffnen – es zeigt alle Buchungen eines einzelnen Kontos chronologisch.</p>
+
+                    </div>
+                </div>
+            </div>
+
+            {# ────────────────────────────────────────── #}
+            {# BUCHHALTUNG – BANK-IMPORT                  #}
+            {# ────────────────────────────────────────── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-bankimport">
+                        <i class="bi bi-bank me-2 text-primary"></i> Buchhaltung – Bank-Import (ELBA / CSV)
+                    </button>
+                </h2>
+                <div id="hilfe-bankimport" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6>Einmalige Konfiguration</h6>
+                        <ol>
+                            <li>Unter <strong>Buchhaltung → Bank-Import → Konfiguration</strong> öffnen</li>
+                            <li>Spalten-Nummern für Datum, Betrag und Buchungstext eintragen (0 = erste Spalte)</li>
+                            <li>Trennzeichen (meist Semikolon <code>;</code>), Datumsformat (<code>%d.%m.%Y</code>) und Encoding einstellen</li>
+                            <li>Anzahl Kopfzeilen die übersprungen werden sollen eintragen</li>
+                            <li><strong>Vorzeichen umkehren</strong> aktivieren wenn Ausgaben als positive Zahlen geliefert werden</li>
+                        </ol>
+
+                        <h6 class="mt-3">Import durchführen</h6>
+                        <ol>
+                            <li>CSV-Datei von Ihrer Internetbank herunterladen (ELBA, George, MobileBanking etc.)</li>
+                            <li>Unter <strong>Bank-Import</strong> das Bankkonto wählen und Datei hochladen</li>
+                            <li>In der <strong>Vorschau</strong> werden Buchungsschlüssel automatisch zugewiesen wenn der Buchungstext einen bekannten Suchbegriff enthält</li>
+                            <li>Unbekannte Buchungen können direkt in der Vorschau einem Gegenkonto zugewiesen werden</li>
+                            <li>Mit <strong>Importieren</strong> werden alle Buchungen ins Journal übernommen</li>
+                        </ol>
+
+                        <div class="alert alert-warning py-2 small">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Bereits importierte Buchungen werden automatisch erkannt und <strong>übersprungen</strong> (kein Doppelimport).
+                        </div>
+
+                        <h6 class="mt-3">Buchungsschlüssel</h6>
+                        <p>Buchungsschlüssel sind Regeln die einen Buchungstext mit einem Gegenkonto verknüpfen:</p>
+                        <ul>
+                            <li><strong>Kürzel</strong> – eindeutige Bezeichnung (z.B. "AGRAR-DIESEL")</li>
+                            <li><strong>Suchbegriffe</strong> – Komma-getrennte Texte die im Buchungstext gesucht werden (z.B. "Shell, Tankstelle, Agip")</li>
+                            <li><strong>Konto</strong> – das Gegenkonto das automatisch zugewiesen wird (z.B. Konto Diesel/Treibstoff)</li>
+                        </ul>
+                        <p>Über den Button <strong>Textanalyse</strong> werden häufige Begriffe aus vorhandenen Import-Buchungen analysiert und neue Schlüssel vorgeschlagen.</p>
+
+                        <h6 class="mt-3">Nach dem Import – offene Buchungen fertigstellen</h6>
+                        <p>Buchungen ohne Gegenkonto (kein Buchungsschlüssel gefunden) haben im Journal den Button <i class="bi bi-pencil-square"></i> <strong>Gegenkonto ändern</strong>.<br>
+                        Buchungen die auf mehrere Kostenstellen verteilt werden sollen: Button <i class="bi bi-scissors"></i> <strong>Auf Kostenstellen verteilen</strong> verwenden.</p>
+
+                    </div>
+                </div>
+            </div>
+
+            {# ────────────────────────────────────────── #}
+            {# BUCHHALTUNG – AUSWERTUNGEN                 #}
+            {# ────────────────────────────────────────── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-auswertung">
+                        <i class="bi bi-bar-chart-line me-2 text-primary"></i> Buchhaltung – Auswertungen
+                    </button>
+                </h2>
+                <div id="hilfe-auswertung" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6>GuV – Gewinn- und Verlustrechnung</h6>
+                        <p>Gegenüberstellung von <strong>Erlösen</strong> (Einnahmen) und <strong>Aufwendungen</strong> (Ausgaben) im gewählten Geschäftsjahr. Zeigt das Betriebsergebnis (Gewinn oder Verlust).</p>
+
+                        <h6 class="mt-3">Bilanz</h6>
+                        <p>Stichtags-Übersicht von <strong>Aktiva</strong> (Vermögen) und <strong>Passiva</strong> (Schulden + Eigenkapital). Aktiva und Passiva müssen sich ausgleichen.</p>
+
+                        <h6 class="mt-3">Saldenliste</h6>
+                        <p>Alle Konten mit Anfangssaldo, Soll-Summe, Haben-Summe und aktuellem Saldo – übersichtlich nach Kontenklassen gegliedert.</p>
+
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Alle Auswertungen sind nach <strong>Geschäftsjahr</strong> gefiltert. Stellen Sie das gewünschte Jahr oben rechts ein.
+                            PDF-Export ist bei allen Berichten über den <strong>PDF-Button</strong> möglich.
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}{# Ende Buchhaltung #}
+
+            {# ────────────────────────────────────────── #}
+            {# FAKTURIERUNG                               #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_berechtigung(current_user, 'fakturierung', 'view') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-faktura">
+                        <i class="bi bi-receipt me-2 text-primary"></i> Fakturierung & Rechnungen
+                    </button>
+                </h2>
+                <div id="hilfe-faktura" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6>Rechnung erstellen</h6>
+                        <ol>
+                            <li>Unter <strong>Fakturierung → Neue Rechnung</strong></li>
+                            <li>Empfänger (Kunde/Lieferant) aus der Liste wählen oder neu erfassen</li>
+                            <li>Rechnungsdatum und Zahlungsziel eintragen</li>
+                            <li>Positionen hinzufügen: Bezeichnung, Menge, Einheit, Einzelpreis, MwSt-Satz</li>
+                            <li>Speichern – die Rechnung wird automatisch als Buchung im Journal erfasst</li>
+                        </ol>
+
+                        <h6 class="mt-3">PDF drucken</h6>
+                        <p>Über den <strong>PDF-Button</strong> in der Rechnungsansicht wird ein druckfertiges PDF erzeugt. Name, Adresse und UID aus den Betriebsdaten erscheinen automatisch im Briefkopf.</p>
+
+                        <div class="alert alert-warning py-2 small">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Betriebsdaten</strong> (Name, Adresse, UID-Nummer) müssen vollständig ausgefüllt sein, sonst fehlen diese auf der Rechnung.
+                            → <a href="{{ url_for('betrieb.betrieb_bearbeiten') }}">Betriebsdaten öffnen</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# LAGER                                      #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_berechtigung(current_user, 'lager', 'view') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-lager">
+                        <i class="bi bi-box-seam me-2 text-primary"></i> Lager
+                    </button>
+                </h2>
+                <div id="hilfe-lager" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+                        <ul>
+                            <li><strong>Artikel anlegen:</strong> Bezeichnung, Einheit (kg, Stück, l), Lagerort, Mindestbestand</li>
+                            <li><strong>Zugang:</strong> Wareneinkauf – Menge, Preis, Lieferant, Belegnummer</li>
+                            <li><strong>Abgang:</strong> Verbrauch oder Verkauf – Menge, Verwendungszweck</li>
+                            <li><strong>Bestandsübersicht:</strong> Aktueller Lagerbestand aller Artikel; Artikel unter Mindestbestand werden hervorgehoben</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# MODUL: LEGEHENNEN                          #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_modul_zugriff(current_user, 'legehennen') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-legehennen">
+                        <i class="bi bi-egg me-2 text-warning"></i> Modul: Legehennen
+                        <span class="badge bg-warning text-dark ms-2">Modul</span>
+                    </button>
+                </h2>
+                <div id="hilfe-legehennen" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6>Herden anlegen</h6>
+                        <ul>
+                            <li>Stallnummer, Einstallungsdatum, Tierzahl (Hähne + Hennen), Rasse/Hybrid</li>
+                            <li>Haltungsform (Boden, Freiland, Bio), Registriernummer</li>
+                            <li>Pro Herde können mehrere <strong>Tierarztbesuche</strong> und <strong>TAMG-Einträge</strong> geführt werden</li>
+                        </ul>
+
+                        <h6 class="mt-3">Tägliche / wöchentliche Erfassung</h6>
+                        <ul>
+                            <li><strong>Legeleistung:</strong> Datum, Eier gesamt, davon Bodeneier/Brucheier</li>
+                            <li><strong>Futtereinsatz:</strong> Futterart, Menge in kg</li>
+                            <li><strong>Verluste:</strong> Anzahl verendete Tiere, Ursache</li>
+                        </ul>
+
+                        <h6 class="mt-3">Sortierergebnisse</h6>
+                        <ul>
+                            <li>Sortierchargen mit Datum, Gewichtsklassen und Stückzahlen erfassen</li>
+                            <li>Benutzer mit Rolle <em>packstelle</em> haben ausschließlich Zugriff auf diese Funktion</li>
+                        </ul>
+
+                        <h6 class="mt-3">TAMG-Journal (Tierarzneimittel)</h6>
+                        <ul>
+                            <li>Arzneimittelanwendungen dokumentieren: Datum, Arzneimittel, Menge, Indikation, behandelte Tiere</li>
+                            <li><strong>Wartezeiten</strong> werden automatisch berechnet und bis zum Ablauf angezeigt</li>
+                            <li>Tierarzt kann Einträge mit einer <strong>digitalen Unterschrift</strong> (Canvas) signieren</li>
+                            <li>Status: <span class="badge bg-warning text-dark">offen</span> → <span class="badge bg-success">signiert</span></li>
+                        </ul>
+
+                        <h6 class="mt-3">Tierarztbesuche</h6>
+                        <p>Separate Dokumentation von Besuchen (Datum, Tierarzt, Befund, Diagnose, Maßnahmen) – unabhängig von einzelnen Arzneimittelanwendungen.</p>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# MODUL: MILCHVIEH                           #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_modul_zugriff(current_user, 'milchvieh') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-milchvieh">
+                        <i class="bi bi-activity me-2 text-success"></i> Modul: Milchvieh
+                        <span class="badge bg-success ms-2">Modul</span>
+                    </button>
+                </h2>
+                <div id="hilfe-milchvieh" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6>Rinder anlegen</h6>
+                        <ul>
+                            <li>Ohrmarke (eindeutige Tierkennzeichnung), Name, Rasse</li>
+                            <li>Geburtsdatum, Geschlecht, Status (aktiv / abgegangen / verkauft)</li>
+                            <li>Zugangsdatum (Geburt oder Zukauf)</li>
+                        </ul>
+
+                        <h6 class="mt-3">Milchleistung erfassen</h6>
+                        <ul>
+                            <li>Täglich oder monatlich: Datum, Menge in Liter, Fettgehalt, Eiweißgehalt</li>
+                            <li>Auswertungen nach Tier und Zeitraum</li>
+                        </ul>
+
+                        <h6 class="mt-3">Tierarztbesuche & TAMG-Journal</h6>
+                        <ul>
+                            <li>Tierarztbesuche mit Datum, Befund, Diagnose und Maßnahmen dokumentieren</li>
+                            <li>Arzneimittelanwendungen im TAMG-Journal: Arzneimittel, Menge, Indikation, behandelte Tiere</li>
+                            <li><strong>Wartezeiten</strong> für Milch und Fleisch werden automatisch berechnet</li>
+                            <li>Tierarzt kann Einträge mit <strong>digitaler Unterschrift</strong> signieren – gleiche Funktion wie bei Legehennen</li>
+                        </ul>
+
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Das Tierarzt-Dashboard (Rolle <em>tierarzt</em>) zeigt alle offenen und unsignierten TAMG-Einträge beider Module in einer Gesamtübersicht.
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# DATENSICHERUNG (nur Admin)                 #}
+            {# ────────────────────────────────────────── #}
+            {% if current_user.rolle == 'betriebsadmin' %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-backup">
+                        <i class="bi bi-cloud-arrow-down me-2 text-primary"></i> Datensicherung & Backup
+                        <span class="badge bg-secondary ms-2">Admin</span>
+                    </button>
+                </h2>
+                <div id="hilfe-backup" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>Unter <strong>Datensicherung</strong> ein vollständiges Datenbank-Backup als SQL-Datei herunterladen</li>
+                            <li>Das Backup enthält alle Buchungen, Benutzer, Tierdaten, Konten und Einstellungen</li>
+                            <li>Backup extern sichern (nicht nur auf dem NAS – z.B. USB-Stick, Cloud)</li>
+                        </ul>
+                        <div class="alert alert-warning py-2 small">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Empfehlung:</strong> Vor jedem größeren Update und mindestens wöchentlich ein Backup erstellen.
+                            Für die Wiederherstellung wenden Sie sich an den Systemadministrator.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# PROFIL & PASSWORT                          #}
+            {# ────────────────────────────────────────── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-profil">
+                        <i class="bi bi-person-circle me-2 text-primary"></i> Mein Profil & Passwort
+                    </button>
+                </h2>
+                <div id="hilfe-profil" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+                        <ul>
+                            <li>Oben rechts auf <strong>Ihren Benutzernamen</strong> klicken → <strong>Profil</strong> um Name und E-Mail zu ändern</li>
+                            <li>Oben rechts → <strong>Passwort ändern</strong> um das Passwort zu aktualisieren</li>
+                            <li>Passwort muss mindestens 6 Zeichen lang sein</li>
+                        </ul>
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Passwort vergessen? Wenden Sie sich an den Betriebsadmin – er kann ein neues temporäres Passwort setzen.
+                        </div>
+                        <a href="{{ url_for('auth.passwort_aendern') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-key"></i> Passwort ändern
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ────────────────────────────────────────── #}
+            {# BERECHTIGUNGSÜBERSICHT (nur Admin)         #}
+            {# ────────────────────────────────────────── #}
+            {% if current_user.rolle == 'betriebsadmin' %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-rollen">
+                        <i class="bi bi-shield-check me-2 text-primary"></i> Berechtigungsübersicht
+                        <span class="badge bg-secondary ms-2">Admin</span>
+                    </button>
+                </h2>
+                <div id="hilfe-rollen" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+                        {% macro ja() %}<span class="text-success fw-bold">✓</span>{% endmacro %}
+                        {% macro nein() %}<span class="text-danger">–</span>{% endmacro %}
+                        {% macro lesen() %}<span class="text-info">L</span>{% endmacro %}
+                        <div class="table-responsive">
+                        <table class="table table-sm table-bordered text-center">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-start">Bereich</th>
+                                    <th>Admin</th>
+                                    <th>Mitglied</th>
+                                    <th>Buch&shy;haltung</th>
+                                    <th>Gele&shy;gentlich</th>
+                                    <th>Praktikant</th>
+                                    <th>Tier&shy;arzt</th>
+                                    <th>Amts&shy;tierarzt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="text-start">Dashboard</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td></tr>
+                                <tr><td class="text-start">Betriebsdaten</td><td>{{ ja() }}</td><td>{{ lesen() }}</td><td>{{ lesen() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ lesen() }}</td><td>{{ lesen() }}</td></tr>
+                                <tr><td class="text-start">Benutzerverwaltung</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                                <tr><td class="text-start">Maschinen</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ lesen() }}</td><td>{{ lesen() }}</td><td>{{ lesen() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                                <tr><td class="text-start">Einsätze</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ ja() }}</td><td>{{ lesen() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                                <tr><td class="text-start">Buchhaltung</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ lesen() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                                <tr><td class="text-start">Fakturierung</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ lesen() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                                <tr><td class="text-start">Lager</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ lesen() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                                <tr><td class="text-start">Legehennen</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ lesen() }}</td><td>{{ ja() }}</td><td>{{ lesen() }}</td></tr>
+                                <tr><td class="text-start">Milchvieh</td><td>{{ ja() }}</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ lesen() }}</td><td>{{ ja() }}</td><td>{{ lesen() }}</td></tr>
+                                <tr><td class="text-start">Datensicherung</td><td>{{ ja() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td><td>{{ nein() }}</td></tr>
+                            </tbody>
+                        </table>
+                        </div>
+                        <small class="text-muted">{{ ja() }} Vollzugriff &nbsp; {{ lesen() }} Nur lesen &nbsp; {{ nein() }} Kein Zugriff</small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>{# /accordion #}
+
+        <div class="mt-4 text-center text-muted small">
+            <i class="bi bi-github"></i>
+            Quellcode &amp; Issues:
+            <a href="https://github.com/HansFel/agrobetrieb" target="_blank" rel="noopener">github.com/HansFel/agrobetrieb</a>
+            &nbsp;|&nbsp;
+            Version {{ app_version }} (Build: <code>{{ app_build }}</code>)
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -345,42 +345,58 @@ def buchung_umbuchen(buchung_id):
 def buchung_splitten(buchung_id):
     """Splitbuchung: Eine Buchung auf mehrere Kostenstellen verteilen.
 
-    Die Ursprungsbuchung wird storniert, stattdessen entstehen mehrere
-    Teilbuchungen gegen dasselbe Gegenkonto (z.B. Forderungskonto).
-    Summe der Teilbeträge muss dem Original-Betrag entsprechen.
+    Das Bankkonto / Importkonto bleibt immer fix als Gegenkonto.
+    Bei Import-Buchungen wird die Forderung/Verbindlichkeit auf
+    mehrere Kostenstellen aufgeteilt.
     """
     gem = _gem_context()
     buchung = Buchung.query.get_or_404(buchung_id)
-    konten = Konto.query.filter_by(aktiv=True).order_by(Konto.kontonummer).all()
 
     if buchung.storniert:
         flash('Stornierte Buchungen können nicht gesplittet werden.', 'danger')
         return redirect(url_for('buchhaltung.journal'))
 
-    # Gegenkonto = das Konto das "festgehalten" wird (z.B. Verbindlichkeit/Forderung)
-    # Heuristik: Importkonto oder Klasse 2/3 = Bank/Forderung → bleibt Gegenkonto
     soll_konto = db.session.get(Konto, buchung.soll_konto_id)
     haben_konto = db.session.get(Konto, buchung.haben_konto_id)
-    soll_ist_sammel = soll_konto and (soll_konto.ist_importkonto or soll_konto.kontenklasse in (2, 3))
-    haben_ist_sammel = haben_konto and (haben_konto.ist_importkonto or haben_konto.kontenklasse in (2, 3))
 
-    if soll_ist_sammel and not haben_ist_sammel:
-        gegenkonto_id = buchung.soll_konto_id
-        richtung = 'ausgabe'  # Zeilen-Konten ins Haben
-    elif haben_ist_sammel and not soll_ist_sammel:
+    # Bei Import-Buchungen: Bank ist eine Seite, das Gegenkonto (Forderung/Verbindlichkeit)
+    # die andere. Der Split geht VOM Gegenkonto (Klasse 2) aus – das bleibt fix.
+    # Die Zeilen verteilen den Betrag auf Kostenstellen (Klasse 4/5/6/7/8).
+    soll_ist_bank = soll_konto and (soll_konto.ist_importkonto or soll_konto.kontenklasse == 3)
+    haben_ist_bank = haben_konto and (haben_konto.ist_importkonto or haben_konto.kontenklasse == 3)
+
+    if soll_ist_bank and haben_konto:
+        # Bank im Soll, Forderung/Verbindlichkeit im Haben → fix: Haben-Konto
+        # Ausgabe: Kostenstellen im Soll (anstatt Forderung)
         gegenkonto_id = buchung.haben_konto_id
-        richtung = 'einnahme'  # Zeilen-Konten ins Soll
+        richtung = 'einnahme'   # Gegenkonto im Haben, Zeilen im Soll
+        gegenkonto_fix = True
+        fix_konto = haben_konto
+    elif haben_ist_bank and soll_konto:
+        # Bank im Haben, Forderung/Verbindlichkeit im Soll → fix: Soll-Konto
+        # Einnahme: Kostenstellen im Haben (anstatt Verbindlichkeit)
+        gegenkonto_id = buchung.soll_konto_id
+        richtung = 'ausgabe'    # Gegenkonto im Soll, Zeilen im Haben
+        gegenkonto_fix = True
+        fix_konto = soll_konto
     else:
-        # Fallback: User wählt selbst
+        # Kein Bankkonto erkannt – manuell wählbar
         gegenkonto_id = buchung.haben_konto_id
         richtung = 'ausgabe'
+        gegenkonto_fix = False
+        fix_konto = haben_konto
+
+    konten = Konto.query.filter_by(aktiv=True).order_by(Konto.kontonummer).all()
+    # Kostenstellen-Konten: alle außer dem fixen Gegenkonto
+    kostenstellen_konten = [k for k in konten if k.id != gegenkonto_id]
 
     if request.method == 'POST':
         try:
-            override_gegenkonto = request.form.get('gegenkonto_id', type=int)
-            if override_gegenkonto:
-                gegenkonto_id = override_gegenkonto
-            richtung = request.form.get('richtung', richtung)
+            if not gegenkonto_fix:
+                override_gegenkonto = request.form.get('gegenkonto_id', type=int)
+                if override_gegenkonto:
+                    gegenkonto_id = override_gegenkonto
+                richtung = request.form.get('richtung', richtung)
 
             zeilen = []
             index = 0
@@ -400,14 +416,11 @@ def buchung_splitten(buchung_id):
             summe = sum(z['betrag'] for z in zeilen)
             if abs(summe - buchung.betrag) > Decimal('0.01'):
                 raise ValueError(
-                    f'Summe der Teilbeträge ({summe:.2f}) stimmt nicht mit '
-                    f'Originalbetrag ({buchung.betrag:.2f}) überein.'
+                    f'Summe der Teilbeträge ({summe:.2f} €) stimmt nicht mit '
+                    f'Originalbetrag ({buchung.betrag:.2f} €) überein.'
                 )
 
-            # Original stornieren
-            buchung_stornieren_service(buchung.id, current_user.id, 'Splitbuchung')
-
-            # Teilbuchungen erstellen
+            # Ursprungsbuchung bleibt unverändert – nur neue Weiter-Buchungen erstellen
             neue = sammelbuchung_erstellen(
                 geschaeftsjahr=buchung.geschaeftsjahr,
                 datum=buchung.datum,
@@ -418,7 +431,7 @@ def buchung_splitten(buchung_id):
                 richtung=richtung,
                 beleg_datum=buchung.beleg_datum,
             )
-            flash(f'Buchung {buchung.buchungsnummer} in {len(neue)} Teilbuchungen gesplittet.', 'success')
+            flash(f'{len(neue)} Weiterbuchungen von {buchung.buchungsnummer} auf Kostenstellen erstellt.', 'success')
             return redirect(url_for('buchhaltung.journal'))
         except Exception as exc:
             db.session.rollback()
@@ -428,8 +441,11 @@ def buchung_splitten(buchung_id):
         'buchhaltung/buchung_splitten.html',
         gem=gem,
         buchung=buchung,
-        konten=konten,
+        konten=kostenstellen_konten,
+        alle_konten=konten,
         gegenkonto_id=gegenkonto_id,
+        gegenkonto_fix=gegenkonto_fix,
+        fix_konto=fix_konto,
         richtung=richtung,
         gemeinschaften=_gemeinschaften(),
     )

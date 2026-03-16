@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% block title %}Inbetriebnahme – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-rocket-takeoff"></i> Inbetriebnahme-Anleitung</h2>
+            <a href="{{ url_for('hilfe.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Zur Hilfe
+            </a>
+        </div>
+
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            Diese Anleitung führt Sie Schritt für Schritt durch die Ersteinrichtung von AgroBetrieb.
+            Folgen Sie der Reihenfolge – manche Schritte bauen aufeinander auf.
+        </div>
+
+        <div class="accordion" id="inbetriebnahmeAccordion">
+
+            {# ── Schritt 1: Passwort ändern ── #}
+            <div class="accordion-item border-success">
+                <h2 class="accordion-header">
+                    <button class="accordion-button bg-success bg-opacity-10" type="button" data-bs-toggle="collapse" data-bs-target="#step1">
+                        <span class="badge bg-success me-3">1</span>
+                        <i class="bi bi-key me-2"></i> Admin-Passwort ändern
+                    </button>
+                </h2>
+                <div id="step1" class="accordion-collapse collapse show" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p class="lead">Das erste was Sie nach dem ersten Login tun sollten: Das Standard-Passwort ändern.</p>
+                        <div class="alert alert-danger py-2">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            Das Standard-Passwort <strong>admin123</strong> ist öffentlich bekannt – ändern Sie es sofort!
+                        </div>
+                        <ol>
+                            <li>Klicken Sie oben rechts auf <strong>Ihren Benutzernamen</strong></li>
+                            <li>Wählen Sie <strong>Passwort ändern</strong></li>
+                            <li>Geben Sie das alte Passwort (<code>admin123</code>) und ein neues sicheres Passwort ein</li>
+                            <li>Mindestens 12 Zeichen, Kombination aus Buchstaben, Zahlen und Sonderzeichen empfohlen</li>
+                        </ol>
+                        <a href="{{ url_for('auth.passwort_aendern') }}" class="btn btn-success btn-sm">
+                            <i class="bi bi-key"></i> Jetzt Passwort ändern
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 2: Betriebsdaten ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step2">
+                        <span class="badge bg-primary me-3">2</span>
+                        <i class="bi bi-building me-2"></i> Betriebsdaten eingeben
+                    </button>
+                </h2>
+                <div id="step2" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Geben Sie die Stammdaten Ihres Betriebs ein. Diese erscheinen auf Rechnungen, Berichten und im Briefkopf.</p>
+                        <ul>
+                            <li><strong>Betriebsname</strong> – vollständiger Name des Betriebs</li>
+                            <li><strong>Adresse</strong> – Straße, PLZ, Ort</li>
+                            <li><strong>Land</strong> – bestimmt MwSt-Satz und Währung (AT = 20% / €, DE = 19% / €, CH = 8.1% / CHF)</li>
+                            <li><strong>UID-Nummer / Steuernummer</strong> – für Rechnungen erforderlich</li>
+                            <li><strong>Telefon / E-Mail / Website</strong> – optional, erscheinen im Briefkopf</li>
+                        </ul>
+                        <a href="{{ url_for('betrieb.betrieb_bearbeiten') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-building"></i> Betriebsdaten öffnen
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 3: Module freischalten ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3">
+                        <span class="badge bg-primary me-3">3</span>
+                        <i class="bi bi-puzzle me-2"></i> Module freischalten
+                    </button>
+                </h2>
+                <div id="step3" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Je nach Betrieb benötigen Sie unterschiedliche Module. Schalten Sie nur die Module frei, die Sie tatsächlich nutzen.</p>
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr><th>Modul</th><th>Für wen</th><th>Was es kann</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-warning text-dark">Legehennen</span></td>
+                                    <td>Geflügelbetriebe</td>
+                                    <td>Herden, Legeleistung, TAMG-Journal, Sortierergebnisse</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-success">Milchvieh</span></td>
+                                    <td>Rinderbetriebe</td>
+                                    <td>Rinder, Milchleistung, TAMG-Journal, Tierarztbesuche</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Basis-Module (Buchhaltung, Maschinen, Lager, Fakturierung) sind immer verfügbar und müssen nicht freigeschaltet werden.
+                        </div>
+                        <a href="{{ url_for('betrieb.betrieb_bearbeiten') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-puzzle"></i> Module verwalten
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 4: Weitere Admins / Personen anlegen ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4">
+                        <span class="badge bg-primary me-3">4</span>
+                        <i class="bi bi-people me-2"></i> Weitere Administratoren & Benutzer anlegen
+                    </button>
+                </h2>
+                <div id="step4" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Legen Sie alle Personen an, die mit AgroBetrieb arbeiten sollen.</p>
+
+                        <h6>Empfohlene Reihenfolge:</h6>
+                        <ol>
+                            <li>Weitere <strong>Betriebsadmins</strong> anlegen (Stellvertreter, Backup-Admin)</li>
+                            <li><strong>Mitglieder</strong> anlegen (alle Personen mit vollem Zugriff)</li>
+                            <li><strong>Buchhaltung</strong> anlegen (falls externe Buchhaltung)</li>
+                            <li><strong>Tierärzte</strong> anlegen (für TAMG-Journal und Signaturen)</li>
+                            <li>Weitere Rollen nach Bedarf</li>
+                        </ol>
+
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle"></i>
+                            Beim Anlegen eines Benutzers wird ein temporäres Passwort gesetzt.
+                            Das Flag <em>Passwort muss geändert werden</em> erzwingt eine Passwortänderung beim ersten Login.
+                        </div>
+
+                        <a href="{{ url_for('benutzer.benutzer_liste') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-people"></i> Benutzerverwaltung öffnen
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 5: Kontenplan einrichten ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step5">
+                        <span class="badge bg-primary me-3">5</span>
+                        <i class="bi bi-list-columns me-2"></i> Kontenplan einrichten
+                    </button>
+                </h2>
+                <div id="step5" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Der Kontenplan bildet die Grundlage für die gesamte Buchhaltung.</p>
+                        <ol>
+                            <li>Unter <strong>Buchhaltung → Kontenplan</strong> öffnen</li>
+                            <li>Button <strong>Standard-Konten anlegen</strong> klicken – erstellt einen vollständigen Basiskontenplan</li>
+                            <li>Eigene Kostenstellen (Klasse 4–8) nach Bedarf ergänzen</li>
+                            <li>Das Bankkonto als <strong>Importkonto</strong> markieren (wichtig für Bank-Import)</li>
+                        </ol>
+                        <div class="alert alert-warning py-2 small">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Den Kontenplan <strong>vor</strong> den ersten Buchungen einrichten – nachträgliche Änderungen sind aufwändiger.
+                        </div>
+                        <a href="{{ url_for('buchhaltung.kontenplan') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-list-columns"></i> Kontenplan öffnen
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 6: Bank-Import konfigurieren ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step6">
+                        <span class="badge bg-secondary me-3">6</span>
+                        <i class="bi bi-bank me-2"></i> Bank-Import konfigurieren <span class="text-muted fw-normal fs-6">(optional)</span>
+                    </button>
+                </h2>
+                <div id="step6" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Falls Sie Kontoauszüge als CSV (z.B. ELBA-Export) importieren möchten:</p>
+                        <ol>
+                            <li>Unter <strong>Buchhaltung → Bank-Import → Konfiguration</strong> öffnen</li>
+                            <li>CSV-Format Ihrer Bank einstellen (Spalten, Trennzeichen, Datumsformat)</li>
+                            <li>Eine Test-CSV importieren und prüfen ob die Beträge korrekt erkannt werden</li>
+                            <li>Buchungsschlüssel anlegen für häufige Lieferanten/Empfänger</li>
+                        </ol>
+                        <a href="{{ url_for('buchhaltung.bank_import_config') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-gear"></i> Bank-Import konfigurieren
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 7: Erste Buchungen / Eröffnungsbilanz ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step7">
+                        <span class="badge bg-secondary me-3">7</span>
+                        <i class="bi bi-pencil-square me-2"></i> Eröffnungsbuchungen eingeben <span class="text-muted fw-normal fs-6">(optional)</span>
+                    </button>
+                </h2>
+                <div id="step7" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Falls Sie mit einem bestehenden Kontostand starten, geben Sie Eröffnungsbuchungen ein:</p>
+                        <ul>
+                            <li>Buchungsart <strong>Eröffnung</strong> wählen</li>
+                            <li>Anfangsstand Bankkonto, Kasse, Forderungen, Verbindlichkeiten eingeben</li>
+                            <li>Gegenkonto: Eröffnungsbilanzkonto (Klasse 9)</li>
+                        </ul>
+                        <a href="{{ url_for('buchhaltung.buchung_neu') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-plus-lg"></i> Neue Buchung
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 8: Datensicherung ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step8">
+                        <span class="badge bg-secondary me-3">8</span>
+                        <i class="bi bi-cloud-arrow-down me-2"></i> Erstes Backup erstellen
+                    </button>
+                </h2>
+                <div id="step8" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Nach der Einrichtung sofort ein erstes Backup erstellen.</p>
+                        <ul>
+                            <li>Unter <strong>Datensicherung</strong> ein vollständiges Backup herunterladen</li>
+                            <li>Backup an einem sicheren Ort speichern (nicht nur auf dem NAS)</li>
+                            <li>Regelmäßige Backups einplanen (wöchentlich empfohlen)</li>
+                        </ul>
+                        <a href="{{ url_for('datensicherung.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-cloud-arrow-down"></i> Datensicherung öffnen
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>{# /accordion #}
+
+        <div class="mt-4 p-3 bg-light rounded border">
+            <h5><i class="bi bi-check2-all text-success"></i> Checkliste Inbetriebnahme</h5>
+            <div class="row g-2 mt-1">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c1">
+                        <label class="form-check-label" for="c1">Admin-Passwort geändert</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c2">
+                        <label class="form-check-label" for="c2">Betriebsdaten eingegeben</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c3">
+                        <label class="form-check-label" for="c3">Module freigeschaltet</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c4">
+                        <label class="form-check-label" for="c4">Benutzer angelegt</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c5">
+                        <label class="form-check-label" for="c5">Kontenplan eingerichtet</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c6">
+                        <label class="form-check-label" for="c6">Bank-Import konfiguriert</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c7">
+                        <label class="form-check-label" for="c7">Erstes Backup erstellt</label>
+                    </div>
+                </div>
+            </div>
+            <small class="text-muted d-block mt-2">
+                <i class="bi bi-info-circle"></i> Die Checkboxen werden nicht gespeichert – nur als Gedächtnisstütze.
+            </small>
+        </div>
+
+        <div class="mt-3 text-center text-muted small">
+            <i class="bi bi-github"></i>
+            Quellcode & Issues:
+            <a href="https://github.com/HansFel/agrobetrieb" target="_blank" rel="noopener">github.com/HansFel/agrobetrieb</a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

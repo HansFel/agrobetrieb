@@ -19,11 +19,11 @@
             <div class="card-body">
                 <div class="alert alert-info mb-3 py-2 small">
                     <i class="bi bi-info-circle"></i>
-                    Die Ursprungsbuchung bleibt unverändert. Es werden neue Weiterbuchungen vom
-                    Forderungs-/Verbindlichkeitskonto auf die Kostenstellen erstellt.
-                    Die Summe der Teilbeträge muss dem Originalbetrag entsprechen.
+                    Die Ursprungsbuchung bleibt <strong>unverändert</strong>. Es werden neue Buchungen vom
+                    <strong>{{ fix_konto.kontonummer if fix_konto else '?' }} – {{ fix_konto.bezeichnung if fix_konto else '' }}</strong>
+                    auf die Kostenstellen erstellt. Die Summe der Teilbeträge muss dem Originalbetrag entsprechen.
                 </div>
-                <div class="row g-2 text-sm">
+                <div class="row g-2">
                     <div class="col-md-2">
                         <span class="text-muted small">Datum</span><br>
                         <strong>{{ buchung.datum.strftime('%d.%m.%Y') }}</strong>
@@ -56,87 +56,58 @@
 
         <!-- Formular -->
         <div class="card shadow-sm">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Teilbuchungen</h5>
+                <div class="border rounded p-2 bg-light text-center" style="min-width:160px">
+                    <div class="text-muted small">Verbleibend</div>
+                    <div class="fw-bold fs-5" id="restbetrag">{{ '%.2f'|format(buchung.betrag or 0) }}</div>
+                    <div class="text-muted small">von {{ '%.2f'|format(buchung.betrag or 0) }} €</div>
+                </div>
             </div>
             <div class="card-body">
                 <form method="post" id="split-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+                    {% if not gegenkonto_fix %}
                     <div class="row g-3 mb-4">
-                        <div class="col-md-5">
-                            <label class="form-label fw-semibold">Gegenkonto (fix)</label>
-                            {% if gegenkonto_fix %}
-                            {# Bank-/Importkonto ist unveränderlich #}
-                            <input type="hidden" name="gegenkonto_id" value="{{ gegenkonto_id }}">
-                            <div class="form-control bg-light text-muted">
-                                <i class="bi bi-lock-fill me-1"></i>
-                                {% if fix_konto %}
-                                    {{ fix_konto.kontonummer }} – {{ fix_konto.bezeichnung }}
-                                {% else %}
-                                    Konto {{ gegenkonto_id }}
-                                {% endif %}
-                            </div>
-                            <div class="form-text">
-                                Das Forderungs-/Verbindlichkeitskonto bleibt fix. Die Zeilen verteilen den Betrag auf Kostenstellen.
-                            </div>
-                            {% else %}
-                            <select class="form-select" name="gegenkonto_id" id="gegenkonto_id">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Gegenkonto</label>
+                            <select class="form-select" name="gegenkonto_id">
                                 {% for konto in alle_konten %}
-                                <option value="{{ konto.id }}"
-                                    {% if konto.id == gegenkonto_id %}selected{% endif %}>
+                                <option value="{{ konto.id }}" {% if konto.id == gegenkonto_id %}selected{% endif %}>
                                     {{ konto.kontonummer }} – {{ konto.bezeichnung }}
                                 </option>
                                 {% endfor %}
                             </select>
-                            <div class="form-text">
-                                Das Konto von dem die Beträge kommen/gehen (z.B. Forderungskonto).
-                            </div>
-                            {% endif %}
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">Richtung</label>
-                            {% if gegenkonto_fix %}
-                            <input type="hidden" name="richtung" value="{{ richtung }}">
-                            <div class="form-control bg-light text-muted">
-                                <i class="bi bi-lock-fill me-1"></i>
-                                {% if richtung == 'ausgabe' %}Ausgabe – Kostenstellen im Haben{% else %}Einnahme – Kostenstellen im Soll{% endif %}
-                            </div>
-                            {% else %}
-                            <select class="form-select" name="richtung" id="richtung">
-                                <option value="ausgabe" {% if richtung == 'ausgabe' %}selected{% endif %}>
-                                    Ausgabe (Zeilen-Konten im Soll)
-                                </option>
-                                <option value="einnahme" {% if richtung == 'einnahme' %}selected{% endif %}>
-                                    Einnahme (Zeilen-Konten im Haben)
-                                </option>
+                            <select class="form-select" name="richtung">
+                                <option value="ausgabe" {% if richtung == 'ausgabe' %}selected{% endif %}>Ausgabe (Kostenstellen im Soll)</option>
+                                <option value="einnahme" {% if richtung == 'einnahme' %}selected{% endif %}>Einnahme (Kostenstellen im Haben)</option>
                             </select>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <div class="w-100 border rounded p-2 bg-light text-center">
-                                <div class="text-muted small">Verbleibend</div>
-                                <div class="fw-bold fs-5" id="restbetrag">
-                                    {{ '%.2f'|format(buchung.betrag or 0) }}
-                                </div>
-                                <div class="text-muted small">von {{ '%.2f'|format(buchung.betrag or 0) }} €</div>
-                            </div>
                         </div>
                     </div>
+                    {% else %}
+                    <input type="hidden" name="gegenkonto_id" value="{{ gegenkonto_id }}">
+                    <input type="hidden" name="richtung" value="{{ richtung }}">
+                    {% endif %}
 
                     <div class="table-responsive">
                         <table class="table align-middle" id="split-tabelle">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:40%">Kostenstellen-Konto</th>
-                                    <th style="width:15%">Betrag</th>
+                                    <th style="width:22%">Buchungsschlüssel</th>
+                                    <th style="width:28%">Kostenstellen-Konto</th>
+                                    <th style="width:13%">Betrag</th>
                                     <th>Buchungstext</th>
-                                    <th style="width:5%"></th>
+                                    <th style="width:4%"></th>
                                 </tr>
                             </thead>
                             <tbody id="split-tbody"></tbody>
                             <tfoot>
                                 <tr class="table-light fw-semibold">
+                                    <td></td>
                                     <td>Summe</td>
                                     <td id="summe-zelle">0,00</td>
                                     <td colspan="2"></td>
@@ -171,33 +142,87 @@
 (function() {
     const ORIGINAL = {{ buchung.betrag | float }};
     const ORIGINAL_TEXT = {{ buchung.buchungstext | tojson }};
-    const konten = [{% for k in konten %}{id: {{ k.id }}, text: '{{ k.kontonummer }} \u2013 {{ k.bezeichnung|replace("'", "\\'") }}'},{% endfor %}];
+
+    const konten = [{% for k in konten %}{id: {{ k.id }}, nr: {{ k.kontonummer|tojson }}, bez: {{ k.bezeichnung|tojson }}},{% endfor %}];
+    const schluessel = [{% for s in schluessel %}{
+        id: {{ s.id }},
+        kuerzel: {{ s.kuerzel|tojson }},
+        bez: {{ s.bezeichnung|tojson }},
+        text: {{ (s.buchungstext or '')|tojson }},
+        soll_konto_id: {{ s.soll_konto_id or 'null' }},
+        haben_konto_id: {{ s.haben_konto_id or 'null' }},
+    },{% endfor %}];
+
+    const richtung = {{ richtung|tojson }};
 
     const tbody = document.getElementById('split-tbody');
     let idx = 0;
 
-    function optionsHtml(selected) {
-        return konten.map(k =>
-            `<option value="${k.id}" ${k.id === selected ? 'selected' : ''}>${k.text}</option>`
-        ).join('');
+    function kontenOptionen(selected) {
+        return '<option value="">– Konto wählen –</option>' +
+            konten.map(k =>
+                `<option value="${k.id}" ${k.id === selected ? 'selected' : ''}>${k.nr} – ${k.bez}</option>`
+            ).join('');
+    }
+
+    function schluesselOptionen() {
+        return '<option value="">– Schlüssel wählen –</option>' +
+            schluessel.map(s =>
+                `<option value="${s.id}">${s.kuerzel} – ${s.bez}</option>`
+            ).join('');
     }
 
     function addRow(konto_id, betrag, text) {
+        const i = idx;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><select class="form-select form-select-sm" name="konto_${idx}" required>${optionsHtml(konto_id || null)}</select></td>
-            <td><input class="form-control form-control-sm betrag-input" name="betrag_${idx}"
+            <td>
+                <select class="form-select form-select-sm schluessel-select" data-row="${i}">
+                    ${schluesselOptionen()}
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm konto-select" name="konto_${i}" required data-row="${i}">
+                    ${kontenOptionen(konto_id || null)}
+                </select>
+            </td>
+            <td>
+                <input class="form-control form-control-sm betrag-input" name="betrag_${i}"
                        value="${betrag !== undefined ? betrag.toFixed(2).replace('.', ',') : ''}"
-                       placeholder="0,00" required inputmode="decimal"></td>
-            <td><input class="form-control form-control-sm" name="text_${idx}"
-                       value="${text !== undefined ? text : ORIGINAL_TEXT}" placeholder="Buchungstext"></td>
-            <td><button class="btn btn-sm btn-outline-danger" type="button">
-                <i class="bi bi-trash"></i></button></td>`;
+                       placeholder="0,00" required inputmode="decimal">
+            </td>
+            <td>
+                <input class="form-control form-control-sm" name="text_${i}"
+                       value="${text !== undefined ? escHtml(text) : escHtml(ORIGINAL_TEXT)}"
+                       placeholder="Buchungstext">
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-danger" type="button" title="Zeile löschen">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>`;
+
+        // Schlüssel-Auswahl → Konto + Text vorbelegen
+        tr.querySelector('.schluessel-select').addEventListener('change', function() {
+            const sid = parseInt(this.value);
+            const s = schluessel.find(x => x.id === sid);
+            if (!s) return;
+            const kontoSelect = tr.querySelector('.konto-select');
+            // Kostenstellen-Konto: bei Ausgabe = Soll-Konto des Schlüssels, bei Einnahme = Haben-Konto
+            const konto_id = richtung === 'ausgabe' ? s.soll_konto_id : s.haben_konto_id;
+            if (konto_id) kontoSelect.value = konto_id;
+            if (s.text) tr.querySelector(`[name="text_${i}"]`).value = s.text;
+        });
+
         tr.querySelector('button').addEventListener('click', () => { tr.remove(); updateSumme(); });
         tr.querySelector('.betrag-input').addEventListener('input', updateSumme);
         tbody.appendChild(tr);
         idx++;
         updateSumme();
+    }
+
+    function escHtml(s) {
+        return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     function updateSumme() {
@@ -211,16 +236,14 @@
         const restEl = document.getElementById('restbetrag');
         restEl.textContent = rest.toFixed(2).replace('.', ',');
         restEl.className = 'fw-bold fs-5 ' + (Math.abs(rest) < 0.02 ? 'text-success' : 'text-danger');
-
         const ok = Math.abs(rest) < 0.02;
         document.getElementById('summe-warnung').classList.toggle('d-none', ok);
         document.getElementById('submit-btn').disabled = !ok;
     }
 
     document.getElementById('zeile-add').addEventListener('click', () => addRow());
-    addRow(null, ORIGINAL, ORIGINAL_TEXT);
 
-    // Ctrl+R: Rest auf letzte Zeile verteilen
+    // Ctrl+R: Rest auf letzte Zeile
     document.getElementById('split-form').addEventListener('keydown', e => {
         if (e.key === 'r' && e.ctrlKey) {
             e.preventDefault();
@@ -238,6 +261,9 @@
             }
         }
     });
+
+    // Erste Zeile mit vollem Betrag vorbelegen
+    addRow(null, ORIGINAL, ORIGINAL_TEXT);
 })();
 </script>
 {% endblock %}

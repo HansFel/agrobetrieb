@@ -390,8 +390,8 @@ def buchung_splitten(buchung_id):
         fix_konto = haben_konto
 
     konten = Konto.query.filter_by(aktiv=True).order_by(Konto.kontonummer).all()
-    # Kostenstellen-Konten: alle außer dem fixen Gegenkonto
     kostenstellen_konten = [k for k in konten if k.id != gegenkonto_id]
+    schluessel = Buchungsschluessel.query.filter_by(aktiv=True).order_by(Buchungsschluessel.sortierung, Buchungsschluessel.kuerzel).all()
 
     if request.method == 'POST':
         try:
@@ -423,7 +423,7 @@ def buchung_splitten(buchung_id):
                     f'Originalbetrag ({buchung.betrag:.2f} €) überein.'
                 )
 
-            # Ursprungsbuchung bleibt unverändert – nur neue Weiter-Buchungen erstellen
+            # Ursprungsbuchung bleibt unverändert – nur neue Weiterbuchungen erstellen
             neue = sammelbuchung_erstellen(
                 geschaeftsjahr=buchung.geschaeftsjahr,
                 datum=buchung.datum,
@@ -450,6 +450,7 @@ def buchung_splitten(buchung_id):
         gegenkonto_fix=gegenkonto_fix,
         fix_konto=fix_konto,
         richtung=richtung,
+        schluessel=schluessel,
         gemeinschaften=_gemeinschaften(),
     )
 

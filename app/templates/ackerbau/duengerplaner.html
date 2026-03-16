@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Düngerplaner {{ jahr }} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+        <h2><i class="bi bi-bag"></i> Düngerplaner {{ jahr }}</h2>
+    </div>
+    <form class="d-flex gap-2" method="GET">
+        <select name="jahr" class="form-select form-select-sm" style="width:auto">
+            {% for j in range(now_year+1, now_year-4, -1) %}
+            <option value="{{ j }}" {% if j == jahr %}selected{% endif %}>{{ j }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-primary">Anzeigen</button>
+    </form>
+</div>
+
+{% if duengungen %}
+<!-- Zusammenfassung je Schlag -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><strong>Nährstoffübersicht {{ jahr }}</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Schlag</th><th class="text-end">N gesamt (kg)</th><th class="text-end">P₂O₅ (kg)</th><th class="text-end">K₂O (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                    {% set schlag_dict = {} %}
+                    {% for d in duengungen %}
+                        {% if d.schlag.name not in schlag_dict %}{% set _ = schlag_dict.update({d.schlag.name: {'n': 0, 'p': 0, 'k': 0}}) %}{% endif %}
+                    {% endfor %}
+                    {% for schlag_name, werte in schlag_dict.items() %}
+                    <tr>
+                        <td>{{ schlag_name }}</td>
+                        {% set n_sum = namespace(v=0) %}
+                        {% set p_sum = namespace(v=0) %}
+                        {% set k_sum = namespace(v=0) %}
+                        {% for d in duengungen %}
+                            {% if d.schlag.name == schlag_name %}
+                                {% set n_sum.v = n_sum.v + (d.n_ausgebracht|float if d.n_ausgebracht else 0) %}
+                                {% set p_sum.v = p_sum.v + (d.p_ausgebracht|float if d.p_ausgebracht else 0) %}
+                                {% set k_sum.v = k_sum.v + (d.k_ausgebracht|float if d.k_ausgebracht else 0) %}
+                            {% endif %}
+                        {% endfor %}
+                        <td class="text-end">{{ '%.1f'|format(n_sum.v) }}</td>
+                        <td class="text-end">{{ '%.1f'|format(p_sum.v) }}</td>
+                        <td class="text-end">{{ '%.1f'|format(k_sum.v) }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Alle Düngungen -->
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Datum</th><th>Schlag</th><th>Dünger</th><th>Art</th>
+                    <th>Menge</th><th class="text-end">N (kg)</th><th class="text-end">P₂O₅ (kg)</th><th class="text-end">K₂O (kg)</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for d in duengungen %}
+            <tr>
+                <td>{{ d.datum.strftime('%d.%m.%Y') }}</td>
+                <td><a href="{{ url_for('ackerbau.schlag_detail', schlag_id=d.schlag_id) }}">{{ d.schlag.name }}</a></td>
+                <td>{{ d.duenger_name or '–' }}</td>
+                <td><small class="text-muted">{{ d.duenger_art }}</small></td>
+                <td>{{ d.menge }} {{ d.einheit }}</td>
+                <td class="text-end">{{ d.n_ausgebracht or '–' }}</td>
+                <td class="text-end">{{ d.p_ausgebracht or '–' }}</td>
+                <td class="text-end">{{ d.k_ausgebracht or '–' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">Keine Düngungen für {{ jahr }}.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<p class="text-muted small mt-2">{{ duengungen|length }} Einträge</p>
+{% endblock %}

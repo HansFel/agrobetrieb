@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% block title %}{{ schlag.name }} – Schlagkartei{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-secondary btn-sm me-3">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h2 class="mb-0"><i class="bi bi-map"></i> {{ schlag.name }}</h2>
+            <small class="text-muted">
+                {% if schlag.flaeche_ha %}{{ schlag.flaeche_ha }} ha{% endif %}
+                {% if schlag.feldstueck_nr %} &middot; Nr. {{ schlag.feldstueck_nr }}{% endif %}
+                {% if schlag.bodenart %} &middot; {{ schlag.bodenart }}{% endif %}
+            </small>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        {% if hat_berechtigung(current_user, 'ackerbau', 'edit') %}
+        <a href="{{ url_for('ackerbau.schlag_bearbeiten', schlag_id=schlag.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil"></i> Bearbeiten
+        </a>
+        {% endif %}
+        {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+        <a href="{{ url_for('ackerbau.kultur_neu', schlag_id=schlag.id) }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-seedling"></i> Kultur
+        </a>
+        <a href="{{ url_for('ackerbau.spritzung_neu', schlag_id=schlag.id) }}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-droplet"></i> Spritzung
+        </a>
+        <a href="{{ url_for('ackerbau.duengung_neu', schlag_id=schlag.id) }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-bag"></i> Düngung
+        </a>
+        {% endif %}
+        {% if hat_berechtigung(current_user, 'ackerbau_pro', 'create') %}
+        <a href="{{ url_for('ackerbau.bodenuntersuchung_neu', schlag_id=schlag.id) }}" class="btn btn-outline-secondary btn-sm" title="Bodenuntersuchung">
+            <i class="bi bi-globe"></i> Boden
+        </a>
+        <a href="{{ url_for('ackerbau.bedarf_start', schlag_id=schlag.id) }}" class="btn btn-warning btn-sm">
+            <i class="bi bi-calculator"></i> N-Bedarf Pro
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if schlag.notizen %}
+<div class="alert alert-light"><i class="bi bi-chat-text"></i> {{ schlag.notizen }}</div>
+{% endif %}
+
+<!-- Kulturen -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-seedling"></i> Kulturen</strong>
+        {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+        <a href="{{ url_for('ackerbau.kultur_neu', schlag_id=schlag.id) }}" class="btn btn-sm btn-success">
+            <i class="bi bi-plus"></i> Neue Kultur
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if kulturen %}
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Kultur</th><th>EPPO</th><th>Aussaat</th><th>Ernte</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for k in kulturen %}
+            <tr>
+                <td>{{ k.kultur_name }}</td>
+                <td><code>{{ k.kultur_code }}</code></td>
+                <td>{{ k.aussaat_datum.strftime('%d.%m.%Y') }}</td>
+                <td>{{ k.ernte_datum.strftime('%d.%m.%Y') if k.ernte_datum else '–' }}</td>
+                <td>
+                    {% if k.ist_aktiv %}
+                    <span class="badge bg-success">Aktiv</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ k.status_text }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if k.ist_aktiv and hat_berechtigung(current_user, 'ackerbau', 'edit') %}
+                    <form method="POST" action="{{ url_for('ackerbau.kultur_ernte', kultur_id=k.id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="ernte_datum" value="{{ now.strftime('%Y-%m-%d') }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Heute ernten"
+                                onclick="return confirm('Ernte heute eintragen?')">
+                            <i class="bi bi-scissors"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted p-3 mb-0">Noch keine Kulturen eingetragen.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Spritzungen -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-droplet"></i> Spritztagebuch (letzte 20)</strong>
+        {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+        <a href="{{ url_for('ackerbau.spritzung_neu', schlag_id=schlag.id) }}" class="btn btn-sm btn-info">
+            <i class="bi bi-plus"></i> Spritzung
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if spritzungen %}
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Spritzmittel</th><th>BBCH</th><th>Menge</th><th>Fläche</th></tr>
+            </thead>
+            <tbody>
+            {% for sp in spritzungen %}
+            <tr>
+                <td>{{ sp.datum.strftime('%d.%m.%Y') }}</td>
+                <td>
+                    {{ sp.spritzmittel.name }}
+                    {% if sp.spritzmittel.kategorie %}
+                    <small class="text-muted">({{ sp.spritzmittel.kategorie }})</small>
+                    {% endif %}
+                </td>
+                <td>{{ sp.bbch_stadium or '–' }}</td>
+                <td>{{ sp.aufwandmenge }} {{ sp.spritzmittel.einheit }}</td>
+                <td>{{ sp.behandelte_flaeche or '–' }} ha</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted p-3 mb-0">Noch keine Spritzungen eingetragen.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Düngungen -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-bag"></i> Düngungen (letzte 20)</strong>
+        {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+        <a href="{{ url_for('ackerbau.duengung_neu', schlag_id=schlag.id) }}" class="btn btn-sm btn-warning">
+            <i class="bi bi-plus"></i> Düngung
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if duengungen %}
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Dünger</th><th>Menge</th><th>N</th><th>P</th><th>K</th></tr>
+            </thead>
+            <tbody>
+            {% for d in duengungen %}
+            <tr>
+                <td>{{ d.datum.strftime('%d.%m.%Y') }}</td>
+                <td>{{ d.duenger_name or d.duenger_art }}</td>
+                <td>{{ d.menge }} {{ d.einheit }}</td>
+                <td>{{ d.n_ausgebracht or '–' }} kg</td>
+                <td>{{ d.p_ausgebracht or '–' }} kg</td>
+                <td>{{ d.k_ausgebracht or '–' }} kg</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted p-3 mb-0">Noch keine Düngungen eingetragen.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bodenuntersuchungen (nur Pro) -->
+{% if hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-globe"></i> Bodenuntersuchungen <span class="badge bg-warning text-dark ms-1">Pro</span></strong>
+        {% if hat_berechtigung(current_user, 'ackerbau_pro', 'create') %}
+        <a href="{{ url_for('ackerbau.bodenuntersuchung_neu', schlag_id=schlag.id) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-plus"></i> Neue Probe
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if bodenuntersuchungen %}
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Datum</th><th>Labor</th><th>pH</th><th>P₂O₅</th><th>K₂O</th><th>Humus%</th><th>Kl. P/K</th></tr>
+            </thead>
+            <tbody>
+            {% for bu in bodenuntersuchungen %}
+            <tr>
+                <td>{{ bu.datum.strftime('%d.%m.%Y') }}</td>
+                <td>{{ bu.labor or '–' }}</td>
+                <td>{{ bu.ph_wert or '–' }}</td>
+                <td>{{ bu.p_gehalt or '–' }} mg/100g</td>
+                <td>{{ bu.k_gehalt or '–' }} mg/100g</td>
+                <td>{{ bu.humus or '–' }} %</td>
+                <td>{{ bu.p_klasse or '–' }} / {{ bu.k_klasse or '–' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted p-3 mb-0">Noch keine Bodenuntersuchungen.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

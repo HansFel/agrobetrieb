@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}N-Bedarf Ergebnis – Schlag {{ dbe.schlag.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=dbe.schlag_id) }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+    <h2><i class="bi bi-check-circle text-success"></i> N-Bedarfsermittlung – Ergebnis
+        <span class="badge bg-warning text-dark ms-2">Pro</span></h2>
+</div>
+
+<!-- Wizard -->
+<div class="d-flex mb-4 gap-2 align-items-center">
+    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check"></i> 1 Kultur &amp; Ertrag</span>
+    <i class="bi bi-arrow-right text-muted"></i>
+    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check"></i> 2 Boden &amp; Abzüge</span>
+    <i class="bi bi-arrow-right text-muted"></i>
+    <span class="badge bg-success rounded-pill px-3 py-2">3 Ergebnis</span>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-success mb-4">
+            <div class="card-header bg-success text-white">
+                <strong><i class="bi bi-bar-chart"></i> Ergebnis für Schlag: {{ dbe.schlag.name }}</strong>
+                {% if dbe.ist_rotes_gebiet %}
+                <span class="badge bg-danger ms-2"><i class="bi bi-geo-alt"></i> Rotes Gebiet</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row text-center g-3">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="display-6 text-primary">{{ dbe.n_bedarf_brutto }}</div>
+                                <small class="text-muted">kg N/ha Brutto</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="display-6 text-warning">
+                                    {{ (dbe.n_nachlieferung_boden|float + dbe.n_aus_vorfrucht|float + dbe.n_aus_wirtschaft|float)|round(1) }}
+                                </div>
+                                <small class="text-muted">kg N/ha Abzüge</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% if dbe.ist_rotes_gebiet %}
+                    <div class="col-md-3">
+                        <div class="card bg-danger bg-opacity-10">
+                            <div class="card-body">
+                                <div class="display-6 text-danger">–{{ dbe.reduktion_rotes_gebiet }}%</div>
+                                <small class="text-muted">Rotes Gebiet</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-3">
+                        <div class="card bg-success bg-opacity-10 border-success">
+                            <div class="card-body">
+                                <div class="display-6 fw-bold text-success">{{ dbe.n_mineraldung_empfehlung }}</div>
+                                <small class="text-muted">kg N/ha Mineraldünger</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6>Abzüge im Detail:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-dash-circle text-warning"></i> Boden-N-Nachlieferung: <strong>{{ dbe.n_nachlieferung_boden or 0 }} kg N/ha</strong></li>
+                            <li><i class="bi bi-dash-circle text-warning"></i> Vorfrucht-Gutschrift: <strong>{{ dbe.n_aus_vorfrucht or 0 }} kg N/ha</strong></li>
+                            <li><i class="bi bi-dash-circle text-warning"></i> Wirtschaftsdünger-N: <strong>{{ dbe.n_aus_wirtschaft or 0 }} kg N/ha</strong></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Informationen:</h6>
+                        <ul class="list-unstyled small text-muted">
+                            <li>Berechnung: {{ dbe.erstellt_am.strftime('%d.%m.%Y') }}</li>
+                            {% if dbe.ertragsziel_dt_ha %}
+                            <li>Ertragsziel: {{ dbe.ertragsziel_dt_ha }} dt/ha</li>
+                            {% endif %}
+                            {% if dbe.kultur %}
+                            <li>Kultur: {{ dbe.kultur.kultur_name }} ({{ dbe.kultur.kultur_code }})</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=dbe.schlag_id) }}" class="btn btn-primary">
+                <i class="bi bi-map"></i> Zurück zum Schlag
+            </a>
+            <a href="{{ url_for('ackerbau.bedarf_start', schlag_id=dbe.schlag_id) }}" class="btn btn-outline-warning">
+                <i class="bi bi-arrow-repeat"></i> Neue Berechnung
+            </a>
+            <a href="{{ url_for('ackerbau.duengung_neu', schlag_id=dbe.schlag_id) }}" class="btn btn-outline-success">
+                <i class="bi bi-bag"></i> Düngung eintragen
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-header bg-warning bg-opacity-25">
+                <i class="bi bi-exclamation-triangle"></i> Hinweise
+            </div>
+            <div class="card-body small">
+                <p><strong>170 kg N/ha Grenze:</strong> Die Gesamtmenge an Stickstoff aus Wirtschaftsdüngern darf 170 kg N/ha und Jahr nicht überschreiten (Nitratrichtlinie).</p>
+                {% if dbe.ist_rotes_gebiet %}
+                <p class="text-danger"><strong>Rotes Gebiet:</strong> Die Düngebedarfsermittlung wurde um {{ dbe.reduktion_rotes_gebiet }}% reduziert.</p>
+                {% endif %}
+                <p class="mb-0">Diese Berechnung ist eine Empfehlung. Die endgültige Düngung richtet sich nach den konkreten Standortbedingungen und gesetzlichen Vorgaben.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

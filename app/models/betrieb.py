@@ -43,6 +43,8 @@ class Betrieb(db.Model):
     ist_testbetrieb = db.Column(db.Boolean, default=False)  # Testbetrieb: alle Module aktiv
     modul_legehennen = db.Column(db.Boolean, default=False)
     modul_milchvieh = db.Column(db.Boolean, default=False)
+    modul_ackerbau = db.Column(db.Boolean, default=False)       # Schlagkartei, Spritztagebuch, Düngerplaner
+    modul_ackerbau_pro = db.Column(db.Boolean, default=False)   # NAPV-Bedarfsermittlung, Rote Gebiete, 170kg-Bilanz
 
     # Timestamps
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Spritzung eintragen – {{ schlag.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h2><i class="bi bi-droplet"></i> Spritzung eintragen – {{ schlag.name }}</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Datum *</label>
+                            <input type="date" name="datum" class="form-control" required value="{{ heute.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Uhrzeit</label>
+                            <input type="time" name="uhrzeit" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Spritzmittel *</label>
+                        <select name="spritzmittel_id" class="form-select" required>
+                            <option value="">– bitte wählen –</option>
+                            {% for sm in spritzmittel %}
+                            <option value="{{ sm.id }}">{{ sm.name }} ({{ sm.kategorie or '?' }}) – {{ sm.einheit }}</option>
+                            {% endfor %}
+                        </select>
+                        <small><a href="{{ url_for('ackerbau.spritzmittel_neu') }}" target="_blank">+ Neues Spritzmittel anlegen</a></small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Aufwandmenge (je Einheit) *</label>
+                            <input type="number" step="0.001" name="aufwandmenge" class="form-control" required placeholder="z.B. 1.5">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Behandelte Fläche (ha)</label>
+                            <input type="number" step="0.0001" name="behandelte_flaeche" class="form-control"
+                                   value="{{ schlag.invekos_flaeche or schlag.flaeche_ha or '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">BBCH-Stadium</label>
+                            <select name="bbch_stadium" class="form-select">
+                                <option value="">– optional –</option>
+                                {% for code, text in bbch_stadien %}
+                                <option value="{{ code }}">{{ text }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Kultur</label>
+                            <select name="schlag_kultur_id" class="form-select">
+                                <option value="">– optional –</option>
+                                {% for k in kulturen %}
+                                <option value="{{ k.id }}" {% if k.ist_aktiv %}selected{% endif %}>
+                                    {{ k.kultur_name }} ({{ k.aussaat_datum.strftime('%Y') }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">INVEKOS-Fläche (ha)</label>
+                        <input type="number" step="0.0001" name="invekos_flaeche" class="form-control"
+                               value="{{ schlag.invekos_flaeche or '' }}" placeholder="Schlagfläche lt. INVEKOS-GIS">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bemerkungen</label>
+                        <textarea name="bemerkungen" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-info text-white"><i class="bi bi-check-lg"></i> Speichern</button>
+                        <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Spritzmittel – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+        <h2><i class="bi bi-list-ul"></i> Spritzmittel-Stammdaten</h2>
+    </div>
+    {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+    <a href="{{ url_for('ackerbau.spritzmittel_neu') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Neues Spritzmittel
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-striped mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th><th>Kategorie</th><th>Wirkstoff</th>
+                    <th>Zulassungs-Nr.</th><th>Einheit</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for sm in spritzmittel %}
+            <tr {% if not sm.aktiv %}class="text-muted"{% endif %}>
+                <td>{{ sm.name }}</td>
+                <td>{% if sm.kategorie %}<span class="badge bg-secondary">{{ sm.kategorie }}</span>{% endif %}</td>
+                <td><small>{{ sm.wirkstoff or '–' }}</small></td>
+                <td><small>{{ sm.zulassungsnummer or '–' }}</small></td>
+                <td>{{ sm.einheit }}</td>
+                <td>
+                    {% if sm.aktiv %}<span class="badge bg-success">Aktiv</span>
+                    {% else %}<span class="badge bg-secondary">Inaktiv</span>{% endif %}
+                </td>
+                <td>
+                    {% if hat_berechtigung(current_user, 'ackerbau', 'edit') %}
+                    <a href="{{ url_for('ackerbau.spritzmittel_bearbeiten', sm_id=sm.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">Noch keine Spritzmittel angelegt.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -117,6 +117,7 @@ def create_app(config_name='default'):
     from app.blueprints.legehennen import legehennen_bp
     from app.blueprints.milchvieh import milchvieh_bp
     from app.blueprints.hilfe import hilfe_bp
+    from app.blueprints.ackerbau import ackerbau_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -130,6 +131,7 @@ def create_app(config_name='default'):
     app.register_blueprint(legehennen_bp)
     app.register_blueprint(milchvieh_bp)
     app.register_blueprint(hilfe_bp)
+    app.register_blueprint(ackerbau_bp)
     
     # CLI Commands
     @app.cli.command()

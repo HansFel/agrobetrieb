@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}170 kg N/ha Bilanz {{ jahr }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+        <h2><i class="bi bi-speedometer"></i> 170 kg N/ha Wirtschaftsdünger-Bilanz {{ jahr }}
+            <span class="badge bg-warning text-dark ms-2">Pro</span></h2>
+    </div>
+    <div class="d-flex gap-2">
+        <form class="d-flex gap-2" method="GET">
+            <select name="jahr" class="form-select form-select-sm" style="width:auto">
+                {% for j in range(now_year+1, now_year-4, -1) %}
+                <option value="{{ j }}" {% if j == jahr %}selected{% endif %}>{{ j }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-primary">Anzeigen</button>
+        </form>
+        {% if hat_berechtigung(current_user, 'ackerbau_pro', 'create') %}
+        <a href="{{ url_for('ackerbau.tierbestand_neu') }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-plus-circle"></i> Tierbestand
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Ampel -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-{{ ampel }}">
+            <div class="card-body text-center">
+                <div class="display-4 fw-bold text-{{ ampel }}">{{ n_je_ha }}</div>
+                <p class="mb-0">kg N/ha aus Wirtschaftsdünger</p>
+                <small class="text-muted">Grenzwert: {{ limit_170 }} kg N/ha</small>
+                <div class="progress mt-2" style="height: 10px">
+                    {% set pct = [((n_je_ha / limit_170) * 100)|int, 100]|min %}
+                    <div class="progress-bar bg-{{ ampel }}" style="width: {{ pct }}%"></div>
+                </div>
+                <div class="mt-2">
+                    {% if ampel == 'success' %}
+                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Im grünen Bereich</span>
+                    {% elif ampel == 'warning' %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Achtung – nahe am Grenzwert</span>
+                    {% else %}
+                    <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Grenzwert überschritten!</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="display-5 fw-bold text-primary">{{ n_anfall_gesamt|round(0)|int }}</div>
+                <p class="mb-0">kg N gesamt je Jahr</p>
+                <small class="text-muted">aus allen Tierbeständen</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="display-5 fw-bold text-secondary">{{ gesamt_ha }}</div>
+                <p class="mb-0">ha Gesamtfläche</p>
+                <small class="text-muted">alle aktiven Schläge</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vorschläge aus Tierhaltungsmodulen -->
+{% if modul_vorschlaege %}
+<div class="alert alert-info">
+    <strong><i class="bi bi-lightbulb"></i> Vorschläge aus Tierhaltungsmodulen:</strong>
+    Folgende Tierbestände wurden aus Milchvieh- bzw. Legehennen-Modul erkannt und fehlen noch in der N-Bilanz:
+    <ul class="mb-1 mt-1">
+    {% for v in modul_vorschlaege %}
+    <li>
+        <strong>{{ v.anzahl }} × {{ v.kategorie }}</strong> (aus: {{ v.quelle }})
+        {% if hat_berechtigung(current_user, 'ackerbau_pro', 'create') %}
+        <a href="{{ url_for('ackerbau.tierbestand_neu') }}?kategorie={{ v.kategorie|urlencode }}&anzahl={{ v.anzahl }}" class="btn btn-xs btn-outline-primary ms-2 py-0 px-1" style="font-size:0.75rem">
+            <i class="bi bi-plus"></i> Übernehmen
+        </a>
+        {% endif %}
+    </li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Tierbestand -->
+<div class="card mb-4">
+    <div class="card-header"><strong>Tierbestand {{ jahr }}</strong></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Tierkategorie</th><th>Haltungsform</th><th>Anzahl</th>
+                    <th class="text-end">N-Anfall gesamt (kg/Jahr)</th>
+                    <th class="text-end">N feldfallend (kg/Jahr)</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for tb in tierbestaende %}
+            <tr>
+                <td>{{ tb.tier_kategorie }}</td>
+                <td>{{ tb.haltungsform or '–' }}</td>
+                <td>{{ tb.anzahl }}</td>
+                <td class="text-end">{{ tb.n_anfall_jahr or '–' }}</td>
+                <td class="text-end">{{ tb.n_feldfallend or '–' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-3">
+                Noch kein Tierbestand eingetragen.
+                {% if hat_berechtigung(current_user, 'ackerbau_pro', 'create') %}
+                <a href="{{ url_for('ackerbau.tierbestand_neu') }}">Jetzt eintragen</a>
+                {% endif %}
+            </td></tr>
+            {% endfor %}
+            </tbody>
+            {% if tierbestaende %}
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td colspan="3">Gesamt</td>
+                    <td class="text-end">{{ n_anfall_gesamt|round(1) }} kg</td>
+                    <td class="text-end">{{ (tierbestaende|sum(attribute='n_feldfallend')|float)|round(1) }} kg</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<!-- Schläge -->
+<div class="card">
+    <div class="card-header"><strong>Bewirtschaftete Flächen</strong></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Schlag</th><th>Fläche (ha)</th><th>Aktive Kultur</th></tr>
+            </thead>
+            <tbody>
+            {% for s in schlaege %}
+            <tr>
+                <td><a href="{{ url_for('ackerbau.schlag_detail', schlag_id=s.id) }}">{{ s.name }}</a></td>
+                <td>{{ s.flaeche_ha or '–' }}</td>
+                <td>{{ s.aktive_kultur.kultur_name if s.aktive_kultur else '–' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted">Keine Schläge.</td></tr>
+            {% endfor %}
+            <tfoot class="table-light fw-bold">
+                <tr><td>Gesamt</td><td>{{ gesamt_ha }} ha</td><td></td></tr>
+            </tfoot>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

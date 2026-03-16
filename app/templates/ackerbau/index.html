@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Schlagkartei – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-map"></i> Schlagkartei</h2>
+    {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+    <a href="{{ url_for('ackerbau.schlag_neu') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Neuer Schlag
+    </a>
+    {% endif %}
+</div>
+
+{% if schlaege %}
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for s in schlaege %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=s.id) }}" class="text-decoration-none">
+                        <i class="bi bi-map me-1"></i>{{ s.name }}
+                    </a>
+                </h5>
+                <div class="text-muted small">
+                    {% if s.flaeche_ha %}<span class="me-2"><i class="bi bi-rulers"></i> {{ s.flaeche_ha }} ha</span>{% endif %}
+                    {% if s.feldstueck_nr %}<span><i class="bi bi-tag"></i> {{ s.feldstueck_nr }}</span>{% endif %}
+                </div>
+                {% if s.aktive_kultur %}
+                <div class="mt-2">
+                    <span class="badge bg-success">
+                        <i class="bi bi-seedling me-1"></i>{{ s.aktive_kultur.kultur_name }}
+                    </span>
+                    <small class="text-muted ms-1">seit {{ s.aktive_kultur.aussaat_datum.strftime('%d.%m.%Y') }}</small>
+                </div>
+                {% else %}
+                <div class="mt-2"><span class="badge bg-secondary">Keine aktive Kultur</span></div>
+                {% endif %}
+            </div>
+            <div class="card-footer text-end">
+                <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=s.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye"></i> Details
+                </a>
+                {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+                <a href="{{ url_for('ackerbau.spritzung_neu', schlag_id=s.id) }}" class="btn btn-sm btn-outline-secondary" title="Spritzung">
+                    <i class="bi bi-droplet"></i>
+                </a>
+                <a href="{{ url_for('ackerbau.duengung_neu', schlag_id=s.id) }}" class="btn btn-sm btn-outline-secondary" title="Düngung">
+                    <i class="bi bi-bag"></i>
+                </a>
+                {% endif %}
+                {% if hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+                <a href="{{ url_for('ackerbau.bedarf_start', schlag_id=s.id) }}" class="btn btn-sm btn-outline-warning" title="N-Bedarfsermittlung">
+                    <i class="bi bi-calculator"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-map display-4 text-muted"></i>
+    <p class="mt-3 text-muted">Noch keine Schläge angelegt.</p>
+    {% if hat_berechtigung(current_user, 'ackerbau', 'create') %}
+    <a href="{{ url_for('ackerbau.schlag_neu') }}" class="btn btn-success mt-2">
+        <i class="bi bi-plus-circle"></i> Ersten Schlag anlegen
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="mt-4 d-flex gap-2">
+    <a href="{{ url_for('ackerbau.spritztagebuch') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-droplet"></i> Spritztagebuch
+    </a>
+    <a href="{{ url_for('ackerbau.duengerplaner') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-bag"></i> Düngerplaner
+    </a>
+    <a href="{{ url_for('ackerbau.spritzmittel_liste') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-list-ul"></i> Spritzmittel-Stammdaten
+    </a>
+    {% if hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+    <a href="{{ url_for('ackerbau.n_bilanz') }}" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-speedometer"></i> 170 kg N/ha Bilanz
+    </a>
+    {% endif %}
+</div>
+{% endblock %}

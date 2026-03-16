@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Tierbestand eintragen{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.n_bilanz') }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+    <h2><i class="bi bi-cow"></i> Tierbestand eintragen
+        <span class="badge bg-warning text-dark ms-2">Pro</span></h2>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Jahr *</label>
+                            <input type="number" name="jahr" class="form-control" required value="{{ heute_jahr }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Anzahl Tiere *</label>
+                            <input type="number" step="0.01" name="anzahl" class="form-control" required
+                                   placeholder="Jahresdurchschnitt" id="anzahlInput">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tierkategorie *</label>
+                        <select name="tier_kategorie" class="form-select" required id="tierkategorieSelect">
+                            <option value="">– bitte wählen –</option>
+                            {% for kat in tierkategorien %}
+                            <option value="{{ kat }}">{{ kat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Haltungsform</label>
+                        <select name="haltungsform" class="form-select">
+                            <option value="">– optional –</option>
+                            <option value="guelle">Güllehaltung</option>
+                            <option value="mist">Misthaltung</option>
+                            <option value="tiefstall">Tiefstall</option>
+                            <option value="weide">Weidehaltung</option>
+                        </select>
+                    </div>
+                    <!-- Vorschau N-Anfall -->
+                    <div class="alert alert-info d-none" id="nVorschau">
+                        N-Anfall wird berechnet…
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bemerkungen</label>
+                        <textarea name="bemerkungen" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Speichern</button>
+                        <a href="{{ url_for('ackerbau.n_bilanz') }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card border-info">
+            <div class="card-header bg-info bg-opacity-25"><i class="bi bi-info-circle"></i> Tipp: Daten aus Tierhaltungsmodulen</div>
+            <div class="card-body small">
+                <p>Die Tierbestands-Zahlen können aus den Modulen <strong>Legehennen</strong> und <strong>Milchvieh</strong> entnommen werden:</p>
+                <ul>
+                    <li><strong>Milchvieh:</strong> Anzahl Kühe aus dem Bestandsregister</li>
+                    <li><strong>Legehennen:</strong> Anzahl Hennen aus aktiver Herde</li>
+                </ul>
+                <p class="mb-0">Standardwert feldfallend: 75% des N-Anfalls (vereinfacht nach ÖPUL).</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const nJeTier = {
+    {% for kat, n in tierkategorien.items() %}"{{ kat }}": {{ n }},
+    {% endfor %}
+};
+// We need the dict from Python, pass it via template
+// Note: tierkategorien above is a list in template; need JS version
+</script>
+<script>
+// Override with proper dict - build from select options
+// N-Werte aus Python dict (hardcoded mirror for JS)
+const N_JE_TIER = {
+    'Milchkuh > 6000 l': 120, 'Milchkuh 4000–6000 l': 100, 'Milchkuh < 4000 l': 85,
+    'Mutterkuh': 65, 'Jungrind 1–2 Jahre': 55, 'Kalb bis 1 Jahr': 30, 'Mastbulle': 55,
+    'Zuchtsau': 14, 'Mastschwein': 10, 'Ferkel': 3,
+    'Legehenne': 0.7, 'Masthähnchen': 0.7, 'Truthahn': 2.5,
+    'Schaf / Ziege': 12, 'Pferd': 55,
+};
+
+function berechneN() {
+    const kat = document.getElementById('tierkategorieSelect').value;
+    const anzahl = parseFloat(document.getElementById('anzahlInput').value) || 0;
+    const nTier = N_JE_TIER[kat];
+    const el = document.getElementById('nVorschau');
+    if (kat && anzahl > 0 && nTier !== undefined) {
+        const nAnfall = (anzahl * nTier).toFixed(1);
+        const nFeld = (anzahl * nTier * 0.75).toFixed(1);
+        el.innerHTML = `N-Anfall: <strong>${nAnfall} kg N/Jahr</strong> | Feldfallend (75%): <strong>${nFeld} kg N/Jahr</strong>`;
+        el.classList.remove('d-none');
+    } else {
+        el.classList.add('d-none');
+    }
+}
+document.getElementById('tierkategorieSelect').addEventListener('change', berechneN);
+document.getElementById('anzahlInput').addEventListener('input', berechneN);
+</script>
+{% endblock %}

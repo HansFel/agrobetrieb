@@ -54,6 +54,8 @@ def create():
             website=request.form.get('website', '').strip() or None,
             modul_legehennen=request.form.get('modul_legehennen') == '1',
             modul_milchvieh=request.form.get('modul_milchvieh') == '1',
+            modul_ackerbau=request.form.get('modul_ackerbau') == '1',
+            modul_ackerbau_pro=request.form.get('modul_ackerbau_pro') == '1',
             ist_testbetrieb=current_user.ist_superadmin and request.form.get('ist_testbetrieb') == '1',
         )
         db.session.add(betrieb)
@@ -91,6 +93,8 @@ def edit():
         betrieb.website = request.form.get('website', '').strip() or None
         betrieb.modul_legehennen = request.form.get('modul_legehennen') == '1'
         betrieb.modul_milchvieh = request.form.get('modul_milchvieh') == '1'
+        betrieb.modul_ackerbau = request.form.get('modul_ackerbau') == '1'
+        betrieb.modul_ackerbau_pro = request.form.get('modul_ackerbau_pro') == '1'
         if current_user.ist_superadmin:
             betrieb.ist_testbetrieb = request.form.get('ist_testbetrieb') == '1'
         db.session.commit()

@@ -137,6 +137,36 @@
                         </ul>
                     </li>
                     {% endif %}
+                    {% if hat_modul_zugriff(current_user, 'ackerbau') or hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="ackerbauDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-tree"></i> Ackerbau
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% if hat_berechtigung(current_user, 'ackerbau', 'view') %}
+                            <li><a class="dropdown-item" href="{{ url_for('ackerbau.index') }}">
+                                <i class="bi bi-map me-1"></i>Schlagkartei
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ackerbau.spritztagebuch') }}">
+                                <i class="bi bi-droplet me-1"></i>Spritztagebuch
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ackerbau.duengerplaner') }}">
+                                <i class="bi bi-bag me-1"></i>Düngerplaner
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ackerbau.spritzmittel_liste') }}">
+                                <i class="bi bi-list-ul me-1"></i>Spritzmittel
+                            </a></li>
+                            {% endif %}
+                            {% if hat_berechtigung(current_user, 'ackerbau_pro', 'view') %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><span class="dropdown-item-text text-muted small"><i class="bi bi-star-fill text-warning me-1"></i>Pro</span></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ackerbau.n_bilanz') }}">
+                                <i class="bi bi-speedometer me-1"></i>170 kg N/ha Bilanz
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
                     {% if hat_modul_zugriff(current_user, 'milchvieh') %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="milchviehDropdown" role="button" data-bs-toggle="dropdown">

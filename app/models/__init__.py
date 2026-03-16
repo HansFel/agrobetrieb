@@ -44,6 +44,16 @@ from app.models.legehennen import (
 	SalmonellenProbe,
 	HerdeEreignis,
 )
+from app.models.ackerbau import (
+	Schlag,
+	SchlagKultur,
+	Spritzmittel,
+	Spritzung,
+	Duengung,
+	Bodenuntersuchung,
+	Duengebedarfsermittlung,
+	Tierbestand,
+)
 
 __all__ = [
 	'User',
@@ -83,4 +93,12 @@ __all__ = [
 	'FutterLieferung',
 	'SalmonellenProbe',
 	'HerdeEreignis',
+	'Schlag',
+	'SchlagKultur',
+	'Spritzmittel',
+	'Spritzung',
+	'Duengung',
+	'Bodenuntersuchung',
+	'Duengebedarfsermittlung',
+	'Tierbestand',
 ]

@@ -69,6 +69,8 @@ BERECHTIGUNGEN = {
         'lager': ['view', 'create', 'edit', 'delete'],
         'legehennen': ['view', 'create', 'edit', 'delete'],
         'milchvieh': ['view', 'create', 'edit', 'delete'],
+        'ackerbau': ['view', 'create', 'edit', 'delete'],
+        'ackerbau_pro': ['view', 'create', 'edit', 'delete'],
     },
     'mitglied': {
         'dashboard': ['view'],
@@ -81,6 +83,8 @@ BERECHTIGUNGEN = {
         'lager': ['view', 'create', 'edit', 'delete'],
         'legehennen': ['view', 'create', 'edit', 'delete'],
         'milchvieh': ['view', 'create', 'edit', 'delete'],
+        'ackerbau': ['view', 'create', 'edit', 'delete'],
+        'ackerbau_pro': ['view', 'create', 'edit', 'delete'],
     },
     'buchhaltung': {
         'dashboard': ['view'],
@@ -152,6 +156,20 @@ BERECHTIGUNGEN = {
         'sortierergebnis': [],
         'milchvieh': ['view'],
     },
+    'praktikand': {
+        'dashboard': ['view'],
+        'betrieb': [],
+        'benutzer': [],
+        'maschinen': ['view'],
+        'einsaetze': ['view', 'create'],
+        'buchhaltung': ['view'],
+        'fakturierung': ['view'],
+        'lager': ['view'],
+        'legehennen': ['view'],
+        'milchvieh': ['view'],
+        'ackerbau': ['view'],
+        'ackerbau_pro': ['view'],
+    },
 }
 
 
@@ -191,7 +209,7 @@ def hat_modul_zugriff(user, modul):
 
 
 # Module die eine explizite Betrieb-Lizenz benötigen
-LIZENZPFLICHTIGE_MODULE = {'legehennen', 'sortierergebnis', 'milchvieh'}
+LIZENZPFLICHTIGE_MODULE = {'legehennen', 'sortierergebnis', 'milchvieh', 'ackerbau', 'ackerbau_pro'}
 
 # Mapping: Modul-Name → Betrieb-Feld (wenn abweichend)
 _MODUL_FELD_MAP = {

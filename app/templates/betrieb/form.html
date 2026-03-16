@@ -147,6 +147,20 @@
                                     <i class="bi bi-cow"></i> Milchvieh
                                 </label>
                             </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="modul_ackerbau" name="modul_ackerbau" value="1"
+                                       {% if betrieb and betrieb.modul_ackerbau %}checked{% endif %}>
+                                <label class="form-check-label" for="modul_ackerbau">
+                                    <i class="bi bi-tree"></i> Ackerbau (Schlagkartei, Spritztagebuch, Düngerplaner)
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="modul_ackerbau_pro" name="modul_ackerbau_pro" value="1"
+                                       {% if betrieb and betrieb.modul_ackerbau_pro %}checked{% endif %}>
+                                <label class="form-check-label" for="modul_ackerbau_pro">
+                                    <i class="bi bi-star-fill text-warning"></i> Ackerbau Pro (NAPV, Bodenuntersuchung, 170 kg N/ha Bilanz)
+                                </label>
+                            </div>
                         </div>
                     </div>
                     {% if current_user.ist_superadmin %}

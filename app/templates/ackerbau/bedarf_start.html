@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}N-Bedarf Schritt 1 – {{ schlag.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+    <h2><i class="bi bi-calculator"></i> N-Düngebedarfsermittlung (NAPV) – {{ schlag.name }}
+        <span class="badge bg-warning text-dark ms-2">Pro</span></h2>
+</div>
+
+<!-- Wizard-Fortschritt -->
+<div class="d-flex mb-4 gap-2 align-items-center">
+    <span class="badge bg-primary rounded-pill px-3 py-2">1 Kultur &amp; Ertrag</span>
+    <i class="bi bi-arrow-right text-muted"></i>
+    <span class="badge bg-light text-muted border rounded-pill px-3 py-2">2 Boden &amp; Abzüge</span>
+    <i class="bi bi-arrow-right text-muted"></i>
+    <span class="badge bg-light text-muted border rounded-pill px-3 py-2">3 Ergebnis</span>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header"><strong>Schritt 1: Kultur und Ertragsziel</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Kultur *</label>
+                        <select name="kultur_code" class="form-select" required id="kulturSelect">
+                            <option value="">– bitte wählen –</option>
+                            {% for code, name in eppo_kulturen %}
+                            <option value="{{ code }}"
+                                {% if aktive_kultur and aktive_kultur.kultur_code == code %}selected{% endif %}>
+                                {{ name }} ({{ code }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if aktive_kultur %}
+                        <small class="text-success"><i class="bi bi-check-circle"></i> Aktive Kultur: {{ aktive_kultur.kultur_name }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ertragsziel (dt/ha)</label>
+                        <input type="number" step="1" name="ertragsziel_dt_ha" class="form-control"
+                               id="ertragsziel" placeholder="z.B. 75 für 7,5 t/ha Weizen">
+                        <small class="text-muted" id="n_vorschau"></small>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="rotes_gebiet" id="rotesGebiet" class="form-check-input">
+                            <label for="rotesGebiet" class="form-check-label">
+                                <i class="bi bi-geo-alt text-danger"></i> Rotes Gebiet (NAPV: –20% N-Düngung)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-arrow-right"></i> Weiter zu Schritt 2
+                        </button>
+                        <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card border-info">
+            <div class="card-header bg-info bg-opacity-25"><i class="bi bi-info-circle"></i> NAPV-Grundlagen</div>
+            <div class="card-body small">
+                <p>Die Düngebedarfsermittlung nach NAPV (Nitrat-Aktionsprogramm-Verordnung) berechnet den standortspezifischen Stickstoffbedarf unter Berücksichtigung von:</p>
+                <ul>
+                    <li>Kulturspezifischem N-Bedarf je Ertragsziel</li>
+                    <li>Boden-N-Nachlieferung (Humus, Nmin)</li>
+                    <li>Vorfrucht-N-Gutschrift</li>
+                    <li>Wirtschaftsdünger-N</li>
+                    <li>Reduktion in Roten Gebieten (–20%)</li>
+                </ul>
+                <p class="mb-0 text-danger"><i class="bi bi-exclamation-triangle"></i> Obergrenze: 170 kg N/ha je Wirtschaftsdünger (Nitratrichtlinie)</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const napv = {{ napv_tabelle|tojson }};
+const kulturSelect = document.getElementById('kulturSelect');
+const ertragInput = document.getElementById('ertragsziel');
+const vorschau = document.getElementById('n_vorschau');
+
+function updateVorschau() {
+    const code = kulturSelect.value;
+    const ertrag = parseFloat(ertragInput.value) || 0;
+    const tab = napv[code];
+    if (tab && ertrag > 0) {
+        const n = tab.basis + ertrag * tab.faktor_dt;
+        vorschau.textContent = `→ Brutto-N-Bedarf: ca. ${n.toFixed(0)} kg N/ha`;
+    } else if (tab) {
+        vorschau.textContent = `Basisbedarf: ${tab.basis} kg N/ha + ${tab.faktor_dt} kg je dt/ha Ertrag`;
+    } else {
+        vorschau.textContent = '';
+    }
+}
+kulturSelect.addEventListener('change', updateVorschau);
+ertragInput.addEventListener('input', updateVorschau);
+updateVorschau();
+</script>
+{% endblock %}

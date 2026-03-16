@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}N-Bedarf Schritt 2 – Boden{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=dbe.schlag_id) }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+    <h2><i class="bi bi-calculator"></i> N-Bedarfsermittlung – Schritt 2: Boden &amp; Abzüge
+        <span class="badge bg-warning text-dark ms-2">Pro</span></h2>
+</div>
+
+<!-- Wizard -->
+<div class="d-flex mb-4 gap-2 align-items-center">
+    <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check"></i> 1 Kultur &amp; Ertrag</span>
+    <i class="bi bi-arrow-right text-muted"></i>
+    <span class="badge bg-primary rounded-pill px-3 py-2">2 Boden &amp; Abzüge</span>
+    <i class="bi bi-arrow-right text-muted"></i>
+    <span class="badge bg-light text-muted border rounded-pill px-3 py-2">3 Ergebnis</span>
+</div>
+
+<div class="alert alert-info">
+    Brutto-N-Bedarf: <strong>{{ dbe.n_bedarf_brutto }} kg N/ha</strong>
+    {% if dbe.ist_rotes_gebiet %}<span class="badge bg-danger ms-2"><i class="bi bi-geo-alt"></i> Rotes Gebiet</span>{% endif %}
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header"><strong>Schritt 2: Boden- und Vorfrucht-Abzüge</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Humus-Klasse (N-Nachlieferung)</label>
+                        <select name="humus_klasse" class="form-select" id="humusSelect">
+                            {% for k in humus_klassen %}
+                            <option value="{{ k }}" {% if letzte_bu and letzte_bu.humus %}
+                                {% if (letzte_bu.humus|float < 1 and k == 'unter 1%') or
+                                      (1 <= letzte_bu.humus|float < 2 and k == '1-2%') or
+                                      (2 <= letzte_bu.humus|float < 4 and k == '2-4%') or
+                                      (letzte_bu.humus|float >= 4 and k == 'über 4%') %}selected{% endif %}
+                            {% endif %}>{{ k }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if letzte_bu %}
+                        <small class="text-muted">Letzte Bodenuntersuchung {{ letzte_bu.datum.strftime('%d.%m.%Y') }}: Humus {{ letzte_bu.humus or '?' }}%</small>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vorfrucht</label>
+                        <select name="vorfrucht" class="form-select" id="vorfruchtSelect">
+                            {% for vf in vorfruchte %}
+                            <option value="{{ vf }}">{{ vf }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">N aus Wirtschaftsdünger (kg N/ha, feldfallend)</label>
+                        <input type="number" step="0.1" name="n_wirtschaft" class="form-control" id="nWirtschaft"
+                               value="0" placeholder="Bereits geplante Wirtschaftsdünger-N">
+                        <small class="text-muted">Gülle, Mist, Jauche die in dieser Saison ausgebracht wird</small>
+                    </div>
+                    <!-- Live-Vorschau -->
+                    <div class="alert alert-warning" id="nVorschau">
+                        Netto-N wird berechnet…
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-arrow-right"></i> Ergebnis berechnen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const nBrutto = {{ dbe.n_bedarf_brutto|float }};
+const istRotesGebiet = {{ 'true' if dbe.ist_rotes_gebiet else 'false' }};
+const reduktion = {{ dbe.reduktion_rotes_gebiet|float }};
+
+const humusNL = {
+    'unter 1%': 20,
+    '1-2%': 40,
+    '2-4%': 60,
+    'über 4%': 80,
+};
+const vorfruchtGL = {
+    'Getreide': 0,
+    'Mais': 0,
+    'Raps': 20,
+    'Leguminosen (Erbse, Bohne)': 40,
+    'Klee/Luzerne 1 Jahr': 60,
+    'Klee/Luzerne mehrjährig': 100,
+    'Feldgemüse': 30,
+    'Zuckerrübe': 20,
+};
+
+function berechne() {
+    const hk = document.getElementById('humusSelect').value;
+    const vf = document.getElementById('vorfruchtSelect').value;
+    const nW = parseFloat(document.getElementById('nWirtschaft').value) || 0;
+    const nl = humusNL[hk] || 0;
+    const vfG = vorfruchtGL[vf] || 0;
+    const abzug = nl + vfG + nW;
+    let nNetto = Math.max(0, nBrutto - abzug);
+    if (istRotesGebiet) nNetto = nNetto * (1 - reduktion / 100);
+    document.getElementById('nVorschau').innerHTML =
+        `Abzüge: Boden ${nl} + Vorfrucht ${vfG} + Wirtschaft ${nW} = <strong>${abzug}</strong> kg N/ha<br>` +
+        `${istRotesGebiet ? `Rotes Gebiet (–${reduktion}%) → ` : ''}` +
+        `Netto-Mineraldüngerbedarf: <strong class="text-danger">${nNetto.toFixed(1)} kg N/ha</strong>`;
+}
+['humusSelect','vorfruchtSelect','nWirtschaft'].forEach(id => {
+    document.getElementById(id).addEventListener('change', berechne);
+    document.getElementById(id).addEventListener('input', berechne);
+});
+berechne();
+</script>
+{% endblock %}

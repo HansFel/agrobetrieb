@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Bodenuntersuchung – {{ schlag.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+    <h2><i class="bi bi-globe"></i> Bodenuntersuchung – {{ schlag.name }}
+        <span class="badge bg-warning text-dark ms-2">Pro</span></h2>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Datum *</label>
+                            <input type="date" name="datum" class="form-control" required value="{{ heute.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Labor</label>
+                            <input type="text" name="labor" class="form-control" placeholder="z.B. AGES, ALVA">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">pH-Wert</label>
+                            <input type="number" step="0.01" name="ph_wert" class="form-control" min="3" max="9">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Humus (%)</label>
+                            <input type="number" step="0.01" name="humus" class="form-control" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">P₂O₅ (mg/100g)</label>
+                            <input type="number" step="0.1" name="p_gehalt" class="form-control">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">K₂O (mg/100g)</label>
+                            <input type="number" step="0.1" name="k_gehalt" class="form-control">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Mg (mg/100g)</label>
+                            <input type="number" step="0.1" name="mg_gehalt" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Gehaltsklasse P</label>
+                            <select name="p_klasse" class="form-select">
+                                <option value="">–</option>
+                                <option value="A">A – sehr niedrig</option>
+                                <option value="B">B – niedrig</option>
+                                <option value="C">C – optimal</option>
+                                <option value="D">D – hoch</option>
+                                <option value="E">E – sehr hoch</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Gehaltsklasse K</label>
+                            <select name="k_klasse" class="form-select">
+                                <option value="">–</option>
+                                <option value="A">A – sehr niedrig</option>
+                                <option value="B">B – niedrig</option>
+                                <option value="C">C – optimal</option>
+                                <option value="D">D – hoch</option>
+                                <option value="E">E – sehr hoch</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Gehaltsklasse Mg</label>
+                            <select name="mg_klasse" class="form-select">
+                                <option value="">–</option>
+                                <option value="A">A – sehr niedrig</option>
+                                <option value="B">B – niedrig</option>
+                                <option value="C">C – optimal</option>
+                                <option value="D">D – hoch</option>
+                                <option value="E">E – sehr hoch</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bemerkungen</label>
+                        <textarea name="bemerkungen" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Speichern</button>
+                        <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card border-warning">
+            <div class="card-header bg-warning bg-opacity-25"><i class="bi bi-info-circle"></i> Gehaltsklassen</div>
+            <div class="card-body small">
+                <table class="table table-sm">
+                    <tr><th>Klasse</th><th>Bedeutung</th><th>Empfehlung</th></tr>
+                    <tr><td><strong>A</strong></td><td>Sehr niedrig</td><td>Hohe Düngung</td></tr>
+                    <tr><td><strong>B</strong></td><td>Niedrig</td><td>Erhöhte Düngung</td></tr>
+                    <tr><td><strong>C</strong></td><td>Optimal</td><td>Entzugsorientiert</td></tr>
+                    <tr><td><strong>D</strong></td><td>Hoch</td><td>Reduzierte Düngung</td></tr>
+                    <tr><td><strong>E</strong></td><td>Sehr hoch</td><td>Keine P/K Düngung</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

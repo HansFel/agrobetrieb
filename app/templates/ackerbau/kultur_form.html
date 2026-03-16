@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Kultur eintragen – {{ schlag.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h2><i class="bi bi-seedling"></i> Kultur eintragen – {{ schlag.name }}</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Kultur (EPPO-Code) *</label>
+                        <select name="kultur_code" class="form-select" required>
+                            <option value="">– bitte wählen –</option>
+                            {% for code, name in eppo_kulturen %}
+                            <option value="{{ code }}">{{ name }} ({{ code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Aussaat-Datum *</label>
+                            <input type="date" name="aussaat_datum" class="form-control" required
+                                   value="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ernte-Datum</label>
+                            <input type="date" name="ernte_datum" class="form-control">
+                            <small class="text-muted">Leer lassen wenn Kultur noch aktiv</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bemerkungen</label>
+                        <textarea name="bemerkungen" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Speichern</button>
+                        <a href="{{ url_for('ackerbau.schlag_detail', schlag_id=schlag.id) }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

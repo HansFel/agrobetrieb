@@ -149,6 +149,8 @@
                             <tbody>
                                 <tr><td><span class="badge bg-warning text-dark">Legehennen</span></td><td><code>modul_legehennen</code></td><td>Herden, Legeleistung, TAMG-Journal, Sortierergebnisse</td></tr>
                                 <tr><td><span class="badge bg-success">Milchvieh</span></td><td><code>modul_milchvieh</code></td><td>Rinder, Milchleistung, TAMG-Journal, Tierarztbesuche</td></tr>
+                                <tr><td><span class="badge bg-success">Ackerbau</span></td><td><code>modul_ackerbau</code></td><td>Schlagkartei, Spritztagebuch, Düngerplaner</td></tr>
+                                <tr><td><span class="badge bg-warning text-dark">Ackerbau Pro</span></td><td><code>modul_ackerbau_pro</code></td><td>NAPV-Bedarfsermittlung, Bodenuntersuchung, 170 kg N/ha Bilanz, Rote Gebiete</td></tr>
                             </tbody>
                         </table>
 
@@ -573,6 +575,79 @@
                             <i class="bi bi-info-circle"></i>
                             Das <strong>Tierarzt-Dashboard</strong> (Rolle <em>tierarzt</em>) zeigt alle offenen und unsignierten TAMG-Einträge von Legehennen und Milchvieh in einer gemeinsamen Übersicht.
                         </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# ────────────────────────────────────────── #}
+            {# ACKERBAU (Modul)                           #}
+            {# ────────────────────────────────────────── #}
+            {% if hat_modul_zugriff(current_user, 'ackerbau') %}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-ackerbau">
+                        <i class="bi bi-tree me-2 text-success"></i> Modul: Ackerbau
+                        <span class="badge bg-success ms-2">Modul</span>
+                        {% if hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+                        <span class="badge bg-warning text-dark ms-1">+ Pro</span>
+                        {% endif %}
+                    </button>
+                </h2>
+                <div id="hilfe-ackerbau" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6><i class="bi bi-map me-1"></i> Schlagkartei</h6>
+                        <ul>
+                            <li>Alle <strong>Schläge</strong> (Felder) des Betriebs anlegen mit Fläche, INVEKOS-Feldstück-Nr. und Bodenart</li>
+                            <li>Je Schlag: <strong>Kulturen</strong> eintragen (Aussaat- und Erntedatum, EPPO-Code)</li>
+                            <li>Aktive Kultur wird farblich hervorgehoben – Ernteabschluss mit einem Klick</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-droplet me-1"></i> Spritztagebuch</h6>
+                        <ul>
+                            <li><strong>Pflanzenschutzmittel-Stammdaten</strong> anlegen: Name, Wirkstoff, Kategorie (Herbizid/Fungizid/...), Zulassungsnummer</li>
+                            <li>Je Spritzung: Datum, Spritzmittel, Aufwandmenge, BBCH-Stadium, behandelte Fläche</li>
+                            <li>Jahresübersicht im <strong>Spritztagebuch</strong> mit Gesamtmengen-Berechnung</li>
+                            <li>Gesetzlich vorgeschrieben: Alle Pflanzenschutzmaßnahmen müssen im Spritztagebuch dokumentiert sein</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-bag me-1"></i> Düngerplaner</h6>
+                        <ul>
+                            <li>Düngegaben erfassen: Art (Mineral/Wirtschaft/Organisch), N/P/K-Gehalt, Menge, Ausbringverfahren</li>
+                            <li>Automatische Nährstoffberechnung (kg N, P₂O₅, K₂O je ha)</li>
+                            <li>Jahresübersicht mit Nährstoffbilanz je Schlag</li>
+                        </ul>
+
+                        {% if hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+                        <div class="alert alert-warning mt-3">
+                            <h6><i class="bi bi-star-fill text-warning me-1"></i> Pro-Funktionen</h6>
+
+                            <strong>Bodenuntersuchung:</strong>
+                            <ul>
+                                <li>Laborwerte erfassen: pH, P₂O₅, K₂O, Mg, Humus%</li>
+                                <li>Gehaltsklassen A–E je Nährstoff (A=sehr niedrig … E=sehr hoch)</li>
+                                <li>Basis für NAPV-Düngebedarfsermittlung</li>
+                            </ul>
+
+                            <strong>NAPV-Düngebedarfsermittlung (3-Schritt-Wizard):</strong>
+                            <ol>
+                                <li><strong>Kultur &amp; Ertragsziel:</strong> EPPO-Kultur wählen, Ertragsziel in dt/ha eingeben → Brutto-N-Bedarf wird berechnet</li>
+                                <li><strong>Boden &amp; Abzüge:</strong> Humus-Klasse (N-Nachlieferung), Vorfrucht (Gutschrift), Wirtschaftsdünger-N</li>
+                                <li><strong>Ergebnis:</strong> Netto-Mineraldüngerbedarf in kg N/ha inkl. Rote-Gebiete-Reduktion (–20%)</li>
+                            </ol>
+                            <p><i class="bi bi-geo-alt text-danger"></i> <strong>Rote Gebiete (NAPV AT):</strong> Wenn der Schlag in einem Roten Gebiet liegt, wird der N-Bedarf automatisch um 20% reduziert.</p>
+
+                            <strong>170 kg N/ha Wirtschaftsdünger-Bilanz:</strong>
+                            <ul>
+                                <li>Tierbestand je Jahr und Kategorie erfassen (Milchkuh, Mastschwein, Legehenne etc.)</li>
+                                <li>Automatische N-Anfall-Berechnung nach ÖPUL-Standardwerten</li>
+                                <li><strong>Ampel-System:</strong> Grün (&lt;130), Gelb (130–170), Rot (&gt;170 kg N/ha) – gesetzlicher Grenzwert der EU-Nitratrichtlinie</li>
+                                <li>Tierbestands-Zahlen können aus den Modulen Milchvieh und Legehennen entnommen werden</li>
+                            </ul>
+                        </div>
+                        {% endif %}
 
                     </div>
                 </div>

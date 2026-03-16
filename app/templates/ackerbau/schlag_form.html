@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}{% if schlag %}Schlag bearbeiten{% else %}Neuer Schlag{% endif %} – AgroBetrieb{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h2>{% if schlag %}<i class="bi bi-pencil"></i> Schlag bearbeiten{% else %}<i class="bi bi-plus-circle"></i> Neuer Schlag{% endif %}</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Bezeichnung *</label>
+                        <input type="text" name="name" class="form-control" required
+                               value="{{ schlag.name if schlag else '' }}" placeholder="z.B. Hausfeld, Weinberg Nord">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fläche (ha)</label>
+                            <input type="number" step="0.0001" name="flaeche_ha" class="form-control"
+                                   value="{{ schlag.flaeche_ha if schlag else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">INVEKOS-Fläche (ha)</label>
+                            <input type="number" step="0.0001" name="invekos_flaeche" class="form-control"
+                                   value="{{ schlag.invekos_flaeche if schlag else '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Feldstück-Nr.</label>
+                            <input type="text" name="feldstueck_nr" class="form-control"
+                                   value="{{ schlag.feldstueck_nr if schlag else '' }}" placeholder="INVEKOS-Nummer">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Bodenart</label>
+                            <select name="bodenart" class="form-select">
+                                <option value="">– keine Angabe –</option>
+                                {% for ba in bodenarten %}
+                                <option value="{{ ba }}" {% if schlag and schlag.bodenart == ba %}selected{% endif %}>{{ ba }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notizen</label>
+                        <textarea name="notizen" class="form-control" rows="3">{{ schlag.notizen if schlag else '' }}</textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg"></i> Speichern
+                        </button>
+                        <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

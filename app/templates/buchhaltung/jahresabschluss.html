@@ -47,7 +47,7 @@
                 </a>
             </div>
             <div class="col-md-3">
-                <button type="submit" class="btn btn-warning w-100"
+                <button type="submit" name="aktion" value="einzeln" class="btn btn-warning w-100"
                         onclick="return confirm('Saldenübertrag von {{ von_jahr }} → {{ nach_jahr }} durchführen?\n\nBestehende Anfangssalden werden überschrieben.')">
                     <i class="bi bi-arrow-left-right"></i> Übertrag durchführen
                 </button>
@@ -55,6 +55,39 @@
         </form>
     </div>
 </div>
+
+{% if kette_moeglich %}
+<!-- Ketten-Übertrag -->
+<div class="card mb-4 border-primary">
+    <div class="card-header bg-primary text-white">
+        <strong><i class="bi bi-link-45deg"></i> Ketten-Übertrag</strong>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            Da {{ von_jahr }} und {{ nach_jahr }} mehr als ein Jahr auseinander liegen,
+            kann der Übertrag für <strong>alle Zwischenjahre automatisch</strong> durchgeführt werden:
+        </p>
+        <div class="d-flex gap-2 align-items-center mb-3">
+            {% for j in range(von_jahr, nach_jahr + 1) %}
+            <span class="badge bg-secondary fs-6">{{ j }}</span>
+            {% if not loop.last %}<i class="bi bi-arrow-right text-primary"></i>{% endif %}
+            {% endfor %}
+        </div>
+        <p class="text-muted small mb-3">
+            Schritte: {% for j in range(von_jahr, nach_jahr) %}{{ j }}→{{ j+1 }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="von_jahr" value="{{ von_jahr }}">
+            <input type="hidden" name="nach_jahr" value="{{ nach_jahr }}">
+            <button type="submit" name="aktion" value="kette" class="btn btn-primary"
+                    onclick="return confirm('Ketten-Übertrag {{ von_jahr }} → {{ nach_jahr }} durchführen?\nAlle Zwischenjahre werden sequenziell übertragen.\n\nBestehende Anfangssalden werden überschrieben.')">
+                <i class="bi bi-link-45deg"></i> Alle Jahre übertragen ({{ von_jahr }}–{{ nach_jahr }})
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <!-- Vorschau-Tabelle -->
 <div class="card">

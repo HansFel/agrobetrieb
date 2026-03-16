@@ -347,6 +347,18 @@ def jahresabschluss_durchfuehren(von_jahr, nach_jahr):
     return {'uebertragen': uebertragen, 'uebersprungen': uebersprungen}
 
 
+def jahresabschluss_kette(start_jahr, end_jahr):
+    """Führt den Saldenübertrag für alle Jahre von start_jahr bis end_jahr
+    sequenziell durch: start→start+1, start+1→start+2, …, end-1→end.
+    Returns: Liste von dicts {'von': int, 'nach': int, 'uebertragen': int, 'uebersprungen': int}
+    """
+    ergebnisse = []
+    for jahr in range(start_jahr, end_jahr):
+        ergebnis = jahresabschluss_durchfuehren(jahr, jahr + 1)
+        ergebnisse.append({'von': jahr, 'nach': jahr + 1, **ergebnis})
+    return ergebnisse
+
+
 def jahresabschluss_vorschau(von_jahr, nach_jahr):
     """
     Gibt eine Vorschau der zu übertragenden Salden zurück,

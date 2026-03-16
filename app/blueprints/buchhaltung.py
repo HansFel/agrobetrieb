@@ -20,6 +20,7 @@ from app.services.buchung_service import (
     guv_berechnen,
     jahresabschluss_durchfuehren,
     jahresabschluss_vorschau,
+    jahresabschluss_kette,
 )
 from app.services.kontenplan_service import KLASSEN_NAMEN, standard_kontenplan_erstellen
 
@@ -572,8 +573,19 @@ def jahresabschluss():
     if request.method == 'POST':
         von_jahr = int(request.form['von_jahr'])
         nach_jahr = int(request.form['nach_jahr'])
+        aktion = request.form.get('aktion', 'einzeln')
         if von_jahr >= nach_jahr:
             flash('Zieljahr muss größer als Quelljahr sein.', 'danger')
+        elif aktion == 'kette':
+            ergebnisse = jahresabschluss_kette(von_jahr, nach_jahr)
+            gesamt = sum(e['uebertragen'] for e in ergebnisse)
+            schritte = ', '.join(f'{e["von"]}→{e["nach"]} ({e["uebertragen"]}K)' for e in ergebnisse)
+            flash(
+                f'Ketten-Übertrag abgeschlossen: {gesamt} Konten gesamt. Schritte: {schritte}',
+                'success'
+            )
+            return redirect(url_for('buchhaltung.jahresabschluss',
+                                    von=von_jahr, nach=nach_jahr))
         else:
             ergebnis = jahresabschluss_durchfuehren(von_jahr, nach_jahr)
             flash(
@@ -584,12 +596,14 @@ def jahresabschluss():
             return redirect(url_for('buchhaltung.jahresabschluss',
                                     von=von_jahr, nach=nach_jahr))
 
+    kette_moeglich = nach_jahr - von_jahr > 1
     vorschau = jahresabschluss_vorschau(von_jahr, nach_jahr)
     return render_template('buchhaltung/jahresabschluss.html',
                            von_jahr=von_jahr,
                            nach_jahr=nach_jahr,
                            vorschau=vorschau,
-                           now_year=now_year)
+                           now_year=now_year,
+                           kette_moeglich=kette_moeglich)
 
 
 @buchhaltung_bp.route('/buchungsschluessel')

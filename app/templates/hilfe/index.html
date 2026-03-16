@@ -505,30 +505,73 @@
                 <div id="hilfe-milchvieh" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
                     <div class="accordion-body">
 
-                        <h6>Rinder anlegen</h6>
+                        <h6><i class="bi bi-grid me-1"></i> Dashboard</h6>
+                        <p>Das Milchvieh-Dashboard gibt eine Gesamtübersicht: Bestandszahlen, GVE, aktive Wartezeiten, offene Besamungen und aktuelle MLP-Ergebnisse.</p>
+
+                        <h6 class="mt-3"><i class="bi bi-list-ul me-1"></i> Bestand & Rinder anlegen</h6>
                         <ul>
-                            <li>Ohrmarke (eindeutige Tierkennzeichnung), Name, Rasse</li>
-                            <li>Geburtsdatum, Geschlecht, Status (aktiv / abgegangen / verkauft)</li>
-                            <li>Zugangsdatum (Geburt oder Zukauf)</li>
+                            <li><strong>Ohrmarke</strong> – eindeutige Tierkennzeichnung (Pflichtfeld)</li>
+                            <li>Name, Rasse, Geburtsdatum, Geschlecht</li>
+                            <li><strong>Status:</strong> aktiv / abgegangen / verkauft / verendet</li>
+                            <li>Zugangsdatum und Zugangsart (Geburt, Zukauf)</li>
+                            <li>Bei Abgang: Datum, Grund und Abgangsgewicht erfassen</li>
                         </ul>
 
-                        <h6 class="mt-3">Milchleistung erfassen</h6>
+                        <h6 class="mt-3"><i class="bi bi-droplet me-1"></i> MLP – Milchleistungsprüfung</h6>
                         <ul>
-                            <li>Täglich oder monatlich: Datum, Menge in Liter, Fettgehalt, Eiweißgehalt</li>
-                            <li>Auswertungen nach Tier und Zeitraum</li>
+                            <li>Pro Tier MLP-Ergebnisse erfassen: Datum, kg Milch, Fett%, Eiweiß%, Zellzahl, Laktationsnummer</li>
+                            <li>MLP-Auswertung zeigt alle Tiere mit letztem Prüfergebnis in einer Übersicht</li>
+                            <li>Kennzahlen: ECM (energiekorrigierte Milch), Fett-Eiweiß-Quotient</li>
                         </ul>
 
-                        <h6 class="mt-3">Tierarztbesuche & TAMG-Journal</h6>
+                        <h6 class="mt-3"><i class="bi bi-cup-hot me-1"></i> Tankmilch</h6>
                         <ul>
-                            <li>Tierarztbesuche mit Datum, Befund, Diagnose und Maßnahmen dokumentieren</li>
-                            <li>Arzneimittelanwendungen im TAMG-Journal: Arzneimittel, Menge, Indikation, behandelte Tiere</li>
-                            <li><strong>Wartezeiten</strong> für Milch und Fleisch werden automatisch berechnet</li>
-                            <li>Tierarzt kann Einträge mit <strong>digitaler Unterschrift</strong> signieren – gleiche Funktion wie bei Legehennen</li>
+                            <li>Tankmilchablieferungen erfassen: Datum, Menge, Fett%, Eiweiß%, Zellzahl, Keimzahl</li>
+                            <li>Übersicht aller Ablieferungen nach Datum</li>
                         </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-tree me-1"></i> Weidebuch</h6>
+                        <ul>
+                            <li>Weideperioden erfassen: Weide, Datum von/bis, Tierzahl, Fläche</li>
+                            <li>Wichtig für die Dokumentation der Weidehaltung und Förderanträge</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-heart-pulse me-1"></i> Besamung & Trächtigkeitsfeststellung</h6>
+                        <ul>
+                            <li>Besamungen erfassen: Datum, Stier/Sperma, Besamungstechniker</li>
+                            <li>Trächtigkeitsfeststellung (TD) mit Datum und Ergebnis nachtragen</li>
+                            <li>Erwarteter Abkalbetermin wird automatisch berechnet (+280 Tage)</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-bandaid me-1"></i> Eutergesundheit & Klauenpflege</h6>
+                        <ul>
+                            <li><strong>Euterbefunde:</strong> Datum, betroffenes Viertel, Befund, Behandlung</li>
+                            <li><strong>Klauenpflege:</strong> Datum, Klauenpfleger, Befund, Maßnahmen</li>
+                            <li>Beide Bereiche sind pro Tier in der Tier-Detailansicht dokumentiert</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-capsule me-1"></i> Arzneimittel & Impfungen</h6>
+                        <ul>
+                            <li><strong>Arzneimittelanwendungen:</strong> Datum, Präparat, Menge, Anwendungsweg, Indikation, behandelte Tiere</li>
+                            <li><strong>Wartezeiten</strong> für Milch und Fleisch werden automatisch berechnet und bis zum Ablauf angezeigt</li>
+                            <li><strong>Impfungen:</strong> Datum, Impfstoff, nächste Impfung vormerken</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-journal-medical me-1"></i> TAMG-Journal</h6>
+                        <p>Das TAMG-Journal listet alle Arzneimittelanwendungen aller Rinder chronologisch. Filterbar nach Zeitraum und Tier.</p>
+                        <ul>
+                            <li>Tierarzt kann Einträge mit einer <strong>digitalen Unterschrift</strong> (Canvas) signieren</li>
+                            <li>Status: <span class="badge bg-warning text-dark">offen</span> → <span class="badge bg-success">signiert</span></li>
+                            <li>Signatur enthält Name des Tierarztes und Zeitstempel</li>
+                            <li>Signatur kann vom Tierarzt auch wieder gelöscht werden (z.B. bei Fehler)</li>
+                        </ul>
+
+                        <h6 class="mt-3"><i class="bi bi-calculator me-1"></i> GVE-Berechnung</h6>
+                        <p>Der aktuelle GVE-Wert (Großvieheinheiten) des Bestands wird automatisch nach Tierkategorie berechnet – wichtig für Förderanträge und Düngeberechnung.</p>
 
                         <div class="alert alert-info py-2 small">
                             <i class="bi bi-info-circle"></i>
-                            Das Tierarzt-Dashboard (Rolle <em>tierarzt</em>) zeigt alle offenen und unsignierten TAMG-Einträge beider Module in einer Gesamtübersicht.
+                            Das <strong>Tierarzt-Dashboard</strong> (Rolle <em>tierarzt</em>) zeigt alle offenen und unsignierten TAMG-Einträge von Legehennen und Milchvieh in einer gemeinsamen Übersicht.
                         </div>
 
                     </div>

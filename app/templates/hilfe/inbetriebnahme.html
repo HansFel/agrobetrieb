@@ -99,6 +99,16 @@
                                     <td>Rinderbetriebe</td>
                                     <td>Rinder, Milchleistung, TAMG-Journal, Tierarztbesuche</td>
                                 </tr>
+                                <tr>
+                                    <td><span class="badge bg-success">Ackerbau</span></td>
+                                    <td>Ackerbaubetriebe</td>
+                                    <td>Schlagkartei, Spritztagebuch (gesetzlich verpflichtend!), Düngerplaner</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning text-dark">Ackerbau Pro</span></td>
+                                    <td>Ackerbau mit NAPV-Pflicht</td>
+                                    <td>NAPV-Düngebedarfsermittlung, Bodenuntersuchung, 170 kg N/ha Bilanz, Rote Gebiete</td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="alert alert-info py-2 small">
@@ -221,15 +231,52 @@
                 </div>
             </div>
 
-            {# ── Schritt 8: Datensicherung ── #}
+            {# ── Schritt 8: Ackerbau-Ersteinrichtung ── #}
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step8">
                         <span class="badge bg-secondary me-3">8</span>
-                        <i class="bi bi-cloud-arrow-down me-2"></i> Erstes Backup erstellen
+                        <i class="bi bi-tree me-2"></i> Ackerbau-Modul einrichten <span class="text-muted fw-normal fs-6">(wenn freigeschaltet)</span>
                     </button>
                 </h2>
                 <div id="step8" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
+                    <div class="accordion-body">
+                        <p>Falls das Ackerbau-Modul freigeschaltet ist, diese Ersteinrichtung durchführen:</p>
+                        <ol>
+                            <li>Unter <strong>Ackerbau → Schlagkartei</strong> alle Schläge anlegen (Name, Fläche in ha, Feldstück-Nr.)</li>
+                            <li>Je Schlag die aktuelle <strong>Kultur eintragen</strong> (EPPO-Code, Aussaatdatum)</li>
+                            <li>Unter <strong>Ackerbau → Spritzmittel</strong> die verwendeten Pflanzenschutzmittel anlegen (Stammdaten)</li>
+                            <li>Laufende Spritzungen und Düngegaben im Spritztagebuch bzw. Düngerplaner erfassen</li>
+                        </ol>
+                        {% if hat_modul_zugriff(current_user, 'ackerbau_pro') %}
+                        <div class="alert alert-warning py-2 small mt-2">
+                            <i class="bi bi-star-fill text-warning"></i> <strong>Ackerbau Pro:</strong>
+                            Bodenuntersuchungsergebnisse je Schlag erfassen → bildet die Basis für die NAPV-Düngebedarfsermittlung.
+                            Tierbestand für 170 kg N/ha Bilanz anlegen (Daten aus Milchvieh/Legehennen-Modul können übernommen werden).
+                        </div>
+                        {% endif %}
+                        <div class="alert alert-info py-2 small mt-2">
+                            <i class="bi bi-exclamation-circle"></i>
+                            Das <strong>Spritztagebuch ist gesetzlich verpflichtend</strong> – alle Pflanzenschutzmaßnahmen müssen dokumentiert werden (§ 24 Pflanzenschutzmittelgesetz).
+                        </div>
+                        {% if hat_modul_zugriff(current_user, 'ackerbau') %}
+                        <a href="{{ url_for('ackerbau.index') }}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-tree"></i> Schlagkartei öffnen
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# ── Schritt 9: Datensicherung ── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step9">
+                        <span class="badge bg-secondary me-3">9</span>
+                        <i class="bi bi-cloud-arrow-down me-2"></i> Erstes Backup erstellen
+                    </button>
+                </h2>
+                <div id="step9" class="accordion-collapse collapse" data-bs-parent="#inbetriebnahmeAccordion">
                     <div class="accordion-body">
                         <p>Nach der Einrichtung sofort ein erstes Backup erstellen.</p>
                         <ul>
@@ -278,7 +325,11 @@
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="c7">
-                        <label class="form-check-label" for="c7">Erstes Backup erstellt</label>
+                        <label class="form-check-label" for="c7">Schläge und Kulturen eingetragen</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="c8">
+                        <label class="form-check-label" for="c8">Erstes Backup erstellt</label>
                     </div>
                 </div>
             </div>

@@ -66,7 +66,7 @@
                             <li><strong>UID-Nummer / Steuernummer</strong> – für Rechnungen erforderlich</li>
                             <li><strong>Telefon / E-Mail / Website</strong> – optional, erscheinen im Briefkopf</li>
                         </ul>
-                        <a href="{{ url_for('betrieb.betrieb_bearbeiten') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('betrieb.edit') }}" class="btn btn-primary btn-sm">
                             <i class="bi bi-building"></i> Betriebsdaten öffnen
                         </a>
                     </div>
@@ -105,7 +105,7 @@
                             <i class="bi bi-info-circle"></i>
                             Basis-Module (Buchhaltung, Maschinen, Lager, Fakturierung) sind immer verfügbar und müssen nicht freigeschaltet werden.
                         </div>
-                        <a href="{{ url_for('betrieb.betrieb_bearbeiten') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('betrieb.edit') }}" class="btn btn-primary btn-sm">
                             <i class="bi bi-puzzle"></i> Module verwalten
                         </a>
                     </div>

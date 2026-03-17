@@ -67,22 +67,25 @@ def upgrade():
 
     # Entfernt: _alter_table('konto', ...) außerhalb des if-Blocks
 
-    # Alle SQL-Operationen auf konto nur ausführen, wenn die Tabelle existiert
+    # Alle SQL-Operationen auf konto nur ausführen, wenn die Tabelle und Spalte existiert
     if 'konto' in inspector.get_table_names():
-        # Kontenklasse aus Kontonummer ableiten
-        if pg:
-            op.execute(sa.text("""
-                UPDATE konto SET kontenklasse = CAST(SUBSTRING(kontonummer FROM 1 FOR 1) AS INTEGER)
-                WHERE kontenklasse IS NULL AND kontonummer ~ '^[0-9]'
-            """))
-        else:
-            op.execute("""
-                UPDATE konto SET kontenklasse = CAST(SUBSTR(kontonummer, 1, 1) AS INTEGER)
-                WHERE kontenklasse IS NULL AND kontonummer GLOB '[0-9]*'
-            """)
-        op.execute(sa.text("UPDATE konto SET kontenklasse = 0 WHERE kontenklasse IS NULL"))
-        op.execute(sa.text("UPDATE konto SET aktiv = true WHERE aktiv IS NULL") if pg else
-                   "UPDATE konto SET aktiv = 1 WHERE aktiv IS NULL")
+        konto_cols_check = [c['name'] for c in inspector.get_columns('konto')]
+        # Kontenklasse aus Kontonummer ableiten (nur wenn Spalte existiert)
+        if 'kontenklasse' in konto_cols_check:
+            if pg:
+                op.execute(sa.text("""
+                    UPDATE konto SET kontenklasse = CAST(SUBSTRING(kontonummer FROM 1 FOR 1) AS INTEGER)
+                    WHERE kontenklasse IS NULL AND kontonummer ~ '^[0-9]'
+                """))
+            else:
+                op.execute("""
+                    UPDATE konto SET kontenklasse = CAST(SUBSTR(kontonummer, 1, 1) AS INTEGER)
+                    WHERE kontenklasse IS NULL AND kontonummer GLOB '[0-9]*'
+                """)
+            op.execute(sa.text("UPDATE konto SET kontenklasse = 0 WHERE kontenklasse IS NULL"))
+        if 'aktiv' in konto_cols_check:
+            op.execute(sa.text("UPDATE konto SET aktiv = true WHERE aktiv IS NULL") if pg else
+                       "UPDATE konto SET aktiv = 1 WHERE aktiv IS NULL")
 
     # ============================================================
     # BUCHUNG: Schema-Upgrade

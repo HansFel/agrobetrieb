@@ -32,7 +32,7 @@ class SsoToken(db.Model):
     @classmethod
     def ausstellen(cls, username: str, ziel_instanz: str = '') -> 'SsoToken':
         """Erstellt ein neues, signiertes SSO-Token (30 Sek. gültig)."""
-        raw = secrets.token_hex(24)
+        raw = secrets.token_hex(20)
         sig = hmac.new(
             cls._secret().encode(),
             raw.encode(),

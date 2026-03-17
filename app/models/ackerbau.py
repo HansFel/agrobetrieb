@@ -180,8 +180,13 @@ class SchlagKultur(db.Model):
 
     kultur_code = db.Column(db.String(20), nullable=False)  # EPPO-Code
     kultur_name = db.Column(db.String(100), nullable=False)
+    sorte = db.Column(db.String(100))
     aussaat_datum = db.Column(db.Date, nullable=False)
     ernte_datum = db.Column(db.Date, nullable=True)         # NULL = aktiv
+
+    # Saat-Wizard Felder
+    saatmenge_kg_ha = db.Column(db.Numeric(8, 2))            # berechnete Saatmenge
+    saatmenge_tatsaechlich_kg_ha = db.Column(db.Numeric(8, 2))  # tatsächlicher Verbrauch
 
     bemerkungen = db.Column(db.Text)
     erstellt_am = db.Column(db.DateTime, default=datetime.utcnow)

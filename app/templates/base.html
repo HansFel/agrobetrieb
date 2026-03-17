@@ -161,6 +161,9 @@
                             <li><a class="dropdown-item" href="{{ url_for('ackerbau.spritzmittel_liste') }}">
                                 <i class="bi bi-list-ul me-1"></i>Spritzmittel
                             </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('ackerbau.saat_wizard_index') }}">
+                                <i class="bi bi-calculator me-1"></i>Saatwizard
+                            </a></li>
                             {% endif %}
                             {% if hat_berechtigung(current_user, 'ackerbau_pro', 'view') %}
                             <li><hr class="dropdown-divider"></li>
@@ -248,6 +251,15 @@
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto">
+                    {% if mgr_instanz %}
+                    <li class="nav-item">
+                        <a class="nav-link text-warning fw-semibold"
+                           href="{{ url_for('sso.zu_mgrsoftware', instanz=mgr_instanz) }}"
+                           title="Maschinengemeinschaft öffnen (automatisch eingeloggt)">
+                            <i class="bi bi-people-fill"></i> Gemeinschaft
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('hilfe.index') }}" title="Hilfe">
                             <i class="bi bi-question-circle"></i>

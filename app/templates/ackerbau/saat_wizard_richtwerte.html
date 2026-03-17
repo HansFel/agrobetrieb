@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Saatmengen-Richtwerte{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('ackerbau.index') }}">Ackerbau</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('ackerbau.saat_wizard_index') }}">Saatwizard</a></li>
+                    <li class="breadcrumb-item active">Richtwerte</li>
+                </ol>
+            </nav>
+
+            <h3><i class="bi bi-table"></i> Saatmengen-Richtwerte</h3>
+            <p class="text-muted">Orientierungswerte – TKW aus aktueller Saatgutdeklaration entnehmen.</p>
+
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kultur</th>
+                                <th>EPPO-Code</th>
+                                <th class="text-end">TKW (g)</th>
+                                <th class="text-end">Bestandsdichte (K/m²)</th>
+                                <th class="text-end">Feldaufgang (%)</th>
+                                <th class="text-end">Richtwert kg/ha</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for code, (tkw, bd, fa, name) in saat_richtwerte.items() %}
+                            {% if tkw %}
+                            {% set kg_ha = ((bd * tkw) / (fa / 100 * 1000)) | round(1) %}
+                            {% else %}
+                            {% set kg_ha = None %}
+                            {% endif %}
+                            <tr>
+                                <td><strong>{{ name }}</strong></td>
+                                <td><span class="badge bg-light text-dark border font-monospace">{{ code }}</span></td>
+                                <td class="text-end">{{ tkw if tkw else '—' }}</td>
+                                <td class="text-end">{{ bd }}</td>
+                                <td class="text-end">{{ fa }}</td>
+                                <td class="text-end">
+                                    {% if kg_ha %}<strong>{{ kg_ha }}</strong>{% else %}—{% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('ackerbau.saat_wizard_rechner') }}"
+                                       class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-calculator"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="{{ url_for('ackerbau.saat_wizard_rechner') }}" class="btn btn-success">
+                    <i class="bi bi-calculator"></i> Zum Rechner
+                </a>
+                <a href="{{ url_for('ackerbau.saat_wizard_index') }}" class="btn btn-outline-secondary ms-2">
+                    Zurück
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

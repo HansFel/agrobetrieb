@@ -635,3 +635,156 @@ def tierbestand_neu():
                            heute_jahr=date.today().year,
                            vorausgefuellt_kategorie=vorausgefuellt_kategorie,
                            vorausgefuellt_anzahl=vorausgefuellt_anzahl)
+
+
+# ---------------------------------------------------------------------------
+# Saat-Wizard
+# ---------------------------------------------------------------------------
+
+# Richtwerte pro EPPO-Code: (TKW_g, Bestandsdichte_Koerner_m2, Feldaufgang_%)
+SAAT_RICHTWERTE = {
+    'TRZAW': (45,  300, 90, 'Winterweizen'),
+    'TRZAS': (42,  350, 90, 'Sommerweizen'),
+    'HORVW': (48,  280, 90, 'Wintergerste'),
+    'HORVS': (46,  300, 90, 'Sommergerste'),
+    'ZEAMX': (300,   8, 95, 'Mais'),
+    'BRSNN': (4,    60, 80, 'Winterraps'),
+    'GLXMA': (160,  60, 90, 'Soja'),
+    'HELAN': (60,    6, 90, 'Sonnenblume'),
+    'AVESA': (35,  350, 85, 'Hafer'),
+    'SECCE': (32,  300, 85, 'Roggen'),
+    'TTLSP': (48,  300, 88, 'Triticale'),
+    'BEAVD': (18,  100, 85, 'Zuckerrübe'),
+    'SOLTU': (None,  4, 95, 'Kartoffel'),
+    'PHSVX': (350,  25, 85, 'Bohne'),
+    'PISSX': (220,  80, 85, 'Erbse'),
+    'MEDSA': (2,   800, 70, 'Luzerne'),
+    'TRZDU': (44,  300, 90, 'Hartweizen/Durum'),
+    'LOLPE': (2,   300, 75, 'Weidelgras'),
+    'DACGL': (1,   200, 70, 'Knaulgras'),
+}
+
+
+def _berechne_saatmenge(tkw_g, bestandsdichte, feldaufgang_pct, zuschlag_pct=0):
+    """Saatmenge (kg/ha) = (Bestandsdichte × TKW) / (Feldaufgang/100 × 1000) × (1 + Zuschlag/100)"""
+    if not tkw_g or not bestandsdichte or not feldaufgang_pct:
+        return None
+    kg_ha = (bestandsdichte * tkw_g) / ((feldaufgang_pct / 100) * 1000)
+    kg_ha *= (1 + zuschlag_pct / 100)
+    return round(kg_ha, 1)
+
+
+@ackerbau_bp.route('/saat-wizard')
+@login_required
+def saat_wizard_index():
+    _check_ackerbau()
+    return render_template('ackerbau/saat_wizard_index.html',
+                           saat_richtwerte=SAAT_RICHTWERTE)
+
+
+@ackerbau_bp.route('/saat-wizard/rechner', methods=['GET', 'POST'])
+@login_required
+def saat_wizard_rechner():
+    _check_ackerbau()
+    schlag_id_pre = request.args.get('schlag_id')
+    schlaege = Schlag.query.filter_by(aktiv=True).order_by(Schlag.name).all()
+    ergebnis = None
+
+    if request.method == 'POST':
+        try:
+            tkw = float(request.form.get('tkw', 0))
+            bestandsdichte = float(request.form.get('bestandsdichte', 0))
+            feldaufgang = float(request.form.get('feldaufgang', 90))
+            zuschlag = float(request.form.get('zuschlag', 0))
+            flaeche = float(request.form.get('flaeche', 0)) if request.form.get('flaeche') else None
+            kg_ha = _berechne_saatmenge(tkw, bestandsdichte, feldaufgang, zuschlag)
+            ergebnis = {
+                'kg_ha': kg_ha,
+                'gesamt_kg': round(kg_ha * flaeche, 1) if kg_ha and flaeche else None,
+                'flaeche': flaeche,
+                'tkw': tkw,
+                'bestandsdichte': bestandsdichte,
+                'feldaufgang': feldaufgang,
+                'zuschlag': zuschlag,
+                'kultur_name': request.form.get('kultur_name', ''),
+                'kultur_code': request.form.get('kultur_code', ''),
+                'schlag_id': request.form.get('schlag_id', ''),
+                'aussaat_datum': request.form.get('aussaat_datum', ''),
+            }
+        except (ValueError, TypeError):
+            flash('Bitte gültige Zahlenwerte eingeben.', 'danger')
+
+    return render_template('ackerbau/saat_wizard_rechner.html',
+                           schlaege=schlaege,
+                           schlag_id_pre=schlag_id_pre,
+                           saat_richtwerte=SAAT_RICHTWERTE,
+                           ergebnis=ergebnis)
+
+
+@ackerbau_bp.route('/saat-wizard/uebernehmen', methods=['POST'])
+@login_required
+def saat_wizard_uebernehmen():
+    _check_ackerbau()
+    if not hat_berechtigung(current_user, 'ackerbau', 'create'):
+        abort(403)
+    schlag_id = request.form.get('schlag_id')
+    kultur_code = request.form.get('kultur_code', '').strip().upper()
+    kultur_name = request.form.get('kultur_name', '').strip()
+    aussaat_datum_str = request.form.get('aussaat_datum', '').strip()
+    kg_ha_str = request.form.get('kg_ha', '')
+    sorte = request.form.get('sorte', '').strip() or None
+    saatmenge_tatsaechlich_str = request.form.get('saatmenge_tatsaechlich_kg_ha', '').strip()
+
+    if not schlag_id or not kultur_code or not kultur_name or not aussaat_datum_str:
+        flash('Bitte alle Pflichtfelder ausfüllen.', 'danger')
+        return redirect(url_for('ackerbau.saat_wizard_rechner'))
+
+    try:
+        from decimal import Decimal
+        schlag = Schlag.query.get_or_404(int(schlag_id))
+        aussaat_datum = datetime.strptime(aussaat_datum_str, '%Y-%m-%d').date()
+        kg_ha = Decimal(kg_ha_str) if kg_ha_str else None
+        saatmenge_tatsaechlich = Decimal(saatmenge_tatsaechlich_str) if saatmenge_tatsaechlich_str else None
+
+        kultur = SchlagKultur(
+            schlag_id=schlag.id,
+            kultur_code=kultur_code,
+            kultur_name=kultur_name,
+            aussaat_datum=aussaat_datum,
+            bemerkungen=f'Saatmenge: {kg_ha_str} kg/ha (berechnet mit Saatwizard)',
+        )
+        # Saatmengen-Felder setzen falls vorhanden
+        if hasattr(kultur, 'saatmenge_kg_ha'):
+            kultur.saatmenge_kg_ha = kg_ha
+        if hasattr(kultur, 'saatmenge_tatsaechlich_kg_ha'):
+            kultur.saatmenge_tatsaechlich_kg_ha = saatmenge_tatsaechlich
+        if hasattr(kultur, 'sorte'):
+            kultur.sorte = sorte
+
+        db.session.add(kultur)
+        db.session.commit()
+        flash(f'Saat „{kultur_name}" auf Schlag „{schlag.name}" gespeichert ({kg_ha} kg/ha).', 'success')
+        return redirect(url_for('ackerbau.schlag_detail', schlag_id=schlag.id))
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Speichern: {e}', 'danger')
+        return redirect(url_for('ackerbau.saat_wizard_rechner'))
+
+
+@ackerbau_bp.route('/saat-wizard/richtwerte')
+@login_required
+def saat_wizard_richtwerte():
+    _check_ackerbau()
+    return render_template('ackerbau/saat_wizard_richtwerte.html',
+                           saat_richtwerte=SAAT_RICHTWERTE)
+
+
+@ackerbau_bp.route('/saat-wizard/richtwerte/api')
+@login_required
+def saat_wizard_richtwerte_api():
+    from flask import jsonify
+    code = request.args.get('code', '').upper()
+    if code in SAAT_RICHTWERTE:
+        w = SAAT_RICHTWERTE[code]
+        return jsonify({'tkw': w[0], 'bestandsdichte': w[1], 'feldaufgang': w[2], 'name': w[3]})
+    return jsonify({}), 404

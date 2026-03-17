@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Saatmengen-Rechner{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('ackerbau.index') }}">Ackerbau</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('ackerbau.saat_wizard_index') }}">Saatwizard</a></li>
+                    <li class="breadcrumb-item active">Rechner</li>
+                </ol>
+            </nav>
+
+            <h3><i class="bi bi-calculator"></i> Saatmengen-Rechner</h3>
+
+            <form method="POST" id="wizardForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Schritt 1: Kultur -->
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">
+                        <span class="badge bg-success me-2">1</span> Kultur & Schlag
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Kultur <span class="text-danger">*</span></label>
+                                <select class="form-select" id="kulturSelect" onchange="ladeRichtwerte(this.value)">
+                                    <option value="">— Kultur wählen —</option>
+                                    {% for code, (tkw, bd, fa, name) in saat_richtwerte.items() %}
+                                    <option value="{{ code }}"
+                                        data-tkw="{{ tkw or '' }}"
+                                        data-bd="{{ bd }}"
+                                        data-fa="{{ fa }}"
+                                        data-name="{{ name }}"
+                                        {% if ergebnis and ergebnis.kultur_code == code %}selected{% endif %}>
+                                        {{ name }} ({{ code }})
+                                    </option>
+                                    {% endfor %}
+                                    <option value="_custom">— Eigene Eingabe —</option>
+                                </select>
+                                <input type="hidden" name="kultur_code" id="kulturCode" value="{{ ergebnis.kultur_code if ergebnis else '' }}">
+                                <input type="hidden" name="kultur_name" id="kulturName" value="{{ ergebnis.kultur_name if ergebnis else '' }}">
+                            </div>
+                            <div class="col-md-6" id="customKulturBlock" style="display:none">
+                                <label class="form-label">Eigener Kulturname</label>
+                                <input type="text" class="form-control" id="customKulturName" placeholder="z.B. Dinkel">
+                                <input type="text" class="form-control mt-1" id="customKulturCode" placeholder="EPPO-Code (optional)">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Schlag <small class="text-muted">(optional, für Übernahme)</small></label>
+                                {% if schlaege %}
+                                <select class="form-select" name="schlag_id" id="schlagSelect" onchange="uebernehmeFlaeche(this)">
+                                    <option value="">— Schlag wählen —</option>
+                                    {% for s in schlaege %}
+                                    <option value="{{ s.id }}"
+                                        data-flaeche="{{ s.flaeche_ha or '' }}"
+                                        {% if (ergebnis and ergebnis.schlag_id|string == s.id|string) or (schlag_id_pre and schlag_id_pre|string == s.id|string) %}selected{% endif %}>
+                                        {{ s.name }}{% if s.flaeche_ha %} ({{ "%.2f"|format(s.flaeche_ha) }} ha){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% else %}
+                                <input type="text" class="form-control" disabled placeholder="Keine Schläge verfügbar">
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Aussaatdatum <small class="text-muted">(für Übernahme)</small></label>
+                                <input type="date" class="form-control" name="aussaat_datum"
+                                       value="{{ ergebnis.aussaat_datum if ergebnis else '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schritt 2: Parameter -->
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">
+                        <span class="badge bg-success me-2">2</span> Parameter
+                        <small class="text-muted fw-normal ms-2">Richtwerte werden automatisch vorausgefüllt</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">TKW (g) <span class="text-danger">*</span>
+                                    <i class="bi bi-info-circle text-muted" title="Tausendkorngewicht in Gramm"></i>
+                                </label>
+                                <input type="number" class="form-control" name="tkw" id="inputTkw"
+                                       step="0.1" min="0" required
+                                       value="{{ ergebnis.tkw if ergebnis else '' }}"
+                                       placeholder="z.B. 45">
+                                <div class="form-text" id="tkwHint"></div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Bestandsdichte (K/m²) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="bestandsdichte" id="inputBd"
+                                       step="1" min="0" required
+                                       value="{{ ergebnis.bestandsdichte if ergebnis else '' }}"
+                                       placeholder="z.B. 300">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Feldaufgang (%)</label>
+                                <input type="number" class="form-control" name="feldaufgang" id="inputFa"
+                                       step="1" min="1" max="100"
+                                       value="{{ ergebnis.feldaufgang if ergebnis else '90' }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Zuschlag (%)</label>
+                                <input type="number" class="form-control" name="zuschlag" id="inputZuschlag"
+                                       step="1" min="0" max="50"
+                                       value="{{ ergebnis.zuschlag if ergebnis else '0' }}">
+                                <div class="form-text">Sicherheitszuschlag</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Fläche (ha)</label>
+                                <input type="number" class="form-control" name="flaeche" id="inputFlaeche"
+                                       step="0.01" min="0"
+                                       value="{{ ergebnis.flaeche if ergebnis else '' }}"
+                                       placeholder="z.B. 5.50">
+                                <div class="form-text">Für Gesamtmengen-Berechnung</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-calculator"></i> Berechnen
+                    </button>
+                    <a href="{{ url_for('ackerbau.saat_wizard_index') }}" class="btn btn-outline-secondary">
+                        Abbrechen
+                    </a>
+                </div>
+            </form>
+
+            <!-- Ergebnis -->
+            {% if ergebnis %}
+            <div class="card border-success mb-4" id="ergebnis">
+                <div class="card-header bg-success text-white fw-semibold">
+                    <i class="bi bi-check-circle"></i> Ergebnis – {{ ergebnis.kultur_name }}
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="display-5 fw-bold text-success">{{ ergebnis.kg_ha }}</div>
+                            <div class="text-muted">kg/ha</div>
+                        </div>
+                        {% if ergebnis.gesamt_kg %}
+                        <div class="col-md-4">
+                            <div class="display-5 fw-bold text-primary">{{ ergebnis.gesamt_kg }}</div>
+                            <div class="text-muted">kg gesamt ({{ ergebnis.flaeche }} ha)</div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-4 text-start small text-muted d-flex align-items-center">
+                            <ul class="list-unstyled mb-0">
+                                <li>TKW: <strong>{{ ergebnis.tkw }} g</strong></li>
+                                <li>Bestandsdichte: <strong>{{ ergebnis.bestandsdichte }} K/m²</strong></li>
+                                <li>Feldaufgang: <strong>{{ ergebnis.feldaufgang }}%</strong></li>
+                                {% if ergebnis.zuschlag > 0 %}
+                                <li>Zuschlag: <strong>{{ ergebnis.zuschlag }}%</strong></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    {% if ergebnis.schlag_id and ergebnis.aussaat_datum %}
+                    <hr>
+                    <form method="POST" action="{{ url_for('ackerbau.saat_wizard_uebernehmen') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="schlag_id" value="{{ ergebnis.schlag_id }}">
+                        <input type="hidden" name="kultur_code" value="{{ ergebnis.kultur_code }}">
+                        <input type="hidden" name="kultur_name" value="{{ ergebnis.kultur_name }}">
+                        <input type="hidden" name="aussaat_datum" value="{{ ergebnis.aussaat_datum }}">
+                        <input type="hidden" name="kg_ha" value="{{ ergebnis.kg_ha }}">
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small">Sorte <small class="text-muted">(optional)</small></label>
+                                <input type="text" class="form-control form-control-sm" name="sorte" placeholder="z.B. Tobak">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Tatsächl. Saatmenge (kg/ha) <small class="text-muted">(optional)</small></label>
+                                <input type="number" class="form-control form-control-sm" name="saatmenge_tatsaechlich_kg_ha"
+                                       step="0.1" min="0" placeholder="{{ ergebnis.kg_ha }}">
+                                <div class="form-text small">Leer lassen = berechneter Wert</div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-down"></i> In Schlagkartei übernehmen
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-info mt-3 mb-0 py-2 small">
+                        <i class="bi bi-info-circle"></i>
+                        Schlag und Aussaatdatum wählen um das Ergebnis in die Schlagkartei zu übernehmen.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script>
+const richtwerte = {{ saat_richtwerte | tojson }};
+
+function ladeRichtwerte(code) {
+    const block = document.getElementById('customKulturBlock');
+    if (code === '_custom') {
+        block.style.display = 'block';
+        document.getElementById('kulturCode').value = '';
+        document.getElementById('kulturName').value = '';
+        return;
+    }
+    block.style.display = 'none';
+    if (!code || !(code in richtwerte)) return;
+
+    const w = richtwerte[code];
+    document.getElementById('kulturCode').value = code;
+    document.getElementById('kulturName').value = w[3];
+    if (w[0]) {
+        document.getElementById('inputTkw').value = w[0];
+        document.getElementById('tkwHint').textContent = 'Richtwert: ' + w[0] + ' g';
+    }
+    document.getElementById('inputBd').value = w[1];
+    document.getElementById('inputFa').value = w[2];
+}
+
+function uebernehmeFlaeche(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const ha = opt.getAttribute('data-flaeche');
+    if (ha) document.getElementById('inputFlaeche').value = ha;
+}
+
+document.getElementById('customKulturName').addEventListener('input', function() {
+    document.getElementById('kulturName').value = this.value;
+});
+document.getElementById('customKulturCode').addEventListener('input', function() {
+    document.getElementById('kulturCode').value = this.value.toUpperCase();
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+    const sel = document.getElementById('schlagSelect');
+    if (sel && sel.value) uebernehmeFlaeche(sel);
+    {% if ergebnis %}document.getElementById('ergebnis').scrollIntoView({behavior:'smooth'});{% endif %}
+});
+</script>
+{% endblock %}

@@ -89,6 +89,7 @@ def create_app(config_name='default'):
         
         return {
             'app_title': 'AgroBetrieb',
+            'mgr_instanz': os.environ.get('MGR_INSTANZ', ''),
             'app_version': APP_VERSION,
             'app_build': APP_BUILD,
             'now': datetime.utcnow(),
@@ -118,6 +119,7 @@ def create_app(config_name='default'):
     from app.blueprints.milchvieh import milchvieh_bp
     from app.blueprints.hilfe import hilfe_bp
     from app.blueprints.ackerbau import ackerbau_bp
+    from app.blueprints.sso import sso_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -132,6 +134,7 @@ def create_app(config_name='default'):
     app.register_blueprint(milchvieh_bp)
     app.register_blueprint(hilfe_bp)
     app.register_blueprint(ackerbau_bp)
+    app.register_blueprint(sso_bp)
     
     # CLI Commands
     @app.cli.command()

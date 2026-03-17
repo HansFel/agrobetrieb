@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Saatwizard{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('ackerbau.index') }}">Ackerbau</a></li>
+                    <li class="breadcrumb-item active">Saatwizard</li>
+                </ol>
+            </nav>
+
+            <h2><i class="bi bi-calculator"></i> Saatwizard</h2>
+            <p class="text-muted">Berechnen Sie die optimale Saatmenge und übernehmen Sie das Ergebnis direkt in die Schlagkartei.</p>
+
+            <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-magic"></i> Saatmengen-Rechner</h5>
+                            <p class="card-text text-muted">Geführte Berechnung mit Richtwerten. Ergebnis direkt in Schlagkartei übernehmen.</p>
+                            <a href="{{ url_for('ackerbau.saat_wizard_rechner') }}" class="btn btn-success">
+                                <i class="bi bi-play-circle"></i> Wizard starten
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-table"></i> Richtwerte</h5>
+                            <p class="card-text text-muted">Übersicht TKW, Bestandsdichte und Feldaufgang für alle {{ saat_richtwerte|length }} Kulturen.</p>
+                            <a href="{{ url_for('ackerbau.saat_wizard_richtwerte') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-list-ul"></i> Richtwerte anzeigen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h5>Formel</h5>
+                <div class="alert alert-light border font-monospace">
+                    Saatmenge [kg/ha] = (Bestandsdichte [K/m²] &times; TKW [g]) &divide; (Feldaufgang [%] &divide; 100 &times; 1000) &times; (1 + Zuschlag [%] &divide; 100)
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

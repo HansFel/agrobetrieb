@@ -272,9 +272,10 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ url_for('auth.profil') }}"><i class="bi bi-person me-1"></i>Profil</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.passwort_aendern') }}"><i class="bi bi-key me-1"></i>Passwort ändern</a></li>
-                            {% if current_user.ist_superadmin %}
+                            {% if current_user.ist_superadmin or current_user.rolle == 'betriebsadmin' %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('betrieb.edit') }}"><i class="bi bi-gear me-1"></i>Betrieb bearbeiten</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('sso.apps_liste') }}"><i class="bi bi-box-arrow-up-right me-1"></i>Externe Apps (SSO)</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-1"></i>Abmelden</a></li>

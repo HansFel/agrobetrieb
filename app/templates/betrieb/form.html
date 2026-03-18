@@ -163,10 +163,10 @@
                             </div>
                         </div>
                     </div>
-                    {% if alle_apps or current_user.ist_superadmin %}
+                    {% if alle_apps or current_user.ist_superadmin or current_user.rolle == 'betriebsadmin' %}
                     <h6 class="text-muted mt-4 mb-3">
                         <i class="bi bi-box-arrow-up-right"></i> Externe Apps (SSO)
-                        {% if current_user.ist_superadmin %}
+                        {% if current_user.ist_superadmin or current_user.rolle == 'betriebsadmin' %}
                         <a href="{{ url_for('sso.apps_liste') }}" class="btn btn-sm btn-outline-secondary ms-2">
                             <i class="bi bi-pencil"></i> Apps verwalten
                         </a>

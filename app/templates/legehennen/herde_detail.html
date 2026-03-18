@@ -1046,7 +1046,8 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
         try {
-            const resp = await fetch(`/legehennen/tierarzt/${aktiveTierArztId}/signatur`, {
+            const signaturUrl = '{{ url_for("legehennen.tierarzt_signatur", id=0) }}'.replace('/0/', `/${aktiveTierArztId}/`);
+            const resp = await fetch(signaturUrl, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || ''},
                 body: JSON.stringify({

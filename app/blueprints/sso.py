@@ -4,13 +4,13 @@ SSO-Blueprint für AgroBetrieb.
 Routen:
   GET  /sso/zu/<kuerzel>      – Token ausstellen + Redirect zu externer App
   GET  /sso/eingang           – Token empfangen (Reserveroute)
-  GET  /sso/apps              – Superadmin: Alle externen Apps verwalten
-  POST /sso/apps/neu          – Superadmin: Neue App anlegen
-  POST /sso/apps/<id>/edit    – Superadmin: App bearbeiten
-  POST /sso/apps/<id>/delete  – Superadmin: App löschen
+  GET  /sso/apps              – Admin: Alle externen Apps verwalten
+  POST /sso/apps/neu          – Admin: Neue App anlegen
+  POST /sso/apps/<id>/edit    – Admin: App bearbeiten (nur eigene)
+  POST /sso/apps/<id>/delete  – Admin: App löschen (nur eigene)
 """
 import os
-from flask import Blueprint, redirect, url_for, abort, request, current_app, flash, render_template, jsonify
+from flask import Blueprint, redirect, url_for, abort, request, flash, render_template
 from flask_login import login_required, current_user
 from app.models.sso_token import SsoToken
 from app.models.externe_app import ExterneApp, BetriebExterneApp
@@ -19,13 +19,15 @@ from app.extensions import db
 sso_bp = Blueprint('sso', __name__, url_prefix='/sso')
 
 
+def _ist_admin():
+    """Betriebsadmin oder Superadmin."""
+    return getattr(current_user, 'ist_superadmin', False) or current_user.rolle == 'betriebsadmin'
+
+
 @sso_bp.route('/zu/<kuerzel>')
 @login_required
 def zu_externer_app(kuerzel: str):
-    """
-    SSO-Token ausstellen und zu externer App weiterleiten.
-    Nur für Apps die für diesen Betrieb freigeschaltet sind.
-    """
+    """SSO-Token ausstellen und zu externer App weiterleiten."""
     from app.models.betrieb import Betrieb
     betrieb = Betrieb.query.first()
 
@@ -33,8 +35,7 @@ def zu_externer_app(kuerzel: str):
     if not app_obj:
         abort(404)
 
-    # Prüfen ob diese App für den Betrieb freigeschaltet ist
-    # Superadmin darf immer
+    # Superadmin darf immer, andere nur wenn App für Betrieb freigeschaltet
     if not getattr(current_user, 'ist_superadmin', False):
         if betrieb:
             verknuepft = BetriebExterneApp.query.filter_by(
@@ -61,13 +62,12 @@ def eingang():
     return redirect(url_for('dashboard.index'))
 
 
-# ── Superadmin: Externe Apps verwalten ────────────────────────────────────────
+# ── App-Verwaltung (Betriebsadmin + Superadmin) ───────────────────────────────
 
 @sso_bp.route('/apps')
 @login_required
 def apps_liste():
-    """Superadmin: Alle externen Apps anzeigen."""
-    if not getattr(current_user, 'ist_superadmin', False):
+    if not _ist_admin():
         abort(403)
     apps = ExterneApp.query.order_by(ExterneApp.reihenfolge, ExterneApp.name).all()
     return render_template('sso/apps_liste.html', apps=apps)
@@ -76,13 +76,17 @@ def apps_liste():
 @sso_bp.route('/apps/neu', methods=['GET', 'POST'])
 @login_required
 def app_neu():
-    """Superadmin: Neue externe App anlegen."""
-    if not getattr(current_user, 'ist_superadmin', False):
+    if not _ist_admin():
         abort(403)
     if request.method == 'POST':
+        kuerzel = request.form.get('kuerzel', '').strip()
+        # Kürzel muss eindeutig sein
+        if ExterneApp.query.filter_by(kuerzel=kuerzel).first():
+            flash(f'Kürzel „{kuerzel}" ist bereits vergeben.', 'danger')
+            return render_template('sso/app_form.html', app=None)
         app_obj = ExterneApp(
             name=request.form.get('name', '').strip(),
-            kuerzel=request.form.get('kuerzel', '').strip(),
+            kuerzel=kuerzel,
             basis_url=request.form.get('basis_url', '').strip().rstrip('/'),
             icon=request.form.get('icon', 'bi-box-arrow-up-right').strip(),
             beschreibung=request.form.get('beschreibung', '').strip() or None,
@@ -99,8 +103,7 @@ def app_neu():
 @sso_bp.route('/apps/<int:app_id>/edit', methods=['GET', 'POST'])
 @login_required
 def app_edit(app_id: int):
-    """Superadmin: Externe App bearbeiten."""
-    if not getattr(current_user, 'ist_superadmin', False):
+    if not _ist_admin():
         abort(403)
     app_obj = ExterneApp.query.get_or_404(app_id)
     if request.method == 'POST':
@@ -120,8 +123,7 @@ def app_edit(app_id: int):
 @sso_bp.route('/apps/<int:app_id>/delete', methods=['POST'])
 @login_required
 def app_delete(app_id: int):
-    """Superadmin: Externe App löschen."""
-    if not getattr(current_user, 'ist_superadmin', False):
+    if not _ist_admin():
         abort(403)
     app_obj = ExterneApp.query.get_or_404(app_id)
     db.session.delete(app_obj)

@@ -762,6 +762,58 @@
             </div>
             {% endif %}
 
+            {# ────────────────────────────────────────── #}
+            {# SSO – VERBINDUNG ZU EXTERNEN APPS          #}
+            {# ────────────────────────────────────────── #}
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hilfe-sso">
+                        <i class="bi bi-box-arrow-up-right me-2 text-info"></i> Verbindung zu externen Apps (SSO)
+                    </button>
+                </h2>
+                <div id="hilfe-sso" class="accordion-collapse collapse" data-bs-parent="#hilfeAccordion">
+                    <div class="accordion-body">
+
+                        <h6><i class="bi bi-info-circle me-1"></i> Was ist SSO?</h6>
+                        <p>
+                            Mit <strong>Single Sign-On (SSO)</strong> können Sie direkt aus AgroBetrieb in eine verbundene App
+                            (z.B. MGRSoftware) wechseln – <strong>ohne sich dort neu anmelden zu müssen</strong>.
+                            Ein Klick auf den App-Button im Dashboard genügt.
+                        </p>
+
+                        <h6><i class="bi bi-exclamation-triangle me-1 text-warning"></i> Wichtige Voraussetzung</h6>
+                        <div class="alert alert-warning">
+                            Der <strong>Benutzername muss in beiden Systemen identisch sein.</strong><br>
+                            Beispiel: Wenn der Benutzer in AgroBetrieb <code>hans</code> heißt, muss er in MGRSoftware
+                            ebenfalls als <code>hans</code> angelegt sein. Das Passwort kann unterschiedlich sein.
+                        </div>
+
+                        <h6><i class="bi bi-gear me-1"></i> Einrichtung (Betriebsadmin)</h6>
+                        <ol>
+                            <li>Im Dropdown-Menü oben rechts auf <strong>Betrieb bearbeiten</strong> klicken.</li>
+                            <li>Im Abschnitt <strong>Externe Apps (SSO)</strong> die gewünschten Apps ankreuzen.</li>
+                            <li>Auf <strong>Speichern</strong> klicken.</li>
+                            <li>Die App-Buttons erscheinen dann im Dashboard unter <strong>Verbundene Apps</strong>.</li>
+                        </ol>
+
+                        <h6><i class="bi bi-person-plus me-1"></i> Benutzer in MGRSoftware anlegen</h6>
+                        <p>
+                            Damit der SSO-Login funktioniert, muss der Benutzer in der Ziel-App (z.B. MGRSoftware) mit
+                            <strong>exakt demselben Benutzernamen</strong> vorhanden und aktiv sein.
+                            Legen Sie den Benutzer dort über die Benutzerverwaltung an.
+                        </p>
+
+                        <h6><i class="bi bi-shield-lock me-1"></i> Sicherheit</h6>
+                        <ul>
+                            <li>SSO-Tokens sind nur <strong>30 Sekunden gültig</strong> und können nur einmal verwendet werden.</li>
+                            <li>Tokens werden mit einem geheimen Schlüssel signiert (HMAC-SHA256).</li>
+                            <li>Nach Ablauf oder Verwendung ist der Token wertlos.</li>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+
         </div>{# /accordion #}
 
         <div class="mt-4 text-center text-muted small">

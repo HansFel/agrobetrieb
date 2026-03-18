@@ -44,6 +44,7 @@ from app.models.legehennen import (
 	SalmonellenProbe,
 	HerdeEreignis,
 )
+from app.models.externe_app import ExterneApp, BetriebExterneApp
 from app.models.ackerbau import (
 	Schlag,
 	SchlagKultur,
@@ -101,4 +102,6 @@ __all__ = [
 	'Bodenuntersuchung',
 	'Duengebedarfsermittlung',
 	'Tierbestand',
+	'ExterneApp',
+	'BetriebExterneApp',
 ]

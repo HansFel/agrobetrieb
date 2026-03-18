@@ -137,9 +137,24 @@ def index():
                                herden_aktiv=herden_aktiv,
                                tamg_eintraege=tamg_eintraege)
 
+    # Externe Apps für diesen Betrieb laden
+    externe_apps = []
+    try:
+        from app.models.externe_app import ExterneApp, BetriebExterneApp
+        if betrieb:
+            verknuepfungen = BetriebExterneApp.query.filter_by(betrieb_id=betrieb.id).all()
+            app_ids = [v.app_id for v in verknuepfungen]
+            if app_ids:
+                externe_apps = ExterneApp.query.filter(
+                    ExterneApp.id.in_(app_ids), ExterneApp.aktiv == True
+                ).order_by(ExterneApp.reihenfolge).all()
+    except Exception:
+        db.session.rollback()
+
     context = {
         'betrieb': betrieb,
         'rolle': rolle,
         'stats': stats,
+        'externe_apps': externe_apps,
     }
     return render_template('dashboard/index.html', **context)

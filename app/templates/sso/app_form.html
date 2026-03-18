@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{% if app %}App bearbeiten{% else %}Neue App{% endif %} – AgroBetrieb{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">
+                    {% if app %}
+                        <i class="bi bi-pencil"></i> App bearbeiten
+                    {% else %}
+                        <i class="bi bi-plus"></i> Neue externe App
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Anzeigename *</label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               value="{{ app.name if app else '' }}" required placeholder="z.B. Maschinengemeinschaft">
+                    </div>
+                    <div class="mb-3">
+                        <label for="kuerzel" class="form-label">Kürzel * <small class="text-muted">(eindeutig, URL-sicher)</small></label>
+                        <input type="text" class="form-control" id="kuerzel" name="kuerzel"
+                               value="{{ app.kuerzel if app else '' }}" required placeholder="z.B. mg">
+                    </div>
+                    <div class="mb-3">
+                        <label for="basis_url" class="form-label">Basis-URL *</label>
+                        <input type="url" class="form-control" id="basis_url" name="basis_url"
+                               value="{{ app.basis_url if app else '' }}" required
+                               placeholder="z.B. https://mgrattenberg.duckdns.org/mg">
+                        <div class="form-text">Der SSO-Token wird an <code>{basis_url}/auth/sso-eingang?token=...</code> geschickt.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="icon" class="form-label">Bootstrap Icon</label>
+                        <input type="text" class="form-control" id="icon" name="icon"
+                               value="{{ app.icon if app else 'bi-box-arrow-up-right' }}"
+                               placeholder="bi-box-arrow-up-right">
+                        <div class="form-text">
+                            Icon-Name von <a href="https://icons.getbootstrap.com" target="_blank">Bootstrap Icons</a>,
+                            z.B. <code>bi-tractor</code>, <code>bi-gear</code>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="beschreibung" class="form-label">Beschreibung</label>
+                        <input type="text" class="form-control" id="beschreibung" name="beschreibung"
+                               value="{{ app.beschreibung if app else '' }}"
+                               placeholder="Kurze Beschreibung der App">
+                    </div>
+                    <div class="mb-3">
+                        <label for="reihenfolge" class="form-label">Reihenfolge</label>
+                        <input type="number" class="form-control" id="reihenfolge" name="reihenfolge"
+                               value="{{ app.reihenfolge if app else 0 }}" min="0">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="aktiv" name="aktiv" value="1"
+                               {% if not app or app.aktiv %}checked{% endif %}>
+                        <label class="form-check-label" for="aktiv">Aktiv</label>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            {% if app %}Speichern{% else %}Anlegen{% endif %}
+                        </button>
+                        <a href="{{ url_for('sso.apps_liste') }}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

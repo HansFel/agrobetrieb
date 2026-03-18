@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Externe Apps – AgroBetrieb{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-box-arrow-up-right"></i> Externe Apps</h2>
+        <p class="text-muted">Apps zu denen Benutzer per SSO weitergeleitet werden können.</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('sso.app_neu') }}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> Neue App
+        </a>
+    </div>
+</div>
+
+{% if apps %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Reihenfolge</th>
+                    <th>Name</th>
+                    <th>Kürzel</th>
+                    <th>Basis-URL</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in apps %}
+                <tr>
+                    <td>{{ app.reihenfolge }}</td>
+                    <td><i class="bi {{ app.icon }}"></i> {{ app.name }}</td>
+                    <td><code>{{ app.kuerzel }}</code></td>
+                    <td><small class="text-muted">{{ app.basis_url }}</small></td>
+                    <td>
+                        {% if app.aktiv %}
+                            <span class="badge bg-success">Aktiv</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inaktiv</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('sso.app_edit', app_id=app.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('sso.app_delete', app_id=app.id) }}" class="d-inline"
+                              onsubmit="return confirm('App „{{ app.name }}" wirklich löschen?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> Noch keine externen Apps konfiguriert.
+    <a href="{{ url_for('sso.app_neu') }}" class="btn btn-sm btn-primary ms-2">Erste App anlegen</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -163,6 +163,26 @@
                             </div>
                         </div>
                     </div>
+                    {% if alle_apps %}
+                    <h6 class="text-muted mt-4 mb-3"><i class="bi bi-box-arrow-up-right"></i> Externe Apps (SSO)</h6>
+                    <div class="card border-info mb-3">
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">Wählen Sie die Apps zu denen sich Benutzer dieses Betriebs per SSO verbinden dürfen.</p>
+                            {% for app in alle_apps %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ext_app_{{ app.id }}"
+                                       name="externe_apps" value="{{ app.id }}"
+                                       {% if app.id in verknuepfte_ids %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_app_{{ app.id }}">
+                                    <i class="bi {{ app.icon }}"></i> {{ app.name }}
+                                    <small class="text-muted">({{ app.kuerzel }})</small>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if current_user.ist_superadmin %}
                     <div class="card border-danger mb-3">
                         <div class="card-header text-danger small"><i class="bi bi-shield-lock"></i> Superadmin</div>

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.betrieb import Betrieb
+from app.models.externe_app import ExterneApp, BetriebExterneApp
 
 betrieb_bp = Blueprint('betrieb', __name__, url_prefix='/betrieb')
 
@@ -63,7 +64,8 @@ def create():
         flash('Betrieb erstellt.', 'success')
         return redirect(url_for('betrieb.index'))
     
-    return render_template('betrieb/form.html', betrieb=None)
+    alle_apps = ExterneApp.query.filter_by(aktiv=True).order_by(ExterneApp.reihenfolge).all()
+    return render_template('betrieb/form.html', betrieb=None, alle_apps=alle_apps, verknuepfte_ids=set())
 
 
 @betrieb_bp.route('/edit', methods=['GET', 'POST'])
@@ -97,8 +99,47 @@ def edit():
         betrieb.modul_ackerbau_pro = request.form.get('modul_ackerbau_pro') == '1'
         if current_user.ist_superadmin:
             betrieb.ist_testbetrieb = request.form.get('ist_testbetrieb') == '1'
+
+        # Externe Apps aktualisieren
+        BetriebExterneApp.query.filter_by(betrieb_id=betrieb.id).delete()
+        for app_id_str in request.form.getlist('externe_apps'):
+            try:
+                app_id = int(app_id_str)
+                if ExterneApp.query.get(app_id):
+                    db.session.add(BetriebExterneApp(betrieb_id=betrieb.id, app_id=app_id))
+            except (ValueError, TypeError):
+                pass
+
         db.session.commit()
         flash('Betrieb gespeichert.', 'success')
         return redirect(url_for('betrieb.index'))
     
-    return render_template('betrieb/form.html', betrieb=betrieb)
+    alle_apps = ExterneApp.query.filter_by(aktiv=True).order_by(ExterneApp.reihenfolge).all()
+    verknuepfte_ids = {v.app_id for v in BetriebExterneApp.query.filter_by(betrieb_id=betrieb.id).all()}
+    return render_template('betrieb/form.html', betrieb=betrieb, alle_apps=alle_apps, verknuepfte_ids=verknuepfte_ids)
+
+
+@betrieb_bp.route('/apps', methods=['POST'])
+@login_required
+def apps_speichern():
+    """Betrieb: Externe Apps zuweisen."""
+    if not check_admin():
+        return redirect(url_for('dashboard.index'))
+    betrieb = Betrieb.query.first_or_404()
+
+    # Alle bestehenden Verknüpfungen löschen
+    BetriebExterneApp.query.filter_by(betrieb_id=betrieb.id).delete()
+
+    # Neue Verknüpfungen anlegen
+    ausgewaehlt = request.form.getlist('externe_apps')
+    for app_id_str in ausgewaehlt:
+        try:
+            app_id = int(app_id_str)
+            if ExterneApp.query.get(app_id):
+                db.session.add(BetriebExterneApp(betrieb_id=betrieb.id, app_id=app_id))
+        except (ValueError, TypeError):
+            pass
+
+    db.session.commit()
+    flash('Externe Apps gespeichert.', 'success')
+    return redirect(url_for('betrieb.edit'))

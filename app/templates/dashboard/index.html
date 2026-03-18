@@ -334,4 +334,27 @@
 </div>
 {% endif %}
 
+{# ===== Externe Apps (SSO) ===== #}
+{% if externe_apps %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card border-info">
+            <div class="card-header bg-info bg-opacity-10">
+                <h5 class="m-0"><i class="bi bi-box-arrow-up-right"></i> Verbundene Apps</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for app in externe_apps %}
+                    <a href="{{ url_for('sso.zu_externer_app', kuerzel=app.kuerzel) }}"
+                       class="btn btn-outline-info">
+                        <i class="bi {{ app.icon }} me-1"></i> {{ app.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

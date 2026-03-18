@@ -254,7 +254,7 @@
                     {% if mgr_instanz %}
                     <li class="nav-item">
                         <a class="nav-link text-warning fw-semibold"
-                           href="{{ url_for('sso.zu_mgrsoftware', instanz=mgr_instanz) }}"
+                           href="{{ url_for('sso.zu_externer_app', kuerzel=mgr_instanz) }}"
                            title="Maschinengemeinschaft öffnen (automatisch eingeloggt)">
                             <i class="bi bi-people-fill"></i> Gemeinschaft
                         </a>

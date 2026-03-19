@@ -9,6 +9,9 @@ if [ "${COMMIT_HASH:-unknown}" = "unknown" ] && [ -f /app/BUILD_HASH ]; then
 fi
 echo "Build: ${COMMIT_HASH:-unknown}"
 
+# Flask-App setzen
+export FLASK_APP=wsgi.py
+
 # 1. Warte auf Datenbank
 echo "Warte auf Datenbank..."
 # DB-Host aus DATABASE_URL extrahieren oder Fallback auf Env-Variable / Default
@@ -29,10 +32,18 @@ echo "DB bereit."
 
 # 2. Migrationen ausfuehren (einmal, sequentiell, vor Gunicorn)
 echo "Fuehre Migrationen aus..."
-if ! flask db upgrade; then
-    echo "WARNUNG: Migration fehlgeschlagen (evtl. bereits aktuell)"
-    echo "Versuche trotzdem fortzufahren..."
-fi
+MAX_RETRIES=5
+RETRY=0
+until flask db upgrade 2>&1; do
+    RETRY=$((RETRY + 1))
+    if [ $RETRY -ge $MAX_RETRIES ]; then
+        echo "FEHLER: Migration nach $MAX_RETRIES Versuchen fehlgeschlagen. Abbruch."
+        exit 1
+    fi
+    echo "Migration fehlgeschlagen (Versuch $RETRY/$MAX_RETRIES), warte 5s..."
+    sleep 5
+done
+echo "Migration erfolgreich."
 
 # 3. Admin-Benutzer erstellen falls noetig
 echo "Pruefe Admin-Benutzer..."

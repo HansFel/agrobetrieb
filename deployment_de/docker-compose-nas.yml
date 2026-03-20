@@ -1,22 +1,21 @@
 # MGRSoftware + AgroBetrieb Multi-Instanz Deployment
-# MGRSoftware-Instanzen nutzen ghcr.io/hansfel/mgrsoftware:latest
-# AgroBetrieb-Instanzen nutzen ghcr.io/hansfel/agrobetrieb:latest
-# Alle sensiblen Daten werden aus .env gelesen
+# Lokales Build von /volume1/docker/mgrsoftware und /volume1/docker/agrobetrieb
+# Kein GHCR Pull notwendig – deploy-to-nas.ps1 kopiert Quellen vor dem Build
 #
 # Instanzen:
 # - mg         (Maschinengemeinschaft) unter /mg
 # - agr        (Agrargemeinschaft) unter /agr
 # - gem1-5     (Gemeinschaften) unter /gem1 bis /gem5
-# - agro1-10   (AgroBetrieb) unter /agro1 bis /agro10
+# - agro1-30   (AgroBetrieb) unter /agro1 bis /agro30
 #
-# Verwendung: docker compose up -d
+# Verwendung: docker compose up -d --build
 
 services:
   # ============================================================
   # Maschinengemeinschaft (mg)
   # ============================================================
   db:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db
     restart: always
     environment:
@@ -27,7 +26,10 @@ services:
       - db_data:/var/lib/postgresql/data
 
   web:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app
     restart: always
     depends_on:
@@ -39,10 +41,9 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /mg
       INSTANCE_NAME: mg
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_mg:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
@@ -50,7 +51,7 @@ services:
   # Agrargemeinschaft (agr)
   # ============================================================
   db-agr:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db-agr
     restart: always
     environment:
@@ -61,7 +62,10 @@ services:
       - db_data_agr:/var/lib/postgresql/data
 
   web-agr:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app-agr
     restart: always
     depends_on:
@@ -73,18 +77,17 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /agr
       INSTANCE_NAME: agr
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_agr:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
   # ============================================================
-  # Test-Instanzen (gem1-gem5)
+  # Gemeinschaften (gem1-gem5)
   # ============================================================
   db-gem1:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db-gem1
     restart: always
     environment:
@@ -95,7 +98,10 @@ services:
       - db_data_gem1:/var/lib/postgresql/data
 
   web-gem1:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app-gem1
     restart: always
     depends_on:
@@ -107,15 +113,14 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /gem1
       INSTANCE_NAME: gem1
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_gem1:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
   db-gem2:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db-gem2
     restart: always
     environment:
@@ -126,7 +131,10 @@ services:
       - db_data_gem2:/var/lib/postgresql/data
 
   web-gem2:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app-gem2
     restart: always
     depends_on:
@@ -138,15 +146,14 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /gem2
       INSTANCE_NAME: gem2
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_gem2:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
   db-gem3:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db-gem3
     restart: always
     environment:
@@ -157,7 +164,10 @@ services:
       - db_data_gem3:/var/lib/postgresql/data
 
   web-gem3:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app-gem3
     restart: always
     depends_on:
@@ -169,15 +179,14 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /gem3
       INSTANCE_NAME: gem3
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_gem3:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
   db-gem4:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db-gem4
     restart: always
     environment:
@@ -188,7 +197,10 @@ services:
       - db_data_gem4:/var/lib/postgresql/data
 
   web-gem4:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app-gem4
     restart: always
     depends_on:
@@ -200,15 +212,14 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /gem4
       INSTANCE_NAME: gem4
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_gem4:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
   db-gem5:
-    image: postgres:15
+    image: postgres:17
     container_name: mgr-db-gem5
     restart: always
     environment:
@@ -219,7 +230,10 @@ services:
       - db_data_gem5:/var/lib/postgresql/data
 
   web-gem5:
-    image: ghcr.io/hansfel/mgrsoftware:latest
+    build:
+      context: /volume1/docker/mgrsoftware
+      dockerfile: deployment_de/Dockerfile
+    image: mgrsoftware:local
     container_name: mgr-app-gem5
     restart: always
     depends_on:
@@ -231,15 +245,14 @@ services:
       FLASK_APP: run.py
       APPLICATION_PREFIX: /gem5
       INSTANCE_NAME: gem5
-
+      SSO_SECRET: ${SSO_SECRET}
     volumes:
       - uploads_gem5:/opt/maschinengemeinschaft/app/static/uploads
-
     expose:
       - "5000"
 
   # ============================================================
-  # AgroBetrieb Instanzen (agro1 – agro10)
+  # AgroBetrieb Instanzen (agro1 – agro30)
   # ============================================================
 
   # ── agro1 ──────────────────────────────────────────────────
@@ -260,7 +273,10 @@ services:
       retries: 5
 
   web-agro1:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-1
     restart: always
     depends_on:
@@ -297,7 +313,10 @@ services:
       retries: 5
 
   web-agro2:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-2
     restart: always
     depends_on:
@@ -334,7 +353,10 @@ services:
       retries: 5
 
   web-agro3:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-3
     restart: always
     depends_on:
@@ -371,7 +393,10 @@ services:
       retries: 5
 
   web-agro4:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-4
     restart: always
     depends_on:
@@ -408,7 +433,10 @@ services:
       retries: 5
 
   web-agro5:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-5
     restart: always
     depends_on:
@@ -445,7 +473,10 @@ services:
       retries: 5
 
   web-agro6:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-6
     restart: always
     depends_on:
@@ -482,7 +513,10 @@ services:
       retries: 5
 
   web-agro7:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-7
     restart: always
     depends_on:
@@ -519,7 +553,10 @@ services:
       retries: 5
 
   web-agro8:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-8
     restart: always
     depends_on:
@@ -556,7 +593,10 @@ services:
       retries: 5
 
   web-agro9:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-9
     restart: always
     depends_on:
@@ -593,7 +633,10 @@ services:
       retries: 5
 
   web-agro10:
-    image: ghcr.io/hansfel/agrobetrieb:latest
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
     container_name: agro-app-10
     restart: always
     depends_on:
@@ -609,6 +652,806 @@ services:
       INSTANCE_NAME: agro10
     volumes:
       - backups_agro10:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro11 ─────────────────────────────────────────────────
+  db-agro11:
+    image: postgres:15
+    container_name: agro-db-11
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO11}
+    volumes:
+      - db_data_agro11:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro11:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-11
+    restart: always
+    depends_on:
+      db-agro11:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO11}@db-agro11:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO11}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro11
+      INSTANCE_NAME: agro11
+    volumes:
+      - backups_agro11:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro12 ─────────────────────────────────────────────────
+  db-agro12:
+    image: postgres:15
+    container_name: agro-db-12
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO12}
+    volumes:
+      - db_data_agro12:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro12:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-12
+    restart: always
+    depends_on:
+      db-agro12:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO12}@db-agro12:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO12}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro12
+      INSTANCE_NAME: agro12
+    volumes:
+      - backups_agro12:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro13 ─────────────────────────────────────────────────
+  db-agro13:
+    image: postgres:15
+    container_name: agro-db-13
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO13}
+    volumes:
+      - db_data_agro13:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro13:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-13
+    restart: always
+    depends_on:
+      db-agro13:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO13}@db-agro13:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO13}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro13
+      INSTANCE_NAME: agro13
+    volumes:
+      - backups_agro13:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro14 ─────────────────────────────────────────────────
+  db-agro14:
+    image: postgres:15
+    container_name: agro-db-14
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO14}
+    volumes:
+      - db_data_agro14:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro14:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-14
+    restart: always
+    depends_on:
+      db-agro14:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO14}@db-agro14:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO14}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro14
+      INSTANCE_NAME: agro14
+    volumes:
+      - backups_agro14:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro15 ─────────────────────────────────────────────────
+  db-agro15:
+    image: postgres:15
+    container_name: agro-db-15
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO15}
+    volumes:
+      - db_data_agro15:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro15:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-15
+    restart: always
+    depends_on:
+      db-agro15:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO15}@db-agro15:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO15}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro15
+      INSTANCE_NAME: agro15
+    volumes:
+      - backups_agro15:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro16 ─────────────────────────────────────────────────
+  db-agro16:
+    image: postgres:15
+    container_name: agro-db-16
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO16}
+    volumes:
+      - db_data_agro16:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro16:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-16
+    restart: always
+    depends_on:
+      db-agro16:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO16}@db-agro16:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO16}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro16
+      INSTANCE_NAME: agro16
+    volumes:
+      - backups_agro16:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro17 ─────────────────────────────────────────────────
+  db-agro17:
+    image: postgres:15
+    container_name: agro-db-17
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO17}
+    volumes:
+      - db_data_agro17:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro17:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-17
+    restart: always
+    depends_on:
+      db-agro17:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO17}@db-agro17:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO17}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro17
+      INSTANCE_NAME: agro17
+    volumes:
+      - backups_agro17:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro18 ─────────────────────────────────────────────────
+  db-agro18:
+    image: postgres:15
+    container_name: agro-db-18
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO18}
+    volumes:
+      - db_data_agro18:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro18:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-18
+    restart: always
+    depends_on:
+      db-agro18:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO18}@db-agro18:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO18}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro18
+      INSTANCE_NAME: agro18
+    volumes:
+      - backups_agro18:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro19 ─────────────────────────────────────────────────
+  db-agro19:
+    image: postgres:15
+    container_name: agro-db-19
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO19}
+    volumes:
+      - db_data_agro19:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro19:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-19
+    restart: always
+    depends_on:
+      db-agro19:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO19}@db-agro19:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO19}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro19
+      INSTANCE_NAME: agro19
+    volumes:
+      - backups_agro19:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro20 ─────────────────────────────────────────────────
+  db-agro20:
+    image: postgres:15
+    container_name: agro-db-20
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO20}
+    volumes:
+      - db_data_agro20:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro20:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-20
+    restart: always
+    depends_on:
+      db-agro20:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO20}@db-agro20:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO20}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro20
+      INSTANCE_NAME: agro20
+    volumes:
+      - backups_agro20:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro21 ─────────────────────────────────────────────────
+  db-agro21:
+    image: postgres:15
+    container_name: agro-db-21
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO21}
+    volumes:
+      - db_data_agro21:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro21:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-21
+    restart: always
+    depends_on:
+      db-agro21:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO21}@db-agro21:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO21}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro21
+      INSTANCE_NAME: agro21
+    volumes:
+      - backups_agro21:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro22 ─────────────────────────────────────────────────
+  db-agro22:
+    image: postgres:15
+    container_name: agro-db-22
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO22}
+    volumes:
+      - db_data_agro22:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro22:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-22
+    restart: always
+    depends_on:
+      db-agro22:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO22}@db-agro22:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO22}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro22
+      INSTANCE_NAME: agro22
+    volumes:
+      - backups_agro22:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro23 ─────────────────────────────────────────────────
+  db-agro23:
+    image: postgres:15
+    container_name: agro-db-23
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO23}
+    volumes:
+      - db_data_agro23:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro23:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-23
+    restart: always
+    depends_on:
+      db-agro23:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO23}@db-agro23:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO23}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro23
+      INSTANCE_NAME: agro23
+    volumes:
+      - backups_agro23:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro24 ─────────────────────────────────────────────────
+  db-agro24:
+    image: postgres:15
+    container_name: agro-db-24
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO24}
+    volumes:
+      - db_data_agro24:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro24:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-24
+    restart: always
+    depends_on:
+      db-agro24:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO24}@db-agro24:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO24}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro24
+      INSTANCE_NAME: agro24
+    volumes:
+      - backups_agro24:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro25 ─────────────────────────────────────────────────
+  db-agro25:
+    image: postgres:15
+    container_name: agro-db-25
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO25}
+    volumes:
+      - db_data_agro25:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro25:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-25
+    restart: always
+    depends_on:
+      db-agro25:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO25}@db-agro25:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO25}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro25
+      INSTANCE_NAME: agro25
+    volumes:
+      - backups_agro25:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro26 ─────────────────────────────────────────────────
+  db-agro26:
+    image: postgres:15
+    container_name: agro-db-26
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO26}
+    volumes:
+      - db_data_agro26:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro26:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-26
+    restart: always
+    depends_on:
+      db-agro26:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO26}@db-agro26:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO26}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro26
+      INSTANCE_NAME: agro26
+    volumes:
+      - backups_agro26:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro27 ─────────────────────────────────────────────────
+  db-agro27:
+    image: postgres:15
+    container_name: agro-db-27
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO27}
+    volumes:
+      - db_data_agro27:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro27:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-27
+    restart: always
+    depends_on:
+      db-agro27:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO27}@db-agro27:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO27}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro27
+      INSTANCE_NAME: agro27
+    volumes:
+      - backups_agro27:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro28 ─────────────────────────────────────────────────
+  db-agro28:
+    image: postgres:15
+    container_name: agro-db-28
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO28}
+    volumes:
+      - db_data_agro28:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro28:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-28
+    restart: always
+    depends_on:
+      db-agro28:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO28}@db-agro28:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO28}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro28
+      INSTANCE_NAME: agro28
+    volumes:
+      - backups_agro28:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro29 ─────────────────────────────────────────────────
+  db-agro29:
+    image: postgres:15
+    container_name: agro-db-29
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO29}
+    volumes:
+      - db_data_agro29:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro29:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-29
+    restart: always
+    depends_on:
+      db-agro29:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO29}@db-agro29:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO29}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro29
+      INSTANCE_NAME: agro29
+    volumes:
+      - backups_agro29:/app/backups
+    expose:
+      - "5000"
+
+  # ── agro30 ─────────────────────────────────────────────────
+  db-agro30:
+    image: postgres:15
+    container_name: agro-db-30
+    restart: always
+    environment:
+      POSTGRES_DB: agrobetrieb
+      POSTGRES_USER: agr_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD_AGRO30}
+    volumes:
+      - db_data_agro30:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agr_user -d agrobetrieb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web-agro30:
+    build:
+      context: /volume1/docker/agrobetrieb
+      dockerfile: deployment_de/Dockerfile
+    image: agrobetrieb:local
+    container_name: agro-app-30
+    restart: always
+    depends_on:
+      db-agro30:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agr_user:${DB_PASSWORD_AGRO30}@db-agro30:5432/agrobetrieb
+      SECRET_KEY: ${SECRET_KEY_AGRO30}
+      FLASK_ENV: production
+      FLASK_APP: run.py
+      SUPERADMIN_USERNAMES: ${SUPERADMIN_USERNAMES}
+      APPLICATION_PREFIX: /agro30
+      INSTANCE_NAME: agro30
+    volumes:
+      - backups_agro30:/app/backups
     expose:
       - "5000"
 
@@ -637,6 +1480,26 @@ services:
       - web-agro8
       - web-agro9
       - web-agro10
+      - web-agro11
+      - web-agro12
+      - web-agro13
+      - web-agro14
+      - web-agro15
+      - web-agro16
+      - web-agro17
+      - web-agro18
+      - web-agro19
+      - web-agro20
+      - web-agro21
+      - web-agro22
+      - web-agro23
+      - web-agro24
+      - web-agro25
+      - web-agro26
+      - web-agro27
+      - web-agro28
+      - web-agro29
+      - web-agro30
     ports:
       - "80:80"
       - "443:443"
@@ -672,6 +1535,26 @@ volumes:
   db_data_agro8:
   db_data_agro9:
   db_data_agro10:
+  db_data_agro11:
+  db_data_agro12:
+  db_data_agro13:
+  db_data_agro14:
+  db_data_agro15:
+  db_data_agro16:
+  db_data_agro17:
+  db_data_agro18:
+  db_data_agro19:
+  db_data_agro20:
+  db_data_agro21:
+  db_data_agro22:
+  db_data_agro23:
+  db_data_agro24:
+  db_data_agro25:
+  db_data_agro26:
+  db_data_agro27:
+  db_data_agro28:
+  db_data_agro29:
+  db_data_agro30:
   backups_agro1:
   backups_agro2:
   backups_agro3:
@@ -682,5 +1565,25 @@ volumes:
   backups_agro8:
   backups_agro9:
   backups_agro10:
+  backups_agro11:
+  backups_agro12:
+  backups_agro13:
+  backups_agro14:
+  backups_agro15:
+  backups_agro16:
+  backups_agro17:
+  backups_agro18:
+  backups_agro19:
+  backups_agro20:
+  backups_agro21:
+  backups_agro22:
+  backups_agro23:
+  backups_agro24:
+  backups_agro25:
+  backups_agro26:
+  backups_agro27:
+  backups_agro28:
+  backups_agro29:
+  backups_agro30:
   caddy_data:
   caddy_config:

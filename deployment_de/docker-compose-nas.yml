@@ -257,7 +257,7 @@ services:
 
   # ── agro1 ──────────────────────────────────────────────────
   db-agro1:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-1
     restart: always
     environment:
@@ -297,7 +297,7 @@ services:
 
   # ── agro2 ──────────────────────────────────────────────────
   db-agro2:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-2
     restart: always
     environment:
@@ -337,7 +337,7 @@ services:
 
   # ── agro3 ──────────────────────────────────────────────────
   db-agro3:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-3
     restart: always
     environment:
@@ -377,7 +377,7 @@ services:
 
   # ── agro4 ──────────────────────────────────────────────────
   db-agro4:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-4
     restart: always
     environment:
@@ -417,7 +417,7 @@ services:
 
   # ── agro5 ──────────────────────────────────────────────────
   db-agro5:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-5
     restart: always
     environment:
@@ -457,7 +457,7 @@ services:
 
   # ── agro6 ──────────────────────────────────────────────────
   db-agro6:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-6
     restart: always
     environment:
@@ -497,7 +497,7 @@ services:
 
   # ── agro7 ──────────────────────────────────────────────────
   db-agro7:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-7
     restart: always
     environment:
@@ -537,7 +537,7 @@ services:
 
   # ── agro8 ──────────────────────────────────────────────────
   db-agro8:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-8
     restart: always
     environment:
@@ -577,7 +577,7 @@ services:
 
   # ── agro9 ──────────────────────────────────────────────────
   db-agro9:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-9
     restart: always
     environment:
@@ -617,7 +617,7 @@ services:
 
   # ── agro10 ─────────────────────────────────────────────────
   db-agro10:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-10
     restart: always
     environment:
@@ -657,7 +657,7 @@ services:
 
   # ── agro11 ─────────────────────────────────────────────────
   db-agro11:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-11
     restart: always
     environment:
@@ -697,7 +697,7 @@ services:
 
   # ── agro12 ─────────────────────────────────────────────────
   db-agro12:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-12
     restart: always
     environment:
@@ -737,7 +737,7 @@ services:
 
   # ── agro13 ─────────────────────────────────────────────────
   db-agro13:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-13
     restart: always
     environment:
@@ -777,7 +777,7 @@ services:
 
   # ── agro14 ─────────────────────────────────────────────────
   db-agro14:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-14
     restart: always
     environment:
@@ -817,7 +817,7 @@ services:
 
   # ── agro15 ─────────────────────────────────────────────────
   db-agro15:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-15
     restart: always
     environment:
@@ -857,7 +857,7 @@ services:
 
   # ── agro16 ─────────────────────────────────────────────────
   db-agro16:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-16
     restart: always
     environment:
@@ -897,7 +897,7 @@ services:
 
   # ── agro17 ─────────────────────────────────────────────────
   db-agro17:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-17
     restart: always
     environment:
@@ -937,7 +937,7 @@ services:
 
   # ── agro18 ─────────────────────────────────────────────────
   db-agro18:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-18
     restart: always
     environment:
@@ -977,7 +977,7 @@ services:
 
   # ── agro19 ─────────────────────────────────────────────────
   db-agro19:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-19
     restart: always
     environment:
@@ -1017,7 +1017,7 @@ services:
 
   # ── agro20 ─────────────────────────────────────────────────
   db-agro20:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-20
     restart: always
     environment:
@@ -1057,7 +1057,7 @@ services:
 
   # ── agro21 ─────────────────────────────────────────────────
   db-agro21:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-21
     restart: always
     environment:
@@ -1097,7 +1097,7 @@ services:
 
   # ── agro22 ─────────────────────────────────────────────────
   db-agro22:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-22
     restart: always
     environment:
@@ -1137,7 +1137,7 @@ services:
 
   # ── agro23 ─────────────────────────────────────────────────
   db-agro23:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-23
     restart: always
     environment:
@@ -1177,7 +1177,7 @@ services:
 
   # ── agro24 ─────────────────────────────────────────────────
   db-agro24:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-24
     restart: always
     environment:
@@ -1217,7 +1217,7 @@ services:
 
   # ── agro25 ─────────────────────────────────────────────────
   db-agro25:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-25
     restart: always
     environment:
@@ -1257,7 +1257,7 @@ services:
 
   # ── agro26 ─────────────────────────────────────────────────
   db-agro26:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-26
     restart: always
     environment:
@@ -1297,7 +1297,7 @@ services:
 
   # ── agro27 ─────────────────────────────────────────────────
   db-agro27:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-27
     restart: always
     environment:
@@ -1337,7 +1337,7 @@ services:
 
   # ── agro28 ─────────────────────────────────────────────────
   db-agro28:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-28
     restart: always
     environment:
@@ -1377,7 +1377,7 @@ services:
 
   # ── agro29 ─────────────────────────────────────────────────
   db-agro29:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-29
     restart: always
     environment:
@@ -1417,7 +1417,7 @@ services:
 
   # ── agro30 ─────────────────────────────────────────────────
   db-agro30:
-    image: postgres:15
+    image: postgres:17
     container_name: agro-db-30
     restart: always
     environment:

@@ -46,27 +46,27 @@ import os
 app = create_app(os.getenv('FLASK_ENV', 'production'))
 with app.app_context():
     try:
-      if User.query.count() == 0:
-        admin = User(username='admin', email='admin@agro.de', vorname='Administrator', nachname='System', rolle='betriebsadmin', aktiv=True, muss_passwort_aendern=True)
-        admin.set_password('admin123')
-        db.session.add(admin)
-        db.session.commit()
-        print('Admin-Benutzer erstellt (admin / admin123) - Passwort muss geaendert werden')
-    else:
-        print(f'{User.query.count()} Benutzer vorhanden, ueberspringe')
-
-    # Superadmins aus .env setzen (kommagetrennte Liste)
-    superadmin_usernames = [u.strip() for u in os.getenv('SUPERADMIN_USERNAMES', '').split(',') if u.strip()]
-    for username in superadmin_usernames:
-        u = User.query.filter_by(username=username).first()
-        if u and not u.ist_superadmin:
-            u.ist_superadmin = True
+        if User.query.count() == 0:
+            admin = User(username='admin', email='admin@agro.de', vorname='Administrator', nachname='System', rolle='betriebsadmin', aktiv=True, muss_passwort_aendern=True)
+            admin.set_password('admin123')
+            db.session.add(admin)
             db.session.commit()
-            print(f'Superadmin gesetzt: {username}')
-        elif u:
-            print(f'Superadmin bereits gesetzt: {username}')
+            print('Admin-Benutzer erstellt (admin / admin123) - Passwort muss geaendert werden')
         else:
-            print(f'WARNUNG: Superadmin-User nicht gefunden: {username}')
+            print(f'{User.query.count()} Benutzer vorhanden, ueberspringe')
+        superadmin_usernames = [u.strip() for u in os.getenv('SUPERADMIN_USERNAMES', '').split(',') if u.strip()]
+        for username in superadmin_usernames:
+            u = User.query.filter_by(username=username).first()
+            if u and not u.ist_superadmin:
+                u.ist_superadmin = True
+                db.session.commit()
+                print(f'Superadmin gesetzt: {username}')
+            elif u:
+                print(f'Superadmin bereits gesetzt: {username}')
+            else:
+                print(f'WARNUNG: Superadmin-User nicht gefunden: {username}')
+    except Exception as e:
+        print(f'WARNUNG: Admin-Check fehlgeschlagen: {e}')
 "
 
 echo "=== Starte Gunicorn ==="

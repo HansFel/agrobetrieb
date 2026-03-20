@@ -30,7 +30,7 @@ RUN if [ "$COMMIT_HASH" = "unknown" ] && [ -d ".git" ]; then \
 
 # Entrypoint-Script (Migrationen VOR Gunicorn)
 COPY deployment_de/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Expose Port
 EXPOSE 5000

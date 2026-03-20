@@ -1510,6 +1510,30 @@ services:
       - caddy_config:/config
       - ./Caddyfile:/etc/caddy/Caddyfile
 
+  # ============================================================
+  # NASManager – Web-Interface für Backups, Deploy, Instanzen
+  # ============================================================
+  nasmanager:
+    build:
+      context: /volume1/docker/nasmanager
+      dockerfile: deployment_de/Dockerfile
+    image: nasmanager:local
+    container_name: nasmanager-app
+    restart: always
+    environment:
+      SECRET_KEY: ${SECRET_KEY_MANAGER}
+      FLASK_ENV: production
+      COMPOSE_FILE: /nas/docker-compose.yaml
+      BACKUP_DIR: /app/backups
+      NAS_ROOT: /nas
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/docker:/nas
+      - backups_manager:/app/backups
+      - manager_data:/app/data
+    ports:
+      - "8888:5000"
+
 volumes:
   db_data:
   db_data_agr:
@@ -1587,3 +1611,5 @@ volumes:
   backups_agro30:
   caddy_data:
   caddy_config:
+  backups_manager:
+  manager_data:
